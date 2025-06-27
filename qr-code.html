@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code - Application Fourmiz</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #FF4444 0%, #FF6B6B 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF4444;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 32px;
+        }
+        
+        .qr-container {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 2px solid #e5e5e5;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+        
+        .instructions {
+            background: #fff8e1;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border-left: 4px solid #FF4444;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 12px 0;
+            color: #FF4444;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+            text-align: left;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .url-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            border: 1px solid #e5e5e5;
+        }
+        
+        .url {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 24px;
+        }
+        
+        .feature {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .feature-text {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .status {
+            background: #e8f5e8;
+            color: #4CAF50;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: inline-block;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 24px;
+            }
+            
+            .title {
+                font-size: 24px;
+            }
+            
+            .qr-code {
+                width: 160px;
+                height: 160px;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🐜</div>
+        <h1 class="title">Fourmiz</h1>
+        <p class="subtitle">Services à la demande</p>
+        
+        <div class="status">✅ Compatible Expo Go</div>
+        
+        <div class="qr-container">
+            <canvas id="qrcode" class="qr-code"></canvas>
+        </div>
+        
+        <div class="instructions">
+            <h3>📱 Comment scanner ce QR code :</h3>
+            <ol>
+                <li>Téléchargez <strong>Expo Go</strong> sur votre téléphone</li>
+                <li>Ouvrez l'application Expo Go</li>
+                <li>Appuyez sur <strong>"Scan QR Code"</strong></li>
+                <li>Pointez votre caméra vers ce QR code</li>
+                <li>L'application Fourmiz se lancera automatiquement !</li>
+            </ol>
+        </div>
+        
+        <div class="url-container">
+            <div class="url" id="expo-url">Génération de l'URL en cours...</div>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🛒</div>
+                <div class="feature-text">Courses & Livraisons</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🛠️</div>
+                <div class="feature-text">Bricolage & Nettoyage</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🐾</div>
+                <div class="feature-text">Garde d'animaux</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🚗</div>
+                <div class="feature-text">Transport</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fonction pour obtenir l'URL Expo
+        function getExpoUrl() {
+            // URL de développement Expo typique
+            const host = window.location.hostname;
+            const port = '8081'; // Port par défaut d'Expo
+            
+            // Format d'URL Expo pour le développement
+            const expoUrl = `exp://${host}:${port}`;
+            
+            return expoUrl;
+        }
+        
+        // Générer le QR code
+        function generateQRCode() {
+            const expoUrl = getExpoUrl();
+            const canvas = document.getElementById('qrcode');
+            const urlElement = document.getElementById('expo-url');
+            
+            // Afficher l'URL
+            urlElement.textContent = expoUrl;
+            
+            // Générer le QR code
+            QRCode.toCanvas(canvas, expoUrl, {
+                width: 200,
+                height: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                },
+                errorCorrectionLevel: 'M'
+            }, function (error) {
+                if (error) {
+                    console.error('Erreur lors de la génération du QR code:', error);
+                    canvas.style.display = 'none';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.innerHTML = `
+                        <div style="color: #FF4444; font-weight: bold;">❌ Erreur QR Code</div>
+                        <div style="font-size: 12px; margin-top: 8px;">
+                            URL manuelle: <br>
+                            <code style="background: #f0f0f0; padding: 4px; border-radius: 4px; font-size: 10px;">
+                                ${expoUrl}
+                            </code>
+                        </div>
+                    `;
+                    canvas.parentNode.appendChild(errorDiv);
+                } else {
+                    console.log('QR code généré avec succès !');
+                }
+            });
+        }
+        
+        // Générer le QR code au chargement de la page
+        document.addEventListener('DOMContentLoaded', generateQRCode);
+        
+        // Régénérer le QR code si l'URL change
+        window.addEventListener('hashchange', generateQRCode);
+    </script>
+</body>
+</html>

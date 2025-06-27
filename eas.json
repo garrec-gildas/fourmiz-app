@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "version": ">= 3.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://hsijgsqtqbqevbytgvhm.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzaWpnc3F0cWJxZXZieXRndmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDE1NjEsImV4cCI6MjA2NTkxNzU2MX0.lAJ-AY36uEUIDVONesEgHPNUhCyiUovdeolxCle-510",
+        "EXPO_PUBLIC_STRIPE_KEY": "pk_live_51RHhnsRpVpJOyWPnDGonLCLt7IipjSmCJ9VSgloJyj1sEsUwOnRhUokyjd0cWWcE9fGBSs9ETjVjqZ0VMGhx0n0d00IVxawjnq",
+        "EXPO_PUBLIC_GOOGLE_MAPS_KEY": "AIzaSyAiP62maE6ox6eldAhnVh_Ou5piNyMXges"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://hsijgsqtqbqevbytgvhm.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzaWpnc3F0cWJxZXZieXRndmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDE1NjEsImV4cCI6MjA2NTkxNzU2MX0.lAJ-AY36uEUIDVONesEgHPNUhCyiUovdeolxCle-510",
+        "EXPO_PUBLIC_STRIPE_KEY": "pk_live_51RHhnsRpVpJOyWPnDGonLCLt7IipjSmCJ9VSgloJyj1sEsUwOnRhUokyjd0cWWcE9fGBSs9ETjVjqZ0VMGhx0n0d00IVxawjnq",
+        "EXPO_PUBLIC_GOOGLE_MAPS_KEY": "AIzaSyAiP62maE6ox6eldAhnVh_Ou5piNyMXges"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://hsijgsqtqbqevbytgvhm.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzaWpnc3F0cWJxZXZieXRndmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDE1NjEsImV4cCI6MjA2NTkxNzU2MX0.lAJ-AY36uEUIDVONesEgHPNUhCyiUovdeolxCle-510",
+        "EXPO_PUBLIC_STRIPE_KEY": "pk_live_51RHhnsRpVpJOyWPnDGonLCLt7IipjSmCJ9VSgloJyj1sEsUwOnRhUokyjd0cWWcE9fGBSs9ETjVjqZ0VMGhx0n0d00IVxawjnq",
+        "EXPO_PUBLIC_GOOGLE_MAPS_KEY": "AIzaSyAiP62maE6ox6eldAhnVh_Ou5piNyMXges"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
