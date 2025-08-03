@@ -1,0 +1,771 @@
+// app/(tabs)/available-orders.tsx - Commandes disponibles pour les fourmiz
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+  TextInput,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
+import { Stack } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+
+interface AvailableOrder {
+  id: number;
+  service_id: number;
+  client_id: string;
+  description: string;
+  address: string;
+  postal_code: string;
+  city: string;
+  date: string;
+  start_time: string;
+  departure_time: string;
+  duration: string;
+  phone: string;
+  urgent: boolean;
+  urgency_level: string;
+  proposed_amount: number;
+  status: string;
+  created_at: string;
+  distance?: number; // Distance calculée depuis la position de la fourmiz
+  
+  // Relations
+  services: {
+    title: string;
+    categorie: string;
+  };
+  
+  client_profile: {
+    firstname: string;
+    lastname: string;
+    rating: number;
+    total_orders: number;
+  };
+}
+
+const CATEGORIES = [
+  'Tous',
+  'Transport',
+  'Livraison', 
+  'Bricolage',
+  'Jardinage',
+  'Déménagement',
+  'Aide à domicile',
+  'Autres'
+];
+
+export default function AvailableOrdersScreen() {
+  const [orders, setOrders] = useState<AvailableOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<AvailableOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState('Tous');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'distance'>('date');
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getUser();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (currentUser) {
+        loadAvailableOrders();
+      }
+    }, [currentUser])
+  );
+
+  // Filtrer et trier les commandes
+  useEffect(() => {
+    let filtered = orders;
+
+    // Filtrer par catégorie
+    if (selectedCategory !== 'Tous') {
+      filtered = filtered.filter(order => 
+        order.services.categorie === selectedCategory
+      );
+    }
+
+    // Filtrer par recherche
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(order =>
+        order.services.title.toLowerCase().includes(query) ||
+        order.description.toLowerCase().includes(query) ||
+        order.city.toLowerCase().includes(query) ||
+        order.services.categorie.toLowerCase().includes(query)
+      );
+    }
+
+    // Trier
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'amount':
+          return b.proposed_amount - a.proposed_amount;
+        case 'distance':
+          return (a.distance || 999) - (b.distance || 999);
+        case 'date':
+        default:
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+      }
+    });
+
+    setFilteredOrders(filtered);
+  }, [orders, selectedCategory, searchQuery, sortBy]);
+
+  const loadAvailableOrders = async () => {
+    if (!currentUser) return;
+
+    try {
+      console.log('📋 Chargement des commandes disponibles...');
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          services (
+            title,
+            categorie
+          ),
+          client_profile:profiles!client_id (
+            firstname,
+            lastname,
+            rating,
+            total_orders
+          )
+        `)
+        .eq('status', 'en_attente')
+        .neq('client_id', currentUser.id) // Exclure ses propres commandes
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Erreur chargement commandes:', error);
+        throw error;
+      }
+
+      console.log('✅ Commandes disponibles chargées:', data?.length || 0);
+      
+      // TODO: Calculer la distance depuis la position de la fourmiz
+      const ordersWithDistance = data?.map(order => ({
+        ...order,
+        distance: Math.floor(Math.random() * 15) + 1 // Distance simulée
+      })) || [];
+
+      setOrders(ordersWithDistance);
+    } catch (error) {
+      console.error('💥 Erreur fatale:', error);
+      Alert.alert('Erreur', 'Impossible de charger les commandes disponibles');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadAvailableOrders();
+  }, [currentUser]);
+
+  const acceptOrder = async (orderId: number) => {
+    Alert.alert(
+      'Accepter cette mission',
+      'Voulez-vous accepter cette commande ? Le client sera notifié immédiatement.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Accepter',
+          style: 'default',
+          onPress: async () => {
+            try {
+              console.log('✅ Acceptation commande:', orderId);
+              
+              const { error } = await supabase
+                .from('orders')
+                .update({
+                  fourmiz_id: currentUser.id,
+                  status: 'acceptee',
+                  accepted_at: new Date().toISOString(),
+                  confirmed_by_fourmiz: true,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', orderId);
+
+              if (error) throw error;
+
+              Alert.alert(
+                '🎉 Mission acceptée !',
+                'Vous pouvez maintenant contacter le client pour organiser la prestation.',
+                [
+                  { text: 'Voir mes missions', onPress: () => router.push('/(tabs)/services-requests') },
+                  { text: 'Contacter le client', onPress: () => router.push(`/chat/${orderId}`) }
+                ]
+              );
+
+              loadAvailableOrders(); // Recharger la liste
+            } catch (error) {
+              console.error('❌ Erreur acceptation:', error);
+              Alert.alert('Erreur', 'Impossible d\'accepter cette commande');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Aujourd\'hui';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Demain';
+    } else {
+      return date.toLocaleDateString('fr-FR', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short'
+      });
+    }
+  };
+
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    return timeString.slice(0, 5);
+  };
+
+  const getUrgencyColor = (level: string) => {
+    switch (level) {
+      case '30min': return '#ef4444';
+      case '1hour': return '#f59e0b';
+      case '2hours': return '#eab308';
+      default: return '#6b7280';
+    }
+  };
+
+  const renderFilterBar = () => (
+    <View style={styles.filterBar}>
+      {/* Recherche */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#6b7280" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Rechercher une mission..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color="#6b7280" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Catégories */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesScroll}
+      >
+        {CATEGORIES.map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.categoryButton,
+              selectedCategory === category && styles.categoryButtonActive
+            ]}
+            onPress={() => setSelectedCategory(category)}
+          >
+            <Text style={[
+              styles.categoryButtonText,
+              selectedCategory === category && styles.categoryButtonTextActive
+            ]}>
+              {category}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Tri */}
+      <View style={styles.sortContainer}>
+        <Text style={styles.sortLabel}>Trier par :</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {[
+            { key: 'date', label: '📅 Date', icon: 'calendar' },
+            { key: 'amount', label: '💰 Montant', icon: 'cash' },
+            { key: 'distance', label: '📍 Distance', icon: 'location' }
+          ].map((option) => (
+            <TouchableOpacity
+              key={option.key}
+              style={[
+                styles.sortButton,
+                sortBy === option.key && styles.sortButtonActive
+              ]}
+              onPress={() => setSortBy(option.key as any)}
+            >
+              <Ionicons 
+                name={option.icon as any} 
+                size={16} 
+                color={sortBy === option.key ? '#fff' : '#6b7280'} 
+              />
+              <Text style={[
+                styles.sortButtonText,
+                sortBy === option.key && styles.sortButtonTextActive
+              ]}>
+                {option.label.split(' ')[1]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+  const renderOrderCard = (order: AvailableOrder) => (
+    <TouchableOpacity
+      key={order.id}
+      style={styles.orderCard}
+      onPress={() => router.push(`/available-orders/${order.id}`)}
+    >
+      {/* Header */}
+      <View style={styles.orderHeader}>
+        <View style={styles.orderTitleSection}>
+          <Text style={styles.orderTitle}>{order.services.title}</Text>
+          <Text style={styles.orderCategory}>{order.services.categorie}</Text>
+        </View>
+        
+        <View style={styles.orderMeta}>
+          <Text style={styles.orderAmount}>{((order.proposed_amount || 0) / 100).toFixed(2)}€</Text>
+          {order.distance && (
+            <Text style={styles.orderDistance}>{order.distance} km</Text>
+          )}
+        </View>
+      </View>
+
+      {/* Urgence */}
+      {order.urgent && (
+        <View style={[
+          styles.urgentBadge,
+          { backgroundColor: `${getUrgencyColor(order.urgency_level)}20` }
+        ]}>
+          <Ionicons 
+            name="alert-circle" 
+            size={16} 
+            color={getUrgencyColor(order.urgency_level)} 
+          />
+          <Text style={[
+            styles.urgentText,
+            { color: getUrgencyColor(order.urgency_level) }
+          ]}>
+            URGENT - {order.urgency_level}
+          </Text>
+        </View>
+      )}
+
+      {/* Détails */}
+      <View style={styles.orderDetails}>
+        <View style={styles.detailRow}>
+          <Ionicons name="calendar" size={16} color="#6b7280" />
+          <Text style={styles.detailText}>
+            {formatDate(order.date)}
+            {order.start_time && ` à ${formatTime(order.start_time)}`}
+            {order.departure_time && ` (départ ${formatTime(order.departure_time)})`}
+          </Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Ionicons name="location" size={16} color="#6b7280" />
+          <Text style={styles.detailText} numberOfLines={2}>
+            {order.address}, {order.postal_code} {order.city}
+          </Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Ionicons name="time" size={16} color="#6b7280" />
+          <Text style={styles.detailText}>
+            Durée estimée : {order.duration || '?'} min
+          </Text>
+        </View>
+      </View>
+
+      {/* Description */}
+      <Text style={styles.orderDescription} numberOfLines={3}>
+        {order.description}
+      </Text>
+
+      {/* Client info */}
+      <View style={styles.clientSection}>
+        <View style={styles.clientInfo}>
+          <Text style={styles.clientName}>
+            {order.client_profile.firstname} {order.client_profile.lastname?.charAt(0)}.
+          </Text>
+          {order.client_profile.rating && (
+            <View style={styles.clientRating}>
+              <Ionicons name="star" size={14} color="#fbbf24" />
+              <Text style={styles.ratingText}>
+                {order.client_profile.rating.toFixed(1)}
+              </Text>
+              <Text style={styles.ordersCount}>
+                ({order.client_profile.total_orders} commandes)
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.timeAgo}>
+          Il y a {Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000)} min
+        </Text>
+      </View>
+
+      {/* Actions */}
+      <View style={styles.orderActions}>
+        <TouchableOpacity 
+          style={styles.detailsButton}
+          onPress={() => router.push(`/available-orders/${order.id}`)}
+        >
+          <Ionicons name="eye" size={16} color="#3b82f6" />
+          <Text style={styles.detailsButtonText}>Détails</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.acceptButton}
+          onPress={() => acceptOrder(order.id)}
+        >
+          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+          <Text style={styles.acceptButtonText}>Accepter</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="search-outline" size={64} color="#d1d5db" />
+      <Text style={styles.emptyTitle}>Aucune mission disponible</Text>
+      <Text style={styles.emptySubtitle}>
+        {searchQuery || selectedCategory !== 'Tous' 
+          ? 'Aucune mission ne correspond à vos critères'
+          : 'Il n\'y a pas de missions disponibles pour le moment'
+        }
+      </Text>
+      {(searchQuery || selectedCategory !== 'Tous') && (
+        <TouchableOpacity 
+          style={styles.resetFiltersButton}
+          onPress={() => {
+            setSearchQuery('');
+            setSelectedCategory('Tous');
+          }}
+        >
+          <Text style={styles.resetFiltersText}>Réinitialiser les filtres</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Stack.Screen options={{ title: 'Missions disponibles' }} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF4444" />
+          <Text style={styles.loadingText}>Chargement des missions...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen 
+        options={{
+          title: 'Missions disponibles',
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              <Text style={styles.headerCount}>
+                {filteredOrders.length} mission{filteredOrders.length > 1 ? 's' : ''}
+              </Text>
+            </View>
+          ),
+        }} 
+      />
+
+      <View style={styles.content}>
+        {renderFilterBar()}
+
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              colors={['#FF4444']}
+              tintColor="#FF4444"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {filteredOrders.length > 0 ? (
+            <View style={styles.ordersList}>
+              {filteredOrders.map(renderOrderCard)}
+            </View>
+          ) : (
+            renderEmptyState()
+          )}
+
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  content: { flex: 1 },
+  
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: { fontSize: 16, color: '#6b7280' },
+
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  headerCount: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
+
+  // Barre de filtres
+  filterBar: {
+    backgroundColor: '#fff',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    gap: 16,
+  },
+  
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#374151',
+  },
+
+  categoriesScroll: { marginVertical: 8 },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  categoryButtonText: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
+  categoryButtonTextActive: { color: '#fff', fontWeight: '600' },
+
+  sortContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sortLabel: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+    gap: 4,
+  },
+  sortButtonActive: { backgroundColor: '#FF4444' },
+  sortButtonText: { fontSize: 12, color: '#6b7280' },
+  sortButtonTextActive: { color: '#fff' },
+
+  // Liste
+  scrollView: { flex: 1 },
+  ordersList: { padding: 16, gap: 16 },
+
+  // Carte de commande
+  orderCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+
+  orderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  orderTitleSection: { flex: 1, marginRight: 16 },
+  orderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  orderCategory: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '500',
+  },
+  orderMeta: { alignItems: 'flex-end' },
+  orderAmount: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#059669',
+    marginBottom: 2,
+  },
+  orderDistance: {
+    fontSize: 12,
+    color: '#6b7280',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+
+  urgentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 6,
+  },
+  urgentText: { fontSize: 12, fontWeight: '600' },
+
+  orderDetails: { gap: 8, marginBottom: 12 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  detailText: { fontSize: 14, color: '#6b7280', flex: 1 },
+
+  orderDescription: {
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
+    marginBottom: 16,
+    backgroundColor: '#f9fafb',
+    padding: 12,
+    borderRadius: 8,
+    fontStyle: 'italic',
+  },
+
+  clientSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    marginBottom: 16,
+  },
+  clientInfo: { flex: 1 },
+  clientName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  clientRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: { fontSize: 14, color: '#fbbf24', fontWeight: '500' },
+  ordersCount: { fontSize: 12, color: '#6b7280' },
+  timeAgo: { fontSize: 12, color: '#6b7280' },
+
+  orderActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  detailsButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e0f2fe',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  detailsButtonText: { fontSize: 14, color: '#3b82f6', fontWeight: '600' },
+  acceptButton: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  acceptButtonText: { fontSize: 16, color: '#fff', fontWeight: 'bold' },
+
+  // État vide
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 64,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  resetFiltersButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  resetFiltersText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+
+  bottomSpacer: { height: 32 },
+});

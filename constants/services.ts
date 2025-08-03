@@ -1,5 +1,5 @@
 // Service categories and services data
-import { ServiceCategory } from '@/types';
+import { ServiceCategory } from '../../types';
 
 export const SERVICE_CATEGORIES: ServiceCategory[] = [
   {

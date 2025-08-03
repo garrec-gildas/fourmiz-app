@@ -1,0 +1,8 @@
+{
+  "expo": {
+    "name": "fourmiz-app",
+    "slug": "fourmiz-app",
+    "version": "1.0.0",
+    "assetBundlePatterns": ["assets/**/*"]
+  }
+}
