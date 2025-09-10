@@ -181,12 +181,10 @@ export default function CompleteProfileScreen() {
 
   // 🧪 NOUVEAU: Test diagnostic storage complet
   const runStorageDiagnostic = useCallback(async (): Promise<void> => {
-    console.log('🧪 === DÉBUT DIAGNOSTIC STORAGE ===');
     setUiState(prev => ({ ...prev, testing: true }));
     
     try {
       // Étape 1: Vérifier l'authentification
-      console.log('👤 Étape 1: Vérification auth...');
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
@@ -194,17 +192,10 @@ export default function CompleteProfileScreen() {
         return;
       }
       
-      console.log('✅ Utilisateur connecté:', user.id, user.email);
-      
       // Étape 2: Test avec fichier minimal
-      console.log('📄 Étape 2: Création fichier test...');
       const testContent = `Test upload ${new Date().toISOString()}`;
       const testBlob = new Blob([testContent], { type: 'text/plain' });
       const testPath = `${user.id}/diagnostic-${Date.now()}.txt`;
-      
-      console.log('📤 Étape 3: Upload vers:', testPath);
-      console.log('📊 Taille:', testBlob.size, 'bytes');
-      console.log('📝 Type:', testBlob.type);
       
       // Étape 3: Upload avec timeout personnalisé
       const uploadPromise = supabase.storage
@@ -232,15 +223,10 @@ export default function CompleteProfileScreen() {
         return;
       }
       
-      console.log('✅ Upload réussi en', endTime - startTime, 'ms');
-      console.log('📄 Données:', data);
-      
       // Étape 4: Vérifier l'URL publique
       const { data: urlData } = supabase.storage
         .from('user-documents')
         .getPublicUrl(testPath);
-      
-      console.log('🔗 URL générée:', urlData.publicUrl);
       
       // Étape 5: Nettoyer le fichier test
       const { error: deleteError } = await supabase.storage
@@ -273,7 +259,6 @@ export default function CompleteProfileScreen() {
       }
     } finally {
       setUiState(prev => ({ ...prev, testing: false }));
-      console.log('🏁 === FIN DIAGNOSTIC STORAGE ===');
     }
   }, []);
 
@@ -284,7 +269,6 @@ export default function CompleteProfileScreen() {
     metadata: any
   ): Promise<void> => {
     try {
-      console.log('💾 Sauvegarde fallback en cours...');
       
       // Convertir le fichier en base64 pour sauvegarde temporaire
       const response = await fetch(fileUri);
@@ -307,8 +291,6 @@ export default function CompleteProfileScreen() {
         console.error('❌ Erreur sauvegarde fallback:', error);
         throw error;
       }
-      
-      console.log('✅ Document sauvegardé en fallback');
     } catch (error) {
       console.error('❌ Erreur critique fallback:', error);
       throw error;
@@ -319,7 +301,6 @@ export default function CompleteProfileScreen() {
   const prefillFormData = useCallback(async (currentUser: UserSession['user']): Promise<void> => {
     try {
       setUiState(prev => ({ ...prev, prefilling: true }));
-      console.log('🔄 Début pré-remplissage des données...');
 
       let prefillData = {
         firstname: '',
@@ -328,7 +309,6 @@ export default function CompleteProfileScreen() {
       };
 
       // PRIORITÉ 1: Vérifier s'il y a déjà un profil en base
-      console.log('📋 Recherche profil existant...');
       const { data: existingProfile } = await supabase
         .from('profiles')
         .select('firstname, lastname, phone, prenom, nom, first_name, last_name')
@@ -336,35 +316,27 @@ export default function CompleteProfileScreen() {
         .single();
 
       if (existingProfile) {
-        console.log('✅ Profil existant trouvé:', existingProfile);
         
         // Construction intelligente depuis le profil
         prefillData.firstname = existingProfile.firstname || existingProfile.prenom || existingProfile.first_name || '';
         prefillData.lastname = existingProfile.lastname || existingProfile.nom || existingProfile.last_name || '';
         prefillData.phone = formatPhoneNumber(existingProfile.phone || '');
-        
-        console.log('📋 Données depuis profil:', prefillData);
       }
 
       // PRIORITÉ 2: Métadonnées utilisateur (données d'inscription)
       if (!prefillData.firstname || !prefillData.lastname || !prefillData.phone) {
-        console.log('🔍 Vérification métadonnées utilisateur...');
-        console.log('👤 user_metadata:', currentUser.user_metadata);
         
         if (currentUser.user_metadata) {
           if (!prefillData.firstname && currentUser.user_metadata.firstname) {
             prefillData.firstname = currentUser.user_metadata.firstname;
-            console.log('✅ Prénom depuis metadata:', prefillData.firstname);
           }
           
           if (!prefillData.lastname && currentUser.user_metadata.lastname) {
             prefillData.lastname = currentUser.user_metadata.lastname;
-            console.log('✅ Nom depuis metadata:', prefillData.lastname);
           }
           
           if (!prefillData.phone && currentUser.user_metadata.phone) {
             prefillData.phone = formatPhoneNumber(currentUser.user_metadata.phone);
-            console.log('✅ Téléphone depuis metadata:', prefillData.phone);
           }
         }
       }
@@ -379,13 +351,11 @@ export default function CompleteProfileScreen() {
           if (parts.length >= 2) {
             prefillData.firstname = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
             prefillData.lastname = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
-            console.log('✅ Nom/prénom extraits de l\'email:', prefillData);
           }
         }
       }
 
       // Application des données pré-remplies
-      console.log('🎯 Données finales à pré-remplir:', prefillData);
       
       setFormData(prev => ({
         ...prev,
@@ -393,8 +363,6 @@ export default function CompleteProfileScreen() {
         lastname: prefillData.lastname.trim(),
         phone: prefillData.phone.trim(),
       }));
-
-      console.log('✅ Pré-remplissage terminé avec succès');
 
     } catch (error) {
       console.warn('⚠️ Erreur lors du pré-remplissage:', error);
@@ -407,13 +375,11 @@ export default function CompleteProfileScreen() {
   // 🔄 CHARGEMENT DE LA SESSION UTILISATEUR (MODIFIÉ avec pré-remplissage)
   const loadUserSession = useCallback(async (): Promise<void> => {
     try {
-      console.log('🔐 Vérification de la session utilisateur...');
       
       const currentUser = await getCurrentUser();
       const currentSession = await getCurrentSession();
       
       if (!currentUser || !currentSession) {
-        console.log('❌ Session invalide, redirection vers login');
         Alert.alert(
           'Session expirée',
           'Veuillez vous reconnecter pour continuer',
@@ -421,9 +387,6 @@ export default function CompleteProfileScreen() {
         );
         return;
       }
-
-      console.log('✅ Session utilisateur validée:', currentUser.email);
-      console.log('📱 Métadonnées utilisateur:', currentUser.user_metadata);
       
       const userSession: UserSession = {
         user: {
@@ -483,11 +446,9 @@ export default function CompleteProfileScreen() {
       }
 
       if (existingProfile) {
-        console.log('📋 Profil existant trouvé:', existingProfile);
         
         // Si le profil est déjà complet, rediriger
         if (existingProfile.profile_completed && existingProfile.firstname && existingProfile.lastname) {
-          console.log('✅ Profil déjà complet, redirection vers dashboard...');
           Alert.alert(
             'Profil déjà complété',
             'Votre profil est déjà rempli. Redirection vers l\'application...',
@@ -626,8 +587,6 @@ export default function CompleteProfileScreen() {
         if (errors.idDocument) {
           setErrors(prev => ({ ...prev, idDocument: undefined }));
         }
-        
-        console.log('✅ Document d\'identité sélectionné');
       }
     } catch (error) {
       console.error('❌ Erreur sélection document:', error);
@@ -640,8 +599,6 @@ export default function CompleteProfileScreen() {
     if (!formData.idDocumentUri) {
       return { success: true, url: null };
     }
-
-    console.log('📤 === DÉBUT UPLOAD DOCUMENT ROBUSTE ===');
     
     try {
       setUiState(prev => ({ ...prev, uploadingDocument: true }));
@@ -661,8 +618,6 @@ export default function CompleteProfileScreen() {
       const fileSize = blob.size;
       const fileType = blob.type;
       
-      console.log('📊 Fichier:', { taille: fileSize, type: fileType });
-      
       // Validations
       if (fileSize > UPLOAD_CONFIG.maxSizeMB * 1024 * 1024) {
         throw new Error(`Fichier trop volumineux (max ${UPLOAD_CONFIG.maxSizeMB}MB)`);
@@ -681,7 +636,6 @@ export default function CompleteProfileScreen() {
       
       for (let attempt = 1; attempt <= UPLOAD_CONFIG.maxRetries; attempt++) {
         try {
-          console.log(`📤 Tentative ${attempt}/${UPLOAD_CONFIG.maxRetries}`);
           
           const uploadPromise = supabase.storage
             .from('user-documents')
@@ -708,8 +662,6 @@ export default function CompleteProfileScreen() {
           const { data: urlData } = supabase.storage
             .from('user-documents')
             .getPublicUrl(filePath);
-            
-          console.log('✅ Upload réussi:', filePath);
           
           return {
             success: true,
@@ -729,7 +681,6 @@ export default function CompleteProfileScreen() {
       }
       
       // Toutes les tentatives ont échoué - Utiliser le fallback
-      console.log('🔄 Passage en mode fallback...');
       
       await saveFallbackUpload(userId, formData.idDocumentUri, {
         originalSize: fileSize,
@@ -752,7 +703,6 @@ export default function CompleteProfileScreen() {
       };
     } finally {
       setUiState(prev => ({ ...prev, uploadingDocument: false }));
-      console.log('🏁 === FIN UPLOAD DOCUMENT ===');
     }
   }, [formData.idDocumentUri, saveFallbackUpload]);
 
@@ -777,12 +727,10 @@ export default function CompleteProfileScreen() {
         
         // Si le code n'existe pas, on peut l'utiliser
         if (!existingCode) {
-          console.log(`✅ Code unique généré: ${code}`);
           return code;
         }
         
         attempts++;
-        console.log(`⚠️ Code ${code} déjà utilisé, tentative ${attempts}/${maxAttempts}`);
       }
       
       console.error('❌ Impossible de générer un code unique après', maxAttempts, 'tentatives');
@@ -798,7 +746,6 @@ export default function CompleteProfileScreen() {
   const createReferralCodeForUser = useCallback(async (userId: string): Promise<boolean> => {
     try {
       setUiState(prev => ({ ...prev, creatingReferralCode: true }));
-      console.log('🎯 Création code de parrainage pour utilisateur:', userId);
 
       // 🔧 CORRECTION: Utiliser la fonction intégrée au lieu d'un import externe
       const uniqueCode = await generateUniqueReferralCode();
@@ -822,8 +769,6 @@ export default function CompleteProfileScreen() {
         console.error('❌ Erreur création code parrainage:', error);
         return false;
       }
-
-      console.log(`✅ Code de parrainage créé: ${uniqueCode}`);
       return true;
 
     } catch (error) {
@@ -857,8 +802,6 @@ export default function CompleteProfileScreen() {
       router.replace('/auth/signin');
       return;
     }
-
-    console.log('💾 === SAUVEGARDE PROFIL COMPLET ===');
     console.log('📋 Données:', {
       roles: formData.roles,
       user: session.user.email,
@@ -879,7 +822,6 @@ export default function CompleteProfileScreen() {
 
       // Upload du document si nécessaire avec le système robuste
       if (formData.roles.includes('fourmiz') && formData.idDocumentUri) {
-        console.log('📤 Upload document avec système robuste...');
         
         const uploadResult = await uploadIdDocument(session.user.id);
         
@@ -889,11 +831,9 @@ export default function CompleteProfileScreen() {
         
         if (uploadResult.fallbackUsed) {
           uploadFallbackUsed = true;
-          console.log('⚠️ Document sauvegardé en fallback');
           // On continue quand même avec documentPath = null
         } else if (uploadResult.url) {
           documentPath = uploadResult.url;
-          console.log('✅ Document uploadé:', documentPath);
         }
       }
 
@@ -916,8 +856,6 @@ export default function CompleteProfileScreen() {
         updated_at: new Date().toISOString(),
       };
 
-      console.log('📤 Sauvegarde du profil en base...');
-
       // Sauvegarder en base avec upsert
       const { error: profileError } = await supabase
         .from('profiles')
@@ -932,14 +870,10 @@ export default function CompleteProfileScreen() {
         throw new Error(userMessage);
       }
 
-      console.log('✅ Profil sauvegardé avec succès !');
-
       // ➕ CRÉATION DU CODE DE PARRAINAGE POUR L'UTILISATEUR
-      console.log('🎯 Création du code de parrainage...');
       const referralCodeCreated = await createReferralCodeForUser(session.user.id);
       
       if (referralCodeCreated) {
-        console.log('✅ Code de parrainage créé avec succès');
       } else {
         console.warn('⚠️ Code de parrainage non créé, mais profil sauvegardé');
         // On ne bloque pas l'utilisateur si le code de parrainage échoue
@@ -977,7 +911,6 @@ export default function CompleteProfileScreen() {
       );
     } finally {
       setUiState(prev => ({ ...prev, uploading: false }));
-      console.log('🏁 Fin sauvegarde profil');
     }
   }, [validateForm, session, formData, uploadIdDocument, createReferralCodeForUser]);
 
@@ -994,8 +927,6 @@ export default function CompleteProfileScreen() {
     if (errors.roles) {
       setErrors(prev => ({ ...prev, roles: undefined }));
     }
-
-    console.log('🎭 Rôle modifié:', { role, newRoles: formData.roles });
   }, [formData.roles, errors.roles]);
 
   // 📱 HELPERS DE MISE À JOUR
