@@ -19,29 +19,29 @@ import { supabase } from '../../lib/supabase';
 const timeSlots = Array.from({ length: 96 }, (_, i) => {
   const hour = Math.floor(i / 4);
   const minute = (i % 4) * 15;
-  return { label: ${String(hour).padStart(2, '0')}:, value: ${String(hour).padStart(2, '0')}: };
+  return { label: ${string(hour).padStart(2, '0')}:, value: ${string(hour).padStart(2, '0')}: };
 });
 
-export default function CreateOrderScreen() {
+export default function cr??eateOrderScr??een() {
   const { serviceId } = useLocalSearchParams();
   const [service, setService] = useState<any>(null);
   const [date, setDate] = useState('');
-  const [departureTime, setDepartureTime] = useState('09:00');
-  const [arrivalTime, setArrivalTime] = useState('09:15');
+  const [departuretime, setDeparturetime] = useState('09:00');
+  const [arrivaltime, setArrivaltime] = useState('09:15');
   const [urgent, setUrgent] = useState(false);
   const [askInvoice, setAskInvoice] = useState(false);
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [alternativePhone, setAlternativePhone] = useState('');
-  const [description, setDescription] = useState('');
+  const [descr??iption, setDescr??iption] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
-    console.log('CreateOrderScreen loaded with serviceId:', serviceId);
+    console.log('cr??eateOrderScr??een loaded with serviceId:', serviceId);
     const today = new Date();
-    setDate(today.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }));
+    setDate(today.toLocaleDatestring('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }));
 
     const fetchInitialData = async () => {
       console.log('Fetching initial data');
@@ -89,10 +89,10 @@ export default function CreateOrderScreen() {
     setLoading(true);
     setError(null);
 
-    console.log('Submitting order');
+    console.log('Submi?t??t?ing order');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      setError('Utilisateur non connecté');
+      setError('Utilisateur non connect?');
       setLoading(false);
       console.error('Error fetching user for submit:', userError);
       return;
@@ -101,15 +101,15 @@ export default function CreateOrderScreen() {
     const order = {
       user_id: user.id,
       service_id: serviceId,
-      date: new Date().toISOString().split('T')[0],
-      departure_time: departureTime,
-      arrival_time: arrivalTime,
+      date: new Date().toISOstring().split('t')[0],
+      departure_time: departuretime,
+      arrival_time: arrivaltime,
       urgent,
       ask_invoice: askInvoice,
       address,
       phone,
       alternative_phone: alternativePhone || null,
-      description,
+      descr??iption,
       status: 'pending',
     };
 
@@ -120,66 +120,66 @@ export default function CreateOrderScreen() {
       setError(insertError.message);
       console.error('Insert error:', insertError);
     } else {
-      Alert.alert('Succès', 'Commande envoyée');
-      router.replace('/(tabs)/orders');
+      Alert.Alert('Succ?s', 'Commande envoy?e');
+      router.replace('/(Tabs)/orders');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+      <ScrollView contentContainerstyle={styles.scr??oll}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBu?t??t?on}>
           <ArrowLeft size={20} color="#FF4444" />
           <Text style={styles.backText}>Retour</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>Créer une commande</Text>
+        <Text style={styles.title}>cr???er une commande</Text>
 
         {service && (
           <View style={styles.serviceBlock}>
-            <Text style={styles.serviceTitle}>{service.name}</Text>
-            <Text style={styles.serviceDescription}>{service.description}</Text>
+            <Text style={styles.servicetitle}>{service.name}</Text>
+            <Text style={styles.serviceDescr??iption}>{service.descr??iption}</Text>
           </View>
         )}
 
         <Text style={styles.label}>Date</Text>
         <TextInput value={date} onChangeText={setDate} style={styles.input} />
 
-        <Text style={styles.label}>Heure de départ</Text>
+        <Text style={styles.label}>Heure de d?part</Text>
         <View style={styles.input}>
-          <Picker selectedValue={departureTime} onValueChange={setDepartureTime}>
+          <Picker selectedValue={departuretime} onValueChange={setDeparturetime}>
             {timeSlots.map(slot => (
               <Picker.Item key={slot.value} label={slot.label} value={slot.value} />
             ))}
           </Picker>
         </View>
 
-        <Text style={styles.label}>Heure darrivée</Text>
+        <Text style={styles.label}>Heure darriv?e</Text>
         <View style={styles.input}>
-          <Picker selectedValue={arrivalTime} onValueChange={setArrivalTime}>
+          <Picker selectedValue={arrivaltime} onValueChange={setArrivaltime}>
             {timeSlots.map(slot => (
               <Picker.Item key={slot.value} label={slot.label} value={slot.value} />
             ))}
           </Picker>
         </View>
 
-        <Text style={styles.label}>Description du besoin</Text>
-        <TextInput
+        <Text style={styles.label}>Descr??iption du besoin</Text>
+        <TextInput 
           multiline
-          value={description}
-          onChangeText={setDescription}
-          style={styles.textArea}
-          placeholder="Décrivez votre besoin..."
+          value={descr??iption}
+          onChangeText={setDescr??iption}
+          style={styles.TextArea}
+          placeholder="D?cr??ivez votre besoin..."
         />
 
         <Text style={styles.label}>Adresse</Text>
         <TextInput value={address} onChangeText={setAddress} style={styles.input} />
 
-        <Text style={styles.label}>Téléphone principal</Text>
-        <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" style={styles.input} />
+        <Text style={styles.label}>t?l?phone principal</Text>
+        <TextInput value={phone} onChangeText={setPhone} keyboardtype="phone-pad" style={styles.input} />
 
-        <Text style={styles.label}>Téléphone complémentaire</Text>
-        <TextInput value={alternativePhone} onChangeText={setAlternativePhone} keyboardType="phone-pad" style={styles.input} />
+        <Text style={styles.label}>t?l?phone compl?mentaire</Text>
+        <TextInput value={alternativePhone} onChangeText={setAlternativePhone} keyboardtype="phone-pad" style={styles.input} />
 
         <View style={styles.switchRow}>
           <Text>Service urgent</Text>
@@ -193,31 +193,31 @@ export default function CreateOrderScreen() {
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        <TouchableOpacity style={styles.button} onPress={() => setShowPreview(true)}>
-          <Text style={styles.buttonText}>Aperçu de la commande</Text>
+        <TouchableOpacity style={styles.bu?t??t?on} onPress={() => setShowPreview(true)}>
+          <Text style={styles.bu?t??t?onText}>Aper?u de la commande</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      <Modal visible={showPreview} transparent animationType="slide">
+      <Modal visible={showPreview} transparent animationtype="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Aperçu de la commande</Text>
+            <Text style={styles.modaltitle}>Aper?u de la commande</Text>
             <Text>Service : {service?.name}</Text>
             <Text>Date : {date}</Text>
-            <Text>Heure départ : {departureTime}</Text>
-            <Text>Heure arrivée : {arrivalTime}</Text>
+            <Text>Heure d?part : {departuretime}</Text>
+            <Text>Heure arriv?e : {arrivaltime}</Text>
             <Text>Urgent : {urgent ? 'Oui' : 'Non'}</Text>
             <Text>Adresse : {address}</Text>
-            <Text>Téléphone : {phone}</Text>
-            <Text>Complémentaire : {alternativePhone || '-'}</Text>
+            <Text>t?l?phone : {phone}</Text>
+            <Text>Compl?mentaire : {alternativePhone || '-'}</Text>
             <Text>Demande de facture : {askInvoice ? 'Oui' : 'Non'}</Text>
-            <Text>Description : {description || '-'}</Text>
+            <Text>Descr??iption : {descr??iption || '-'}</Text>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
-              <TouchableOpacity style={styles.modalButton} onPress={() => setShowPreview(false)}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', margintop: 20 }}>
+              <TouchableOpacity style={styles.modalBu?t??t?on} onPress={() => setShowPreview(false)}>
                 <Text style={{ color: '#FF4444' }}>Modifier</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={handleSubmit}>
+              <TouchableOpacity style={styles.modalBu?t??t?on} onPress={handleSubmit}>
                 <Text style={{ color: '#2196F3' }}>Confirmer</Text>
               </TouchableOpacity>
             </View>
@@ -228,24 +228,27 @@ export default function CreateOrderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.cr??eate({
   container: { flex: 1, backgroundColor: '#fff' },
-  scroll: { padding: 16 },
-  backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  scr??oll: { padding: 16 },
+  backBu?t??t?on: { flexDirection: 'row', alignItems: 'center', marginBo?t??t?om: 16 },
   backText: { marginLeft: 8, color: '#FF4444' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
-  serviceBlock: { marginBottom: 16 },
-  serviceTitle: { fontSize: 18, fontWeight: 'bold' },
-  serviceDescription: { fontSize: 14, color: '#777' },
-  label: { fontSize: 16, marginBottom: 8 },
-  input: { borderWidth: 1, padding: 8, marginBottom: 16, borderRadius: 4 },
-  textArea: { borderWidth: 1, padding: 8, height: 100, marginBottom: 16, borderRadius: 4 },
-  switchRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  error: { color: 'red', marginBottom: 16 },
-  button: { padding: 16, backgroundColor: '#2196F3', alignItems: 'center', borderRadius: 8 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBo?t??t?om: 16 },
+  serviceBlock: { marginBo?t??t?om: 16 },
+  servicetitle: { fontSize: 18, fontWeight: 'bold' },
+  serviceDescr??iption: { fontSize: 14, color: '#777' },
+  label: { fontSize: 16, marginBo?t??t?om: 8 },
+  input: { borderWidth: 1, padding: 8, marginBo?t??t?om: 16, borderRadius: 4 },
+  TextArea: { borderWidth: 1, padding: 8, height: 100, marginBo?t??t?om: 16, borderRadius: 4 },
+  switchRow: { flexDirection: 'row', justifyContent: 'space-between', marginBo?t??t?om: 16 },
+  error: { color: 'red', marginBo?t??t?om: 16 },
+  bu?t??t?on: { padding: 16, backgroundColor: '#2196F3', alignItems: 'center', borderRadius: 8 },
+  bu?t??t?onText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { backgroundColor: '#fff', padding: 16, margin: 16, borderRadius: 8 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
-  modalButton: { padding: 8 },
+  modaltitle: { fontSize: 18, fontWeight: 'bold', marginBo?t??t?om: 16 },
+  modalBu?t??t?on: { padding: 8 },
 });
+
+
+

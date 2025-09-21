@@ -1,5 +1,5 @@
-// components/SafeAreaWrapper.tsx
-// 🛡️ WRAPPER ULTRA-ROBUSTE POUR SAFEAREAVIEW
+﻿// components/SafeAreaWrapper.tsx
+// 🛡️ WRAPPER ULTRA-ROBUSTE POUR SafeAreaView
 import React from 'react';
 import { View, Platform } from 'react-native';
 
@@ -23,7 +23,7 @@ interface SafeAreaWrapperProps {
 }
 
 export function SafeAreaWrapper({ children, ...props }: SafeAreaWrapperProps) {
-  // 🛡️ Si SafeAreaProvider n'est pas disponible, utiliser View
+  // 🔧 Si SafeAreaProvider n'est pas disponible, utiliser View
   if (!SafeAreaProvider) {
     console.warn('🔄 Fallback: Utilisation de View au lieu de SafeAreaProvider');
     return (
@@ -37,7 +37,7 @@ export function SafeAreaWrapper({ children, ...props }: SafeAreaWrapperProps) {
     );
   }
 
-  // 🛡️ Filtrer tous les props undefined/null
+  // 🧹 Filtrer tous les props undefined/null
   const safeProps = Object.fromEntries(
     Object.entries(props).filter(([_, value]) => 
       value !== undefined && 
@@ -45,7 +45,7 @@ export function SafeAreaWrapper({ children, ...props }: SafeAreaWrapperProps) {
     )
   );
 
-  console.log('🛡️ SafeAreaWrapper props:', Object.keys(safeProps));
+  console.log('🔍 SafeAreaWrapper props:', Object.keys(safeProps));
 
   try {
     return (
@@ -56,7 +56,7 @@ export function SafeAreaWrapper({ children, ...props }: SafeAreaWrapperProps) {
   } catch (error) {
     console.error('❌ Erreur SafeAreaProvider, fallback vers View:', error);
     
-    // 🛡️ Fallback complet si SafeAreaProvider plante
+    // 🚨 Fallback complet si SafeAreaProvider plante
     return (
       <View style={{ 
         flex: 1, 
@@ -71,8 +71,8 @@ export function SafeAreaWrapper({ children, ...props }: SafeAreaWrapperProps) {
 
 // Version ultra-agressive qui force le fallback immédiatement
 export function UltraSafeAreaWrapper({ children, ...props }: SafeAreaWrapperProps) {
-  // ⚡ FORCE LE MODE FALLBACK IMMÉDIATEMENT - pas de SafeAreaProvider du tout
-  console.log('🛡️ UltraSafeAreaWrapper: Mode fallback forcé pour éviter le bug includes()');
+  // 🔥 FORCE LE MODE FALLBACK IMMÉDIATEMENT - pas de SafeAreaProvider du tout
+  console.log('🚀 UltraSafeAreaWrapper: Mode fallback forcé pour éviter le bug includes()');
   
   return (
     <View style={{ 
@@ -93,7 +93,7 @@ export function ProgressiveSafeAreaWrapper({ children, ...props }: SafeAreaWrapp
 
   // Fallback View avec safe area manuelle
   const renderFallback = React.useCallback(() => {
-    console.log('📱 Rendu fallback View avec safe area manuelle');
+    console.log('🔄 Rendu fallback View avec safe area manuelle');
     return (
       <View style={{ 
         flex: 1, 
@@ -142,12 +142,12 @@ class ErrorBoundaryWrapper extends React.Component<ErrorBoundaryWrapperProps, { 
   }
 
   static getDerivedStateFromError(error: Error) {
-    console.error('🚨 ErrorBoundary a capturé une erreur:', error);
+    console.error('🛡️ ErrorBoundary a capturé une erreur:', error);
     
     // Détection spécifique de l'erreur includes
     if (error.message?.includes('Cannot read property \'includes\'') ||
         error.message?.includes('Cannot read properties of undefined (reading \'includes\')')) {
-      console.error('🎯 ERREUR INCLUDES DÉTECTÉE - Activation fallback immédiat');
+      console.error('🔍 ERREUR INCLUDES DÉTECTÉE - Activation fallback immédiat');
       return { hasError: true };
     }
     
@@ -155,14 +155,14 @@ class ErrorBoundaryWrapper extends React.Component<ErrorBoundaryWrapperProps, { 
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('🚨 ErrorBoundary détails:', error, errorInfo);
+    console.error('🔧 ErrorBoundary détails:', error, errorInfo);
     
     // Si l'erreur contient "includes" ou vient de SafeAreaProvider
     if (error.message?.includes('includes') || 
         error.message?.includes('SafeAreaProvider') ||
         errorInfo.componentStack?.includes('SafeAreaProvider') ||
         errorInfo.componentStack?.includes('RNCSafeAreaProvider')) {
-      console.error('🎯 Erreur SafeAreaProvider/includes détectée, activation du fallback');
+      console.error('⚠️ Erreur SafeAreaProvider/includes détectée, activation du fallback');
       this.props.onError();
     }
   }
@@ -170,7 +170,7 @@ class ErrorBoundaryWrapper extends React.Component<ErrorBoundaryWrapperProps, { 
   render() {
     if (this.state.hasError) {
       // Render fallback immédiat
-      console.log('🛡️ ErrorBoundary fallback activé');
+      console.log('🔄 ErrorBoundary fallback activé');
       return (
         <View style={{ 
           flex: 1, 
@@ -197,7 +197,7 @@ export function useSafeAreaStatus() {
     if (SafeAreaProvider) {
       try {
         // Test basique d'instanciation
-        console.log('🧪 Test de sécurité SafeAreaProvider...');
+        console.log('🔍 Test de sécurité SafeAreaProvider...');
         setIsSafe(true);
       } catch (error) {
         console.error('❌ SafeAreaProvider unsafe:', error);

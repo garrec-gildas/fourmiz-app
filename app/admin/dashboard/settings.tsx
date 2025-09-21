@@ -1,4 +1,4 @@
-// app/admin/dashboard/settings.tsx - CONTRÔLE COMPLET DES BADGES + SYSTÈME DE PARRAINAGE
+﻿// app/admin/dashboard/settings.tsx - CONTRÔLE COMPLET DES BADGES + SYSTÈME DE PARRAINAGE
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -17,7 +17,7 @@ import { router } from 'expo-router';
 import { ArrowLeft, Save, Users, Trophy, Settings as SettingsIcon, Edit3, Eye, EyeOff, Trash2 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 
-// ✅ INTERFACES POUR LE SYSTÈME DE PARRAINAGE
+// 🔧 INTERFACES POUR LE SYSTÈME DE PARRAINAGE
 interface ReferralConfig {
   key: string;
   value_numeric: number;
@@ -87,7 +87,7 @@ export default function SettingsScreen() {
   // Vue d'ensemble parrainage
   const [referralOverview, setReferralOverview] = useState<ReferralOverview | null>(null);
 
-  // ✅ Badges avec contrôle complet
+  // 🏆 Badges avec contrôle complet 
   const [badges, setBadges] = useState<BadgeAdmin[]>([]);
   const [editingBadge, setEditingBadge] = useState<string | null>(null);
   const [editModal, setEditModal] = useState<BadgeAdmin | null>(null);
@@ -112,10 +112,10 @@ export default function SettingsScreen() {
     }
   };
 
-  // ✅ CHARGEMENT DES PARAMÈTRES DE PARRAINAGE DEPUIS SUPABASE
+  // 🔧 CHARGEMENT DES PARAMÈTRES DE PARRAINAGE DEPUIS SUPABASE
   const loadReferralSettings = async () => {
     try {
-      console.log('📊 Chargement paramètres parrainage depuis Supabase...');
+      console.log('🔧 Chargement paramètres parrainage depuis Supabase...');
       
       // Charger tous les paramètres de configuration
       const { data: configData, error: configError } = await supabase
@@ -126,7 +126,7 @@ export default function SettingsScreen() {
 
       if (configError) {
         console.warn('⚠️ Erreur config parrainage:', configError);
-        // Continuer avec les valeurs par défaut
+        // Continuer avec les valeurs par défaut 
         return;
       }
 
@@ -171,10 +171,10 @@ export default function SettingsScreen() {
     }
   };
 
-  // ✅ NOUVEAU - Charger badges avec tous les champs de contrôle
+  // 🏆 NOUVEAU - Charger badges avec tous les champs de contrôle
   const loadBadges = async () => {
     try {
-      console.log('📥 Chargement badges avec contrôles admin...');
+      console.log('🏆 Chargement badges avec contrôles admin...');
       
       const { data: badgesData, error } = await supabase
         .from('badges_catalog')
@@ -196,12 +196,12 @@ export default function SettingsScreen() {
       }
       
     } catch (error) {
-      console.error('💥 Erreur chargement badges:', error);
+      console.error('❌ Erreur chargement badges:', error);
       setBadges([]);
     }
   };
 
-  // ✅ SAUVEGARDE VIA FONCTION SQL BATCH
+  // 💾 SAUVEGARDE VIA FONCTION SQL BATCH
   const saveReferralSettings = async () => {
     try {
       setSaving(true);
@@ -222,7 +222,7 @@ export default function SettingsScreen() {
         referral_max_bonus_per_day: referralSettings.referral_max_bonus_per_day.toFixed(2),
       };
 
-      // ✅ Appeler la fonction SQL batch
+      // 🚀 Appeler la fonction SQL batch
       const { data: batchResults, error: batchError } = await supabase
         .rpc('save_referral_settings_batch', {
           p_settings: settingsJson,
@@ -232,7 +232,7 @@ export default function SettingsScreen() {
       if (batchError) throw batchError;
 
       // Vérifier les résultats
-      const failedUpdates = batchResults?.filter(r => !r.success) || [];
+      const failedUpdates = batchResults?.filter((r: any) => !r.success) || [];
       
       if (failedUpdates.length > 0) {
         console.warn('⚠️ Certains paramètres ont échoué:', failedUpdates);
@@ -255,7 +255,7 @@ export default function SettingsScreen() {
       await loadReferralSettings();
 
     } catch (error) {
-      console.error('💥 Erreur sauvegarde paramètres parrainage:', error);
+      console.error('❌ Erreur sauvegarde paramètres parrainage:', error);
       Alert.alert(
         'Erreur',
         'Impossible de sauvegarder les paramètres. Veuillez réessayer.',
@@ -266,7 +266,7 @@ export default function SettingsScreen() {
     }
   };
 
-  // ✅ NOUVEAU - Basculer l'état actif d'un badge
+  // 🔧 NOUVEAU - Basculer l'état actif d'un badge
   const toggleBadgeActive = async (badgeId: string, isActive: boolean) => {
     try {
       setSaving(true);
@@ -294,7 +294,7 @@ export default function SettingsScreen() {
     }
   };
 
-  // ✅ NOUVEAU - Basculer la visibilité d'un badge
+  // 👁️ NOUVEAU - Basculer la visibilité d'un badge
   const toggleBadgeVisibility = async (badgeId: string, isVisible: boolean) => {
     try {
       setSaving(true);
@@ -322,7 +322,7 @@ export default function SettingsScreen() {
     }
   };
 
-  // ✅ NOUVEAU - Sauvegarder les modifications complètes d'un badge
+  // 💾 NOUVEAU - Sauvegarder les modifications complètes d'un badge
   const saveBadgeComplete = async (badge: BadgeAdmin) => {
     try {
       setSaving(true);
@@ -356,7 +356,7 @@ export default function SettingsScreen() {
     }
   };
 
-  // ✅ NOUVEAU - Supprimer un badge (désactivation définitive)
+  // 🗑️ NOUVEAU - Supprimer un badge (désactivation définitive)
   const deleteBadge = async (badgeId: string) => {
     Alert.alert(
       'Confirmer la suppression',
@@ -396,7 +396,7 @@ export default function SettingsScreen() {
     );
   };
 
-  // ✅ HELPER POUR FORMATER LA MONNAIE
+  // 💰 HELPER POUR FORMATER LA MONNAIE
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -467,7 +467,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {activeTab === 'referral' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💰 Paramètres de Parrainage</Text>
+            <Text style={styles.sectionTitle}>🔧 Paramètres de Parrainage</Text>
             
             {/* Vue d'ensemble si disponible */}
             {referralOverview && (
@@ -524,7 +524,7 @@ export default function SettingsScreen() {
                   : '❌ Système de parrainage désactivé - Aucun nouveau parrainage ne sera créé'}
               </Text>
               {referralOverview && (
-                <Text style={styles.settingSubtext}>
+                <Text style={styles.settingSubText}>
                   Impact sur {referralOverview.total_referrals} parrainages existants
                 </Text>
               )}
@@ -537,7 +537,7 @@ export default function SettingsScreen() {
                 Montant du bonus versé au parrain lors de l'inscription du filleul
               </Text>
               <View style={styles.inputContainer}>
-                <TextInput
+                <TextInput 
                   style={styles.settingInput}
                   value={referralSettings.referral_bonus_amount.toString()}
                   onChangeText={(text) => {
@@ -558,20 +558,20 @@ export default function SettingsScreen() {
                 Recommandé: 5-15€ • Maximum: {referralSettings.referral_max_bonus_per_day || 100}€/jour
               </Text>
               {referralOverview && (
-                <Text style={styles.inputSubtext}>
-                  💡 Dernier mois: {referralOverview.monthly_referrals} nouveaux × {referralSettings.referral_bonus_amount}€ = {(referralOverview.monthly_referrals * referralSettings.referral_bonus_amount).toFixed(2)}€
+                <Text style={styles.inputSubText}>
+                  📈 Dernier mois: {referralOverview.monthly_referrals} nouveaux × {referralSettings.referral_bonus_amount}€ = {(referralOverview.monthly_referrals * referralSettings.referral_bonus_amount).toFixed(2)}€
                 </Text>
               )}
             </View>
 
             {/* Commissions clients */}
             <View style={styles.settingCard}>
-              <Text style={styles.settingTitle}>🛒 Commission Client</Text>
+              <Text style={styles.settingTitle}>👥 Commission Client</Text>
               <Text style={styles.settingDescription}>
                 Pourcentage de commission sur chaque commande d'un client parrainé
               </Text>
               <View style={styles.inputContainer}>
-                <TextInput
+                <TextInput 
                   style={styles.settingInput}
                   value={referralSettings.referral_client_commission_rate.toFixed(2)}
                   onChangeText={(text) => {
@@ -594,12 +594,12 @@ export default function SettingsScreen() {
 
             {/* Commissions fourmiz */}
             <View style={styles.settingCard}>
-              <Text style={styles.settingTitle}>🔧 Commission Fourmiz</Text>
+              <Text style={styles.settingTitle}>🐜 Commission Fourmiz</Text>
               <Text style={styles.settingDescription}>
                 Pourcentage de commission sur chaque service d'un fourmiz parrainé
               </Text>
               <View style={styles.inputContainer}>
-                <TextInput
+                <TextInput 
                   style={styles.settingInput}
                   value={referralSettings.referral_fourmiz_commission_rate.toFixed(2)}
                   onChangeText={(text) => {
@@ -622,12 +622,12 @@ export default function SettingsScreen() {
 
             {/* Montant minimum */}
             <View style={styles.settingCard}>
-              <Text style={styles.settingTitle}>💳 Montant Minimum</Text>
+              <Text style={styles.settingTitle}>💰 Montant Minimum</Text>
               <Text style={styles.settingDescription}>
                 Montant minimum d'une commande pour déclencher les commissions
               </Text>
               <View style={styles.inputContainer}>
-                <TextInput
+                <TextInput 
                   style={styles.settingInput}
                   value={referralSettings.referral_min_order_amount.toString()}
                   onChangeText={(text) => {
@@ -658,7 +658,7 @@ export default function SettingsScreen() {
               <View style={styles.limitRow}>
                 <Text style={styles.limitLabel}>Commission max/mois par parrain:</Text>
                 <View style={styles.limitInputContainer}>
-                  <TextInput
+                  <TextInput 
                     style={styles.limitInput}
                     value={referralSettings.referral_max_commission_per_month.toString()}
                     onChangeText={(text) => {
@@ -678,7 +678,7 @@ export default function SettingsScreen() {
               <View style={styles.limitRow}>
                 <Text style={styles.limitLabel}>Bonus max/jour:</Text>
                 <View style={styles.limitInputContainer}>
-                  <TextInput
+                  <TextInput 
                     style={styles.limitInput}
                     value={referralSettings.referral_max_bonus_per_day.toString()}
                     onChangeText={(text) => {
@@ -698,7 +698,7 @@ export default function SettingsScreen() {
 
             {/* Aperçu des gains avec calculs dynamiques */}
             <View style={styles.previewCard}>
-              <Text style={styles.previewTitle}>📊 Aperçu des Gains</Text>
+              <Text style={styles.previewTitle}>💡 Aperçu des Gains</Text>
               
               <View style={styles.previewRow}>
                 <Text style={styles.previewLabel}>Client commande 50€:</Text>
@@ -729,7 +729,7 @@ export default function SettingsScreen() {
                   {(
                     (50 * referralSettings.referral_client_commission_rate / 100) +
                     (80 * referralSettings.referral_fourmiz_commission_rate / 100) +
-                    referralSettings.referral_bonus_amount
+                    referralSettings.referral_bonus_amount 
                   ).toFixed(2)}€
                 </Text>
               </View>
@@ -774,7 +774,7 @@ export default function SettingsScreen() {
               <View style={styles.infoItem}>
                 <Text style={styles.infoBullet}>•</Text>
                 <Text style={styles.infoText}>
-                  Les paramètres sont <Text style={styles.infoBold}>sauvegardés en base de données</Text> et appliqués automatiquement
+                  Les paramètres sont <Text style={styles.infoBold}>sauvegardés en base de données</Text> et appliqués automatiquement 
                 </Text>
               </View>
               
@@ -834,14 +834,14 @@ export default function SettingsScreen() {
                 />
               </View>
               <Text style={styles.badgesInfoText}>
-                📋 {filteredBadges.length} badges ({badges.filter(b => b.is_active).length} actifs, {badges.filter(b => !b.is_active).length} inactifs)
+                📊 {filteredBadges.length} badges ({badges.filter(b => b.is_active).length} actifs, {badges.filter(b => !b.is_active).length} inactifs)
               </Text>
             </View>
             
             {filteredBadges.length === 0 ? (
               <View style={styles.placeholderCard}>
                 <Text style={styles.placeholderText}>Aucun badge trouvé</Text>
-                <Text style={styles.placeholderSubtext}>
+                <Text style={styles.placeholderSubText}>
                   Exécutez le script SQL pour créer les badges.
                 </Text>
               </View>
@@ -852,17 +852,17 @@ export default function SettingsScreen() {
                   const categoryBadges = filteredBadges.filter(b => b.category === category);
                   if (categoryBadges.length === 0) return null;
                   
-                  const categoryLabels = {
+                  const categoryLabels: Record<string, string> = {
                     spending: '💰 Dépenses Client',
                     referral: '👥 Parrainage',
                     timing: '⏰ Horaires Client',
-                    order: '📋 Commandes Client',
+                    order: '📦 Commandes Client',
                     quality: '⭐ Qualité',
                     speed: '⚡ Rapidité',
                     missions: '🎯 Missions Fourmiz',
-                    earnings: '💰 Gains Fourmiz',
+                    earnings: '💵 Gains Fourmiz',
                     reliability: '🛡️ Fiabilité Fourmiz',
-                    availability: '⏰ Disponibilité Fourmiz'
+                    availability: '📅 Disponibilité Fourmiz'
                   };
                   
                   return (
@@ -965,7 +965,7 @@ export default function SettingsScreen() {
         )}
       </ScrollView>
 
-      {/* ✅ NOUVEAU - Modal d'édition complète */}
+      {/* 🎨 NOUVEAU - Modal d'édition complète */}
       <Modal
         visible={editModal !== null}
         animationType="slide"
@@ -996,7 +996,7 @@ export default function SettingsScreen() {
                 <Text style={styles.inputLabel}>
                   Nom personnalisé (laissez vide pour utiliser l'original)
                 </Text>
-                <TextInput
+                <TextInput 
                   style={styles.modalInput}
                   value={editModal.custom_name || ''}
                   onChangeText={(text) => setEditModal({
@@ -1012,7 +1012,7 @@ export default function SettingsScreen() {
                 <Text style={styles.inputLabel}>
                   Description personnalisée (laissez vide pour utiliser l'originale)
                 </Text>
-                <TextInput
+                <TextInput 
                   style={[styles.modalInput, styles.modalTextArea]}
                   value={editModal.custom_description || ''}
                   onChangeText={(text) => setEditModal({
@@ -1028,7 +1028,7 @@ export default function SettingsScreen() {
               {/* Récompense */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Récompense (€)</Text>
-                <TextInput
+                <TextInput 
                   style={styles.modalInput}
                   value={editModal.value.toFixed(2)}
                   onChangeText={(text) => {
@@ -1046,7 +1046,7 @@ export default function SettingsScreen() {
               {/* Ordre d'affichage */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Ordre d'affichage</Text>
-                <TextInput
+                <TextInput 
                   style={styles.modalInput}
                   value={editModal.display_order.toString()}
                   onChangeText={(text) => {
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  // ✅ STYLES PARRAINAGE
+  // 🔧 STYLES PARRAINAGE
   overviewCard: {
     backgroundColor: '#F0F9FF',
     borderRadius: 12,
@@ -1234,7 +1234,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
-  settingSubtext: {
+  settingSubText: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#4CAF50',
@@ -1269,7 +1269,7 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 4,
   },
-  inputSubtext: {
+  inputSubText: {
     fontSize: 11,
     fontFamily: 'Inter-Regular',
     color: '#2196F3',
@@ -1427,7 +1427,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
   },
 
-  // ✅ NOUVEAUX STYLES - Contrôles badges
+  // 🏆 NOUVEAUX STYLES - Contrôles badges
   badgesControls: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -1456,7 +1456,7 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
 
-  // ✅ NOUVEAUX STYLES - Cartes badges avancées
+  // 🏆 NOUVEAUX STYLES - Cartes badges avancées
   badgeTypeSection: {
     marginBottom: 24,
   },
@@ -1542,7 +1542,7 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
 
-  // ✅ NOUVEAUX STYLES - Modal d'édition
+  // 🎨 NOUVEAUX STYLES - Modal d'édition
   modalContainer: {
     flex: 1,
     backgroundColor: '#F8F9FA',
@@ -1649,7 +1649,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
   },
-  placeholderSubtext: {
+  placeholderSubText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#999',

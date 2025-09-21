@@ -1,6 +1,6 @@
-// hooks/useRoleAccessComponents.tsx - COMPOSANTS REACT POUR LE CONTRÔLE D'ACCÈS
-// 🎨 Composants visuels séparés du hook logique
-// ✅ À utiliser avec useRoleAccess.ts
+﻿// hooks/useRoleAccessComponents.tsx - COMPOSANTS REACT POUR LE CONTRÔLE D'ACCÈS
+// 🔐 Composants visuels séparés du hook logique
+// 🚀 À utiliser avec useRoleAccess.ts
 
 import React from 'react';
 import {
@@ -24,7 +24,7 @@ interface RoleAccessComponentsProps {
 export const useRoleAccessWithComponents = (requiredRole: AppRole) => {
   const roleAccessData = useRoleAccess(requiredRole);
 
-  // Composant d'écran de chargement
+  // Composant d'écran de chargement 
   const LoadingScreen = () => (
     <SafeAreaView style={styles.container}>
       <View style={styles.loadingContainer}>
@@ -54,7 +54,7 @@ export const useRoleAccessWithComponents = (requiredRole: AppRole) => {
           {roleAccessData.canSwitchRole ? (
             <TouchableOpacity 
               style={[styles.switchButton, { backgroundColor: roleAccessData.roleInfo.buttonColor }]}
-              onPress={() => router.replace('/(tabs)')}
+              onPress={() => router.replace('/(Tabs)')}
             >
               <Ionicons name={roleAccessData.roleInfo.icon as any} size={16} color="#fff" />
               <Text style={styles.switchButtonText}>{roleAccessData.roleInfo.switchText}</Text>
@@ -70,7 +70,7 @@ export const useRoleAccessWithComponents = (requiredRole: AppRole) => {
           ) : (
             <TouchableOpacity 
               style={[styles.homeButton, { backgroundColor: '#6b728020' }]}
-              onPress={() => router.replace('/(tabs)')}
+              onPress={() => router.replace('/(Tabs)')}
             >
               <Ionicons name="home" size={16} color="#6b7280" />
               <Text style={styles.homeButtonText}>Accueil</Text>

@@ -1,10 +1,11 @@
 // app/admin/dashboard/index.tsx - DASHBOARD ADMIN CONNECTÉ À SUPABASE
-// ✅ Combine TOUS les patterns d'excellence + vraies données Supabase
+// ✅ Combine tous les patterns d'excellence + vraies data Supabase
 // ✅ Suppression des mocks, connexion temps réel
 // ✅ Gestion d'erreur robuste selon SettingsScreen/ServicesScreen
 // ✅ Harmonisation complète Lucide + design moderne
+// 🔧 CORRECTIONS: Cleanup abonnements, types strict, optimisations
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -30,7 +31,7 @@ import { supabase } from '@/lib/supabase';
 
 const { width } = Dimensions.get('window');
 
-// ✅ INTERFACES STRICTES (Modèle SettingsScreen Excellence)
+// 📋 INTERFACES STRICTES (Modèle SettingsScreen Excellence)
 interface DashboardOverview {
   totalUsers: number;
   activeUsers: number;
@@ -69,15 +70,67 @@ interface SystemAlert {
 interface QuickAction {
   key: string;
   label: string;
-  icon: any;
+  icon: React.ComponentType<any>;
   route: string;
   color: string;
   badge?: number;
   description: string;
 }
 
+// Types pour les données Supabase
+interface ProfileData {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  created_at: string;
+  email_verified?: boolean;
+}
+
+interface ServiceData {
+  id: string;
+  title: string;
+  user_id: string;
+  created_at: string;
+  status: string;
+  profiles?: ProfileData;
+}
+
+interface OrderData {
+  id: string;
+  total_amount: string;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+  client_id?: string;
+  profiles?: ProfileData;
+}
+
+interface BadgeData {
+  id: string;
+  value: string;
+  currency: string;
+  is_active: boolean;
+  is_visible: boolean;
+  name?: string;
+}
+
+interface ReportData {
+  id: string;
+  status: string;
+  priority: string;
+  created_at: string;
+  reason?: string;
+}
+
+interface PayoutData {
+  id: string;
+  amount: string;
+  status: string;
+  created_at: string;
+}
+
 export default function AdminDashboardIndex() {
-  // ✅ ÉTATS SELON MODÈLE SERVICESSCREEN/SETTINGSSCREEN
+  // 📊 ÉTATS SELON MODÈLE SERVICESSCREEN/SETTINGSSCREEN
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,13 +144,25 @@ export default function AdminDashboardIndex() {
   useEffect(() => {
     loadDashboardData();
     getCurrentUser();
-    setupRealtimeSubscriptions();
+    
+    // 🔧 CORRECTION: Proper cleanup des abonnements
+    const cleanup = setupRealtimeSubscriptions();
+    
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
   }, []);
 
-  // ✅ AUTHENTIFICATION SELON MODÈLE SERVICESSCREEN
+  // 🔐 AUTHENTIFICATION SELON MODÈLE SERVICESSCREEN
   const getCurrentUser = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('❌ Erreur auth utilisateur:', error);
+        return;
+      }
       setCurrentUser(user);
       console.log('✅ Utilisateur admin connecté:', user?.email);
     } catch (error) {
@@ -105,23 +170,32 @@ export default function AdminDashboardIndex() {
     }
   };
 
-  // ✅ CHARGEMENT DONNÉES SELON MODÈLE EXCELLENCE
+  // 📊 CHARGEMENT DATA SELON MODÈLE EXCELLENCE
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('📊 Chargement dashboard admin...');
+      console.log('🔄 Chargement dashboard admin...');
 
-      await Promise.allSettled([
+      const results = await Promise.allSettled([
         loadOverviewData(),
         loadRecentActivities(),
         loadSystemAlerts()
       ]);
 
+      // 🔧 CORRECTION: Vérifier les erreurs des promises
+      const errors = results
+        .filter(result => result.status === 'rejected')
+        .map(result => (result as PromiseRejectedResult).reason);
+
+      if (errors.length > 0) {
+        console.warn('⚠️ Certaines données n\'ont pas pu être chargées:', errors);
+      }
+
       console.log('✅ Dashboard admin chargé avec succès');
       
     } catch (error) {
-      console.error('💥 Erreur chargement dashboard admin:', error);
+      console.error('❌ Erreur chargement dashboard admin:', error);
       setError('Impossible de charger le dashboard admin');
       Alert.alert('Erreur', 'Impossible de charger le dashboard admin');
     } finally {
@@ -129,12 +203,12 @@ export default function AdminDashboardIndex() {
     }
   }, []);
 
-  // ✅ VUE D'ENSEMBLE COMPLÈTE AVEC VRAIES DONNÉES SUPABASE
+  // 📈 VUE D'ENSEMBLE COMPLÈTE AVEC VRAIES DATA SUPABASE
   const loadOverviewData = async () => {
     try {
-      console.log('📈 Chargement vue d\'ensemble depuis Supabase...');
+      console.log('📊 Chargement vue d\'ensemble depuis Supabase...');
 
-      // ✅ Requêtes parallèles pour performance optimale
+      // 🚀 Requêtes parallèles pour performance optimale
       const [
         usersResult,
         servicesResult,
@@ -146,7 +220,7 @@ export default function AdminDashboardIndex() {
         // Utilisateurs avec profils complets
         supabase
           .from('profiles')
-          .select('id, created_at')
+          .select('id, created_at, email_verified')
           .order('created_at', { ascending: false }),
         
         // Services avec statuts
@@ -158,7 +232,7 @@ export default function AdminDashboardIndex() {
         // Commandes avec montants
         supabase
           .from('orders')
-          .select('id, total_amount, status, created_at')
+          .select('id, total_amount, status, created_at, updated_at')
           .order('created_at', { ascending: false }),
         
         // Badges du catalogue avec contrôles admin
@@ -180,15 +254,15 @@ export default function AdminDashboardIndex() {
           .eq('status', 'pending')
       ]);
 
-      // ✅ Gestion robuste des erreurs de requêtes
-      const usersData = usersResult.status === 'fulfilled' ? usersResult.value.data || [] : [];
-      const servicesData = servicesResult.status === 'fulfilled' ? servicesResult.value.data || [] : [];
-      const ordersData = ordersResult.status === 'fulfilled' ? ordersResult.value.data || [] : [];
-      const badgesData = badgesResult.status === 'fulfilled' ? badgesResult.value.data || [] : [];
-      const reportsData = reportsResult.status === 'fulfilled' ? reportsResult.value.data || [] : [];
-      const payoutsData = payoutsResult.status === 'fulfilled' ? payoutsResult.value.data || [] : [];
+      // 🛡️ Gestion robuste des erreurs de requêtes avec types stricts
+      const usersData: ProfileData[] = usersResult.status === 'fulfilled' ? usersResult.value.data || [] : [];
+      const servicesData: ServiceData[] = servicesResult.status === 'fulfilled' ? servicesResult.value.data || [] : [];
+      const ordersData: OrderData[] = ordersResult.status === 'fulfilled' ? ordersResult.value.data || [] : [];
+      const badgesData: BadgeData[] = badgesResult.status === 'fulfilled' ? badgesResult.value.data || [] : [];
+      const reportsData: ReportData[] = reportsResult.status === 'fulfilled' ? reportsResult.value.data || [] : [];
+      const payoutsData: PayoutData[] = payoutsResult.status === 'fulfilled' ? payoutsResult.value.data || [] : [];
 
-      // ✅ Calculs métier intelligents
+      // 📊 Calculs métier intelligents
       const now = new Date();
       const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -203,39 +277,47 @@ export default function AdminDashboardIndex() {
         s.status === 'active' || s.status === 'published'
       ).length;
 
-      // ✅ Services masqués depuis AsyncStorage (pattern ServicesScreen)
+      // 🔒 Services masqués depuis AsyncStorage (pattern ServicesScreen)
       let hiddenServices = 0;
       try {
         const hiddenServicesData = await AsyncStorage.getItem('hidden_services');
         const hiddenServicesList = hiddenServicesData ? JSON.parse(hiddenServicesData) : [];
-        hiddenServices = hiddenServicesList.length;
-        console.log(`📋 ${hiddenServices} services masqués détectés`);
+        hiddenServices = Array.isArray(hiddenServicesList) ? hiddenServicesList.length : 0;
+        console.log(`🔒 ${hiddenServices} services masqués détectés`);
       } catch (error) {
-        console.error('⚠️ Erreur lecture services masqués:', error);
+        console.error('❌ Erreur lecture services masqués:', error);
       }
 
-      // ✅ Calculs financiers précis
+      // 💰 Calculs financiers précis avec gestion des valeurs nulles
       const completedOrders = ordersData.filter(o => o.status === 'completed');
-      const totalRevenue = completedOrders.reduce((sum, order) => 
-        sum + (parseFloat(order.total_amount) || 0), 0
-      );
+      const totalRevenue = completedOrders.reduce((sum, order) => {
+        const amount = parseFloat(order.total_amount || '0');
+        return sum + (isNaN(amount) ? 0 : amount);
+      }, 0);
+      
       const monthlyRevenue = completedOrders
         .filter(o => new Date(o.created_at) >= thisMonth)
-        .reduce((sum, order) => sum + (parseFloat(order.total_amount) || 0), 0);
+        .reduce((sum, order) => {
+          const amount = parseFloat(order.total_amount || '0');
+          return sum + (isNaN(amount) ? 0 : amount);
+        }, 0);
 
-      // ✅ Métriques badges (pattern SettingsScreen)
+      // 🏆 Métriques badges (pattern SettingsScreen)
       const activeBadges = badgesData.filter(b => b.is_active && b.is_visible).length;
-      const totalBadgesRewards = badgesData.reduce((sum, badge) => 
-        sum + (parseFloat(badge.value) || 0), 0
-      );
+      const totalBadgesRewards = badgesData.reduce((sum, badge) => {
+        const value = parseFloat(badge.value || '0');
+        return sum + (isNaN(value) ? 0 : value);
+      }, 0);
 
-      // ✅ Signalements et paiements
+      // 🚨 Signalements et paiements
       const pendingReports = reportsData.filter(r => 
         r.status === 'pending' || r.status === 'investigating'
       ).length;
-      const pendingPayouts = payoutsData.reduce((sum, p) => 
-        sum + (parseFloat(p.amount) || 0), 0
-      );
+      
+      const pendingPayouts = payoutsData.reduce((sum, p) => {
+        const amount = parseFloat(p.amount || '0');
+        return sum + (isNaN(amount) ? 0 : amount);
+      }, 0);
 
       const overview: DashboardOverview = {
         totalUsers,
@@ -262,14 +344,14 @@ export default function AdminDashboardIndex() {
     }
   };
 
-  // ✅ ACTIVITÉS RÉCENTES AVEC VRAIES DONNÉES SUPABASE
+  // 📈 ACTIVITÉS RÉCENTES AVEC VRAIES DATA SUPABASE
   const loadRecentActivities = async () => {
     try {
-      console.log('🕒 Chargement activités récentes depuis Supabase...');
+      console.log('📈 Chargement activités récentes depuis Supabase...');
       
       const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
-      // ✅ Requêtes parallèles pour toutes les activités récentes
+      // 🚀 Requêtes parallèles pour toutes les activités récentes
       const [
         newUsersResult,
         newServicesResult,
@@ -322,7 +404,7 @@ export default function AdminDashboardIndex() {
 
       const activities: RecentActivity[] = [];
 
-      // ✅ Traitement des nouveaux utilisateurs
+      // 👥 Traitement des nouveaux utilisateurs
       if (newUsersResult.status === 'fulfilled' && newUsersResult.value.data) {
         newUsersResult.value.data.forEach(user => {
           activities.push({
@@ -335,7 +417,7 @@ export default function AdminDashboardIndex() {
         });
       }
 
-      // ✅ Traitement des nouveaux services
+      // 🛠️ Traitement des nouveaux services
       if (newServicesResult.status === 'fulfilled' && newServicesResult.value.data) {
         newServicesResult.value.data.forEach(service => {
           const profile = service.profiles;
@@ -351,7 +433,7 @@ export default function AdminDashboardIndex() {
         });
       }
 
-      // ✅ Traitement des commandes complétées
+      // 📦 Traitement des commandes complétées
       if (completedOrdersResult.status === 'fulfilled' && completedOrdersResult.value.data) {
         completedOrdersResult.value.data.forEach(order => {
           const profile = order.profiles;
@@ -363,12 +445,12 @@ export default function AdminDashboardIndex() {
               ? `${profile.first_name || 'Client'} ${profile.last_name || ''}`.trim()
               : 'Client',
             timestamp: order.created_at,
-            amount: parseFloat(order.total_amount) || 0
+            amount: parseFloat(order.total_amount || '0') || 0
           });
         });
       }
 
-      // ✅ Traitement des badges obtenus
+      // 🏆 Traitement des badges obtenus
       if (earnedBadgesResult.status === 'fulfilled' && earnedBadgesResult.value.data) {
         earnedBadgesResult.value.data.forEach(userBadge => {
           const profile = userBadge.profiles;
@@ -381,12 +463,12 @@ export default function AdminDashboardIndex() {
               ? `${profile.first_name || 'Utilisateur'} ${profile.last_name || ''}`.trim()
               : 'Utilisateur',
             timestamp: userBadge.created_at,
-            amount: parseFloat(badge?.value) || 0
+            amount: parseFloat(badge?.value || '0') || 0
           });
         });
       }
 
-      // ✅ Trier par timestamp et garder les plus récentes
+      // 📊 Trier par timestamp et garder les plus récentes
       const sortedActivities = activities
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 10);
@@ -400,14 +482,14 @@ export default function AdminDashboardIndex() {
     }
   };
 
-  // ✅ ALERTES SYSTÈME BASÉES SUR VRAIES CONDITIONS SUPABASE
+  // 🚨 ALERTES SYSTÈME BASÉES SUR VRAIES CONDITIONS SUPABASE
   const loadSystemAlerts = async () => {
     try {
       console.log('🚨 Vérification alertes système depuis Supabase...');
       
       const alerts: SystemAlert[] = [];
 
-      // ✅ Vérifier services en attente de validation
+      // 🔍 Vérifier services en attente de validation
       const { data: pendingServices, error: servicesError } = await supabase
         .from('services')
         .select('id, title')
@@ -425,7 +507,7 @@ export default function AdminDashboardIndex() {
         });
       }
 
-      // ✅ Vérifier signalements urgents
+      // 🚨 Vérifier signalements urgents
       const { data: urgentReports, error: reportsError } = await supabase
         .from('reports')
         .select('id, reason, priority')
@@ -444,7 +526,7 @@ export default function AdminDashboardIndex() {
         });
       }
 
-      // ✅ Vérifier paiements en attente depuis plus de 7 jours
+      // 💰 Vérifier paiements en attente depuis plus de 7 jours
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data: oldPayouts, error: payoutsError } = await supabase
         .from('payouts')
@@ -453,7 +535,10 @@ export default function AdminDashboardIndex() {
         .lt('created_at', weekAgo);
       
       if (!payoutsError && oldPayouts && oldPayouts.length > 0) {
-        const totalAmount = oldPayouts.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        const totalAmount = oldPayouts.reduce((sum, p) => {
+          const amount = parseFloat(p.amount || '0');
+          return sum + (isNaN(amount) ? 0 : amount);
+        }, 0);
         alerts.push({
           id: 'old_payouts',
           type: 'warning',
@@ -465,12 +550,13 @@ export default function AdminDashboardIndex() {
         });
       }
 
-      // ✅ Vérifier nouveaux utilisateurs non vérifiés
+      // 👥 Vérifier nouveaux utilisateurs non vérifiés
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       const { data: unverifiedUsers, error: usersError } = await supabase
         .from('profiles')
         .select('id, email_verified')
         .eq('email_verified', false)
-        .gte('created_at', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString());
+        .gte('created_at', threeDaysAgo);
       
       if (!usersError && unverifiedUsers && unverifiedUsers.length > 5) {
         alerts.push({
@@ -493,11 +579,11 @@ export default function AdminDashboardIndex() {
     }
   };
 
-  // ✅ ABONNEMENTS TEMPS RÉEL SUPABASE
-  const setupRealtimeSubscriptions = () => {
+  // 🔄 ABONNEMENTS TEMPS RÉEL SUPABASE
+  const setupRealtimeSubscriptions = useCallback(() => {
     console.log('🔄 Configuration abonnements temps réel Supabase...');
 
-    // ✅ Abonnement nouveaux utilisateurs
+    // 👥 Abonnement nouveaux utilisateurs
     const usersChannel = supabase
       .channel('admin_dashboard_users')
       .on('postgres_changes', {
@@ -505,14 +591,14 @@ export default function AdminDashboardIndex() {
         schema: 'public',
         table: 'profiles'
       }, (payload) => {
-        console.log('👤 Nouvel utilisateur en temps réel:', payload.new);
+        console.log('👥 Nouvel utilisateur en temps réel:', payload.new);
         // Recharger seulement les activités et overview
         loadRecentActivities();
         loadOverviewData();
       })
       .subscribe();
 
-    // ✅ Abonnement nouveaux services
+    // 🛠️ Abonnement nouveaux services
     const servicesChannel = supabase
       .channel('admin_dashboard_services')
       .on('postgres_changes', {
@@ -527,7 +613,7 @@ export default function AdminDashboardIndex() {
       })
       .subscribe();
 
-    // ✅ Abonnement commandes
+    // 📦 Abonnement commandes
     const ordersChannel = supabase
       .channel('admin_dashboard_orders')
       .on('postgres_changes', {
@@ -535,15 +621,15 @@ export default function AdminDashboardIndex() {
         schema: 'public',
         table: 'orders'
       }, (payload) => {
-        console.log('📋 Commande mise à jour en temps réel:', payload.new);
-        if (payload.new.status === 'completed') {
+        console.log('📦 Commande mise à jour en temps réel:', payload.new);
+        if (payload.new?.status === 'completed') {
           loadRecentActivities();
           loadOverviewData(); // Mettre à jour revenus
         }
       })
       .subscribe();
 
-    // ✅ Abonnement signalements
+    // 🚨 Abonnement signalements
     const reportsChannel = supabase
       .channel('admin_dashboard_reports')
       .on('postgres_changes', {
@@ -557,36 +643,36 @@ export default function AdminDashboardIndex() {
       })
       .subscribe();
 
-    // ✅ Cleanup function
+    // 🧹 Cleanup function
     return () => {
-      console.log('🔄 Nettoyage abonnements temps réel...');
+      console.log('🧹 Nettoyage abonnements temps réel...');
       usersChannel.unsubscribe();
       servicesChannel.unsubscribe();
       ordersChannel.unsubscribe();
       reportsChannel.unsubscribe();
     };
-  };
+  }, []);
 
-  // ✅ REFRESH SELON MODÈLE
+  // 🔄 REFRESH SELON MODÈLE
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadDashboardData();
     setRefreshing(false);
   }, [loadDashboardData]);
 
-  // ✅ NAVIGATION SÉCURISÉE
-  const navigateToModule = (route: string) => {
+  // 🧭 NAVIGATION SÉCURISÉE
+  const navigateToModule = useCallback((route: string) => {
     try {
-      console.log(`🔄 Navigation vers: ${route}`);
-      router.push(route);
+      console.log(`🧭 Navigation vers: ${route}`);
+      router.push(route as any);
     } catch (error) {
       console.error('❌ Erreur navigation:', error);
       Alert.alert('Erreur', 'Impossible de naviguer vers ce module');
     }
-  };
+  }, []);
 
-  // ✅ ACTIONS RAPIDES ADMIN AVEC BADGES DYNAMIQUES
-  const quickActions: QuickAction[] = [
+  // ⚡ ACTIONS RAPIDES ADMIN AVEC BADGES DYNAMIQUES - OPTIMISÉ AVEC USEMEMO
+  const quickActions: QuickAction[] = useMemo(() => [
     {
       key: 'services',
       label: 'Gérer Services',
@@ -628,7 +714,7 @@ export default function AdminDashboardIndex() {
       icon: Users,
       route: '/admin/dashboard/users',
       color: '#607D8B',
-      description: 'Gestion comptes'
+      description: 'Gestion complète'
     },
     {
       key: 'reports',
@@ -639,10 +725,10 @@ export default function AdminDashboardIndex() {
       badge: overview?.pendingReports || 0,
       description: 'Modération urgente'
     }
-  ];
+  ], [overview]);
 
-  // ✅ HELPERS UTILITAIRES
-  const getActivityIcon = (type: string) => {
+  // 🛠️ HELPERS UTILITAIRES - OPTIMISÉS AVEC USECALLBACK
+  const getActivityIcon = useCallback((type: string): React.ComponentType<any> => {
     switch (type) {
       case 'user_signup': return Users;
       case 'service_created': return Settings;
@@ -651,9 +737,9 @@ export default function AdminDashboardIndex() {
       case 'report_submitted': return AlertTriangle;
       default: return Activity;
     }
-  };
+  }, []);
 
-  const getActivityColor = (type: string) => {
+  const getActivityColor = useCallback((type: string): string => {
     switch (type) {
       case 'user_signup': return '#4CAF50';
       case 'service_created': return '#2196F3';
@@ -662,9 +748,9 @@ export default function AdminDashboardIndex() {
       case 'report_submitted': return '#FF4444';
       default: return '#666';
     }
-  };
+  }, []);
 
-  const getAlertIcon = (type: string) => {
+  const getAlertIcon = useCallback((type: string): React.ComponentType<any> => {
     switch (type) {
       case 'error': return AlertTriangle;
       case 'warning': return Clock;
@@ -672,23 +758,23 @@ export default function AdminDashboardIndex() {
       case 'info': return Bell;
       default: return Bell;
     }
-  };
+  }, []);
 
-  const formatCurrency = (amount: number): string => {
+  const formatCurrency = useCallback((amount: number): string => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     }).format(amount);
-  };
+  }, []);
 
-  const formatTimeAgo = (timestamp: string): string => {
+  const formatTimeAgo = useCallback((timestamp: string): string => {
     const now = new Date();
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
     
-    if (diffInMinutes < 1) return 'À l\'instant';
+    if (diffInMinutes < 1) return 'à l\'instant';
     if (diffInMinutes < 60) return `Il y a ${diffInMinutes} min`;
     
     const diffInHours = Math.floor(diffInMinutes / 60);
@@ -703,16 +789,16 @@ export default function AdminDashboardIndex() {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, []);
 
-  // ✅ GESTION LOADING/ERROR SELON MODÈLE EXCELLENCE
+  // 📊 GESTION LOADING/ERROR SELON MODÈLE EXCELLENCE
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF4444" />
           <Text style={styles.loadingText}>Chargement dashboard admin...</Text>
-          <Text style={styles.loadingSubtext}>Connexion à Supabase en cours</Text>
+          <Text style={styles.loadingSubText}>Connexion à Supabase en cours</Text>
         </View>
       </SafeAreaView>
     );
@@ -750,14 +836,14 @@ export default function AdminDashboardIndex() {
         {/* Header avec welcome */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>
-            Tableau de bord administrateur 👋
+            Tableau de bord administrateur 🚀
           </Text>
           <Text style={styles.welcomeSubtitle}>
-            Vue d'ensemble de votre plateforme • Connecté à Supabase
+            Vue d'ensemble de votre plateforme · Connecté à Supabase
           </Text>
           {overview && (
             <Text style={styles.lastUpdate}>
-              Dernière MAJ : {new Date(overview.lastUpdate).toLocaleTimeString('fr-FR')} • Données temps réel
+              Dernière MAJ : {new Date(overview.lastUpdate).toLocaleTimeString('fr-FR')} · Data temps réel
             </Text>
           )}
         </View>
@@ -797,7 +883,7 @@ export default function AdminDashboardIndex() {
                 <Users size={24} color="#fff" />
                 <Text style={styles.kpiValue}>{overview.totalUsers.toLocaleString('fr-FR')}</Text>
                 <Text style={styles.kpiLabel}>Utilisateurs</Text>
-                <Text style={styles.kpiSubtext}>+{overview.activeUsers} ce mois</Text>
+                <Text style={styles.kpiSubText}>+{overview.activeUsers} ce mois</Text>
               </LinearGradient>
 
               {/* Services */}
@@ -805,8 +891,8 @@ export default function AdminDashboardIndex() {
                 <Settings size={24} color="#fff" />
                 <Text style={styles.kpiValue}>{overview.totalServices}</Text>
                 <Text style={styles.kpiLabel}>Services</Text>
-                <Text style={styles.kpiSubtext}>
-                  {overview.activeServices} actifs{overview.hiddenServices > 0 && ` • ${overview.hiddenServices} masqués`}
+                <Text style={styles.kpiSubText}>
+                  {overview.activeServices} actifs{overview.hiddenServices > 0 && ` · ${overview.hiddenServices} masqués`}
                 </Text>
               </LinearGradient>
 
@@ -814,8 +900,8 @@ export default function AdminDashboardIndex() {
               <LinearGradient colors={['#FF9800', '#FFB74D']} style={styles.kpiCard}>
                 <Euro size={24} color="#fff" />
                 <Text style={styles.kpiValue}>{formatCurrency(overview.totalRevenue).replace('€', '')}</Text>
-                <Text style={styles.kpiLabel}>CA Total</Text>
-                <Text style={styles.kpiSubtext}>{formatCurrency(overview.monthlyRevenue)} ce mois</Text>
+                <Text style={styles.kpiLabel}>CA total</Text>
+                <Text style={styles.kpiSubText}>{formatCurrency(overview.monthlyRevenue)} ce mois</Text>
               </LinearGradient>
 
               {/* Badges */}
@@ -823,7 +909,7 @@ export default function AdminDashboardIndex() {
                 <Award size={24} color="#fff" />
                 <Text style={styles.kpiValue}>{overview.activeBadges}</Text>
                 <Text style={styles.kpiLabel}>Badges actifs</Text>
-                <Text style={styles.kpiSubtext}>{formatCurrency(overview.totalBadgesRewards)} total</Text>
+                <Text style={styles.kpiSubText}>{formatCurrency(overview.totalBadgesRewards)} total</Text>
               </LinearGradient>
             </View>
           </View>
@@ -865,7 +951,7 @@ export default function AdminDashboardIndex() {
         {/* Activités récentes */}
         <View style={styles.activitiesSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🕒 Activité récente</Text>
+            <Text style={styles.sectionTitle}>📈 Activité récente</Text>
             <TouchableOpacity>
               <Text style={styles.seeAllText}>Voir tout</Text>
             </TouchableOpacity>
@@ -875,7 +961,7 @@ export default function AdminDashboardIndex() {
             <View style={styles.emptyState}>
               <Activity size={48} color="#ccc" />
               <Text style={styles.emptyStateText}>Aucune activité récente</Text>
-              <Text style={styles.emptyStateSubtext}>Les nouvelles activités apparaîtront ici</Text>
+              <Text style={styles.emptyStateSubText}>Les nouvelles activités apparaîtront ici</Text>
             </View>
           ) : (
             <View style={styles.activitiesList}>
@@ -905,11 +991,11 @@ export default function AdminDashboardIndex() {
 
         {/* Actions système */}
         <View style={styles.systemActionsSection}>
-          <Text style={styles.sectionTitle}>🔧 Actions système</Text>
+          <Text style={styles.sectionTitle}>🛠️ Actions système</Text>
           
           <TouchableOpacity style={styles.systemAction}>
             <Download size={20} color="#2196F3" />
-            <Text style={styles.systemActionText}>Exporter données</Text>
+            <Text style={styles.systemActionText}>Exporter data</Text>
             <ChevronRight size={16} color="#999" />
           </TouchableOpacity>
           
@@ -951,7 +1037,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontFamily: 'Inter-Regular',
   },
-  loadingSubtext: {
+  loadingSubText: {
     fontSize: 14,
     color: '#9CA3AF',
     fontFamily: 'Inter-Regular',
@@ -1124,7 +1210,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     marginBottom: 2,
   },
-  kpiSubtext: {
+  kpiSubText: {
     fontSize: 10,
     color: '#fff',
     opacity: 0.8,
@@ -1259,7 +1345,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#666',
   },
-  emptyStateSubtext: {
+  emptyStateSubText: {
     fontSize: 14,
     color: '#999',
     textAlign: 'center',

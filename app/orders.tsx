@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,7 +38,7 @@ export default function OrdersScreen() {
           <View style={styles.orderItem}>
             <Text style={styles.orderText}>Commande #{item.id}</Text>
             <Text style={styles.dateText}>
-              {item.created_at ? `PassÃ©e le ${new Date(item.created_at).toLocaleDateString()}` : 'Date inconnue'}
+              {item.created_at ? `Passée le ${new Date(item.created_at).toLocaleDateString()}` : 'Date inconnue'}
             </Text>
           </View>
         )}

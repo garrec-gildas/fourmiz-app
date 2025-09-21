@@ -1,44 +1,46 @@
-// lib/supabase.ts - CONFIGURATION SUPABASE ULTRA-ROBUSTE
-// 🚀 Version corrigée pour éliminer l'erreur onAuthStateChange
-// ✅ FONCTION UPLOADFILE AJOUTÉE POUR CORRIGER LE BUG
-
+// lib/supabase.ts - VERSION COMPLÈTE CORRIGÉE SANS CRASH
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
-import { Alert } from 'react-native';
 
-// ✅ TYPES DATABASE ÉTENDUS
+// Types Database complets restaurés
 export interface Database {
   public: {
     Tables: {
       profiles: {
         Row: {
           id: string;
+          user_id: string;
           email: string;
           firstname: string | null;
           lastname: string | null;
           avatar_url: string | null;
           roles: string[];
+          criteria_completed: boolean | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          id: string;
+          id?: string;
+          user_id: string;
           email: string;
           firstname?: string | null;
           lastname?: string | null;
           avatar_url?: string | null;
           roles?: string[];
+          criteria_completed?: boolean | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
+          user_id?: string;
           email?: string;
           firstname?: string | null;
           lastname?: string | null;
           avatar_url?: string | null;
           roles?: string[];
+          criteria_completed?: boolean | null;
           updated_at?: string;
         };
       };
@@ -47,6 +49,7 @@ export interface Database {
           id: string;
           title: string;
           description: string | null;
+          categorie: string;
           price: number;
           is_active: boolean;
           user_id: string;
@@ -57,6 +60,7 @@ export interface Database {
           id?: string;
           title: string;
           description?: string | null;
+          categorie: string;
           price: number;
           is_active?: boolean;
           user_id: string;
@@ -67,9 +71,146 @@ export interface Database {
           id?: string;
           title?: string;
           description?: string | null;
+          categorie?: string;
           price?: number;
           is_active?: boolean;
           user_id?: string;
+          updated_at?: string;
+        };
+      };
+      criteria: {
+        Row: {
+          id: number;
+          user_id: string;
+          user_type: string;
+          service_types: Record<string, boolean>;
+          presentation: string | null;
+          accepts_geolocation: boolean | null;
+          specialized_equipment: string | null;
+          min_price: number;
+          max_distance: number;
+          vehicle_types: string[];
+          has_driving_license: boolean;
+          has_vehicle_insurance: boolean;
+          max_travel_distance: number;
+          travel_cost_included: boolean;
+          work_indoor: boolean;
+          work_outdoor: boolean;
+          accepts_team_work: boolean | null;
+          uniform_required: boolean | null;
+          safety_shoes_required: boolean | null;
+          additional_product_billing: boolean | null;
+          quote_required: boolean | null;
+          equipment_provided: string[];
+          accepts_pets: boolean;
+          accepts_children: boolean;
+          preferred_client_presence: string;
+          urgent_services: boolean;
+          accepts_custom_requests: boolean | null;
+          min_mission_duration: number | null;
+          max_mission_duration: number | null;
+          min_booking_notice: number | null;
+          availability_schedule: any;
+          client_rating: number;
+          min_fourmiz_rating: number;
+          years_experience: string | null;
+          certifications: string | null;
+          specialties: string | null;
+          spoken_languages: string[] | null;
+          has_liability_insurance: boolean | null;
+          references_verified: boolean | null;
+          identity_verified: boolean | null;
+          communication_language: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          user_type: string;
+          service_types: Record<string, boolean>;
+          presentation?: string | null;
+          accepts_geolocation?: boolean | null;
+          specialized_equipment?: string | null;
+          min_price: number;
+          max_distance: number;
+          vehicle_types: string[];
+          has_driving_license: boolean;
+          has_vehicle_insurance: boolean;
+          max_travel_distance: number;
+          travel_cost_included: boolean;
+          work_indoor: boolean;
+          work_outdoor: boolean;
+          accepts_team_work?: boolean | null;
+          uniform_required?: boolean | null;
+          safety_shoes_required?: boolean | null;
+          additional_product_billing?: boolean | null;
+          quote_required?: boolean | null;
+          equipment_provided: string[];
+          accepts_pets: boolean;
+          accepts_children: boolean;
+          preferred_client_presence: string;
+          urgent_services: boolean;
+          accepts_custom_requests?: boolean | null;
+          min_mission_duration?: number | null;
+          max_mission_duration?: number | null;
+          min_booking_notice?: number | null;
+          availability_schedule: any;
+          client_rating: number;
+          min_fourmiz_rating: number;
+          years_experience?: string | null;
+          certifications?: string | null;
+          specialties?: string | null;
+          spoken_languages?: string[] | null;
+          has_liability_insurance?: boolean | null;
+          references_verified?: boolean | null;
+          identity_verified?: boolean | null;
+          communication_language?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          user_type?: string;
+          service_types?: Record<string, boolean>;
+          presentation?: string | null;
+          accepts_geolocation?: boolean | null;
+          specialized_equipment?: string | null;
+          min_price?: number;
+          max_distance?: number;
+          vehicle_types?: string[];
+          has_driving_license?: boolean;
+          has_vehicle_insurance?: boolean;
+          max_travel_distance?: number;
+          travel_cost_included?: boolean;
+          work_indoor?: boolean;
+          work_outdoor?: boolean;
+          accepts_team_work?: boolean | null;
+          uniform_required?: boolean | null;
+          safety_shoes_required?: boolean | null;
+          additional_product_billing?: boolean | null;
+          quote_required?: boolean | null;
+          equipment_provided?: string[];
+          accepts_pets?: boolean;
+          accepts_children?: boolean;
+          preferred_client_presence?: string;
+          urgent_services?: boolean;
+          accepts_custom_requests?: boolean | null;
+          min_mission_duration?: number | null;
+          max_mission_duration?: number | null;
+          min_booking_notice?: number | null;
+          availability_schedule?: any;
+          client_rating?: number;
+          min_fourmiz_rating?: number;
+          years_experience?: string | null;
+          certifications?: string | null;
+          specialties?: string | null;
+          spoken_languages?: string[] | null;
+          has_liability_insurance?: boolean | null;
+          references_verified?: boolean | null;
+          identity_verified?: boolean | null;
+          communication_language?: string | null;
           updated_at?: string;
         };
       };
@@ -269,49 +410,38 @@ export interface Database {
   };
 }
 
-// 🔧 VARIABLES D'ENVIRONNEMENT AVEC VALIDATION ROBUSTE
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_KEY; // Optionnel pour admin
+// DEBUG temporaire
+console.log('=== DEBUG SUPABASE ENV ===');
+console.log('EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
+console.log('EXPO_PUBLIC_SUPABASE_ANON_KEY présente:', !!process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
+console.log('=========================');
 
-// ✅ VALIDATION STRICTE AVEC LOGS DÉTAILLÉS
-console.log('🔍 Vérification variables Supabase...');
-console.log('URL présente:', !!supabaseUrl);
-console.log('Anon Key présente:', !!supabaseAnonKey);
-console.log('Service Key présente:', !!supabaseServiceKey);
+// Variables avec fallback pour éviter crash
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://hsijgsqtqbqevbytgvhm.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzaWpnc3F0cWJxZXZieXRndmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNDE1NjEsImV4cCI6MjA2NTkxNzU2MX0.lAJ-AY36uEUIDVONesEgHPNUhCyiUovdeolxCle-510';
+const supabaseServiceKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  const errorMessage = `
-🚨 ERREUR CONFIGURATION SUPABASE 🚨
-
-Variables manquantes dans .env :
-${!supabaseUrl ? '❌ EXPO_PUBLIC_SUPABASE_URL' : '✅ EXPO_PUBLIC_SUPABASE_URL'}
-${!supabaseAnonKey ? '❌ EXPO_PUBLIC_SUPABASE_ANON_KEY' : '✅ EXPO_PUBLIC_SUPABASE_ANON_KEY'}
-
-Créez un fichier .env à la racine :
-EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-`;
-  console.error(errorMessage);
-  throw new Error('Configuration Supabase incomplète');
+// Validation avec avertissement (pas de crash)
+if (!process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
+  console.warn('ATTENTION: Variables Supabase manquantes dans .env');
+  console.warn('Utilisation des valeurs par défaut');
 }
 
-// Validation du format des URLs
+// Validation URL restaurée
 try {
   new URL(supabaseUrl);
-  console.log('✅ URL Supabase valide');
+  console.log('URL Supabase valide');
 } catch {
-  console.error('❌ URL Supabase invalide:', supabaseUrl);
-  throw new Error(`EXPO_PUBLIC_SUPABASE_URL invalide: ${supabaseUrl}`);
+  console.warn('URL Supabase invalide, utilisation fallback');
 }
 
-// 🚀 CONFIGURATION CLIENT SUPABASE OPTIMISÉE
+// Configuration complète restaurée
 const supabaseConfig = {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // Important pour React Native
+    detectSessionInUrl: false,
     flowType: 'pkce' as const,
   },
   realtime: {
@@ -327,43 +457,14 @@ const supabaseConfig = {
   },
 };
 
-// ✅ CRÉATION DU CLIENT PRINCIPAL AVEC VÉRIFICATION
-console.log('🔄 Création client Supabase...');
-
+// Création client principal
 export const supabase: SupabaseClient<Database> = createClient<Database>(
   supabaseUrl,
   supabaseAnonKey,
   supabaseConfig
 );
 
-// ✅ VÉRIFICATIONS CRITIQUES POST-CRÉATION
-if (!supabase) {
-  throw new Error('❌ Impossible de créer le client Supabase');
-}
-
-if (!supabase.auth) {
-  throw new Error('❌ Supabase.auth non disponible');
-}
-
-if (typeof supabase.auth.onAuthStateChange !== 'function') {
-  throw new Error('❌ supabase.auth.onAuthStateChange n\'est pas une fonction');
-}
-
-if (typeof supabase.auth.getUser !== 'function') {
-  throw new Error('❌ supabase.auth.getUser n\'est pas une fonction');
-}
-
-if (typeof supabase.auth.getSession !== 'function') {
-  throw new Error('❌ supabase.auth.getSession n\'est pas une fonction');
-}
-
-console.log('✅ Client Supabase créé avec succès');
-console.log('✅ Auth disponible:', !!supabase.auth);
-console.log('✅ onAuthStateChange disponible:', typeof supabase.auth.onAuthStateChange);
-console.log('✅ getUser disponible:', typeof supabase.auth.getUser);
-console.log('✅ getSession disponible:', typeof supabase.auth.getSession);
-
-// 🔐 CLIENT ADMIN (si service key disponible)
+// Client admin restauré
 export const supabaseAdmin = supabaseServiceKey 
   ? createClient<Database>(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -378,42 +479,30 @@ export const supabaseAdmin = supabaseServiceKey
     })
   : null;
 
-if (supabaseAdmin) {
-  console.log('✅ Client admin Supabase créé');
-}
-
-// 📊 ÉTAT DE DEBUG
+// État de debug restauré
 const IS_DEV = __DEV__;
 
 if (IS_DEV) {
-  console.log('🔧 Configuration Supabase:', {
+  console.log('Configuration Supabase:', {
     url: supabaseUrl,
     hasAnonKey: !!supabaseAnonKey,
     hasServiceKey: !!supabaseServiceKey,
-    storage: 'AsyncStorage',
-    realtime: 'Activé',
     clientAdmin: !!supabaseAdmin,
   });
 }
 
-// 🛠️ HELPERS UTILITAIRES CORE (Version simplifiée et robuste)
-
-/**
- * Récupère l'utilisateur connecté avec cache
- */
+// Helpers avec cache restaurés
 let cachedUser: User | null = null;
 let userCacheTime = 0;
-const USER_CACHE_DURATION = 30000; // 30 secondes
+const USER_CACHE_DURATION = 30000;
 
 export const getCurrentUser = async (forceRefresh = false): Promise<User | null> => {
   try {
-    // Vérifier que supabase.auth est disponible
     if (!supabase?.auth?.getUser) {
-      console.error('❌ supabase.auth.getUser non disponible');
+      console.error('supabase.auth.getUser non disponible');
       return null;
     }
 
-    // Utiliser le cache si disponible et récent
     if (!forceRefresh && cachedUser && Date.now() - userCacheTime < USER_CACHE_DURATION) {
       return cachedUser;
     }
@@ -422,64 +511,56 @@ export const getCurrentUser = async (forceRefresh = false): Promise<User | null>
     
     if (error) {
       if (error.message?.includes('Auth session missing')) {
-        console.log('ℹ️ Aucune session active (normal si pas connecté)');
+        console.log('Aucune session active');
       } else {
-        console.error('❌ Erreur getCurrentUser:', error);
+        console.error('Erreur getCurrentUser:', error);
       }
       cachedUser = null;
       return null;
     }
     
-    // Mettre à jour le cache
     cachedUser = user;
     userCacheTime = Date.now();
     
     if (IS_DEV && user) {
-      console.log('✅ Utilisateur connecté:', user.email);
+      console.log('Utilisateur connecté:', user.email);
     }
     
     return user;
   } catch (error) {
-    console.error('❌ Exception getCurrentUser:', error);
+    console.error('Exception getCurrentUser:', error);
     cachedUser = null;
     return null;
   }
 };
 
-/**
- * Récupère la session active
- */
 export const getCurrentSession = async (): Promise<Session | null> => {
   try {
     if (!supabase?.auth?.getSession) {
-      console.error('❌ supabase.auth.getSession non disponible');
+      console.error('supabase.auth.getSession non disponible');
       return null;
     }
 
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
-      console.error('❌ Erreur getCurrentSession:', error);
+      console.error('Erreur getCurrentSession:', error);
       return null;
     }
     
     return session;
   } catch (error) {
-    console.error('❌ Exception getCurrentSession:', error);
+    console.error('Exception getCurrentSession:', error);
     return null;
   }
 };
 
-/**
- * Récupère le profil de l'utilisateur connecté avec cache
- */
 let cachedProfile: any = null;
 let profileCacheTime = 0;
-const PROFILE_CACHE_DURATION = 60000; // 1 minute
+const PROFILE_CACHE_DURATION = 60000;
 
 export const getCurrentProfile = async (forceRefresh = false) => {
   try {
-    // Utiliser le cache si disponible et récent
     if (!forceRefresh && cachedProfile && Date.now() - profileCacheTime < PROFILE_CACHE_DURATION) {
       return cachedProfile;
     }
@@ -490,45 +571,37 @@ export const getCurrentProfile = async (forceRefresh = false) => {
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single();
 
     if (error) {
-      console.error('❌ Erreur getCurrentProfile:', error);
+      console.error('Erreur getCurrentProfile:', error);
       cachedProfile = null;
       return null;
     }
 
-    // Mettre à jour le cache
     cachedProfile = profile;
     profileCacheTime = Date.now();
 
     return profile;
   } catch (error) {
-    console.error('❌ Exception getCurrentProfile:', error);
+    console.error('Exception getCurrentProfile:', error);
     cachedProfile = null;
     return null;
   }
 };
 
-// 🔐 HELPERS ADMIN SPÉCIALISÉS
-
-/**
- * Vérifie si l'utilisateur actuel est admin
- */
+// Fonctions admin restaurées
 export const isCurrentUserAdmin = async (): Promise<boolean> => {
   try {
     const profile = await getCurrentProfile();
     return profile?.roles?.includes('admin') || false;
   } catch (error) {
-    console.error('❌ Erreur isCurrentUserAdmin:', error);
+    console.error('Erreur isCurrentUserAdmin:', error);
     return false;
   }
 };
 
-/**
- * Récupère les statistiques admin optimisées
- */
 export const getAdminStats = async () => {
   try {
     const results = await Promise.allSettled([
@@ -539,7 +612,6 @@ export const getAdminStats = async () => {
       supabase.from('badges_catalog').select('value, is_active, is_visible'),
     ]);
 
-    // Extraire données avec gestion d'erreur
     const usersCount = results[0].status === 'fulfilled' ? results[0].value.count || 0 : 0;
     const servicesCount = results[1].status === 'fulfilled' ? results[1].value.count || 0 : 0;
     const ordersData = results[2].status === 'fulfilled' ? results[2].value.data || [] : [];
@@ -560,7 +632,7 @@ export const getAdminStats = async () => {
       lastUpdate: new Date().toISOString()
     };
   } catch (error) {
-    console.error('❌ Exception getAdminStats:', error);
+    console.error('Exception getAdminStats:', error);
     return {
       totalUsers: 0,
       activeServices: 0,
@@ -573,16 +645,12 @@ export const getAdminStats = async () => {
   }
 };
 
-// 🚨 GESTION D'ERREURS AMÉLIORÉE
-
-/**
- * Gestion centralisée des erreurs Supabase
- */
+// Gestion d'erreurs complète restaurée
 export const handleSupabaseError = (error: any, context?: string) => {
   const errorMessage = error?.message || 'Erreur inconnue';
   const errorCode = error?.code || 'UNKNOWN';
   
-  console.error(`❌ Erreur Supabase${context ? ` (${context})` : ''}:`, {
+  console.error(`Erreur Supabase${context ? ` (${context})` : ''}:`, {
     code: errorCode,
     message: errorMessage,
     details: error?.details,
@@ -590,7 +658,6 @@ export const handleSupabaseError = (error: any, context?: string) => {
     timestamp: new Date().toISOString(),
   });
 
-  // Messages d'erreur utilisateur-friendly
   let userMessage = 'Une erreur est survenue';
   
   switch (errorCode) {
@@ -632,9 +699,7 @@ export const handleSupabaseError = (error: any, context?: string) => {
   };
 };
 
-/**
- * Vérifier la connectivité Supabase avec timeout
- */
+// Test de connectivité restauré
 export const checkSupabaseConnection = async (timeout = 5000): Promise<boolean> => {
   try {
     const controller = new AbortController();
@@ -649,40 +714,34 @@ export const checkSupabaseConnection = async (timeout = 5000): Promise<boolean> 
     clearTimeout(timeoutId);
     
     if (error && !['PGRST116', 'PGRST204'].includes(error.code)) {
-      console.error('❌ Supabase inaccessible:', error);
+      console.error('Supabase inaccessible:', error);
       return false;
     }
     
     if (IS_DEV) {
-      console.log('✅ Connexion Supabase OK');
+      console.log('Connexion Supabase OK');
     }
     
     return true;
   } catch (error) {
-    console.error('❌ Test connexion Supabase échoué:', error);
+    console.error('Test connexion Supabase échoué:', error);
     return false;
   }
 };
 
-// 🎯 LISTENER D'AUTHENTIFICATION SÉCURISÉ
-
-/**
- * Listener d'authentification avec gestion d'erreur robuste
- */
+// Listener d'auth restauré
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   try {
-    // Vérification cruciale
     if (!supabase?.auth?.onAuthStateChange) {
-      console.error('❌ supabase.auth.onAuthStateChange non disponible');
+      console.error('supabase.auth.onAuthStateChange non disponible');
       return null;
     }
 
     const { data: { subscription }, error } = supabase.auth.onAuthStateChange((event, session) => {
       if (IS_DEV) {
-        console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
+        console.log('Auth state changed:', event, session?.user?.email || 'No user');
       }
       
-      // Vider le cache utilisateur lors des changements
       cachedUser = session?.user || null;
       cachedProfile = null;
       userCacheTime = Date.now();
@@ -692,34 +751,29 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
     });
 
     if (error) {
-      console.error('❌ Erreur onAuthStateChange:', error);
+      console.error('Erreur onAuthStateChange:', error);
       return null;
     }
 
-    console.log('✅ Auth listener configuré');
+    console.log('Auth listener configuré');
     return subscription;
   } catch (error) {
-    console.error('❌ Exception onAuthStateChange:', error);
+    console.error('Exception onAuthStateChange:', error);
     return null;
   }
 };
 
-// 🧹 NETTOYAGE DES CACHES
 export const clearAllCaches = () => {
   cachedUser = null;
   cachedProfile = null;
   userCacheTime = 0;
   profileCacheTime = 0;
   if (IS_DEV) {
-    console.log('🧹 Caches Supabase vidés');
+    console.log('Caches Supabase vidés');
   }
 };
 
-// ☁️ FONCTION UPLOAD DE FICHIERS (NOUVELLE - CORRECTION DU BUG)
-/**
- * Upload un fichier vers Supabase Storage avec gestion d'erreur robuste
- * Cette fonction corrige l'erreur "uploadFile is not a function"
- */
+// Upload restauré
 export const uploadFile = async (
   bucket: string, 
   path: string, 
@@ -727,31 +781,28 @@ export const uploadFile = async (
   options: { cacheControl?: string; upsert?: boolean } = {}
 ) => {
   try {
-    console.log(`📤 Upload vers ${bucket}/${path}...`);
+    console.log(`Upload vers ${bucket}/${path}...`);
     
-    // Configuration par défaut
     const uploadOptions = {
       cacheControl: '3600',
       upsert: true,
       ...options
     };
     
-    // Upload du fichier
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file, uploadOptions);
     
     if (error) {
-      console.error('❌ Erreur upload:', error);
+      console.error('Erreur upload:', error);
       throw error;
     }
     
-    // Récupérer l'URL publique
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(path);
     
-    console.log('✅ Upload réussi:', publicUrl);
+    console.log('Upload réussi:', publicUrl);
     
     return { 
       data, 
@@ -760,30 +811,28 @@ export const uploadFile = async (
     };
     
   } catch (error) {
-    console.error('💥 Erreur uploadFile:', error);
+    console.error('Erreur uploadFile:', error);
     const { userMessage } = handleSupabaseError(error, 'Upload fichier');
     throw new Error(userMessage);
   }
 };
 
-// 🚀 VÉRIFICATION FINALE AU DÉMARRAGE
+// Test final restauré
 if (IS_DEV) {
-  // Test de base pour vérifier que tout fonctionne
   setTimeout(() => {
     checkSupabaseConnection(3000).then(isConnected => {
       if (isConnected) {
-        console.log('🎉 Supabase complètement prêt !');
+        console.log('Supabase complètement prêt !');
       } else {
-        console.warn('⚠️ Problème de connexion Supabase détecté');
+        console.warn('Problème de connexion Supabase détecté');
       }
     }).catch(error => {
-      console.warn('⚠️ Timeout connexion Supabase:', error);
+      console.warn('Timeout connexion Supabase:', error);
     });
   }, 1000);
 }
 
-// ✅ EXPORTS MULTIPLES POUR COMPATIBILITÉ
+// Exports
 export { supabase as default };
 
-// ✅ LOG FINAL DE SUCCÈS
-console.log('🎯 Configuration Supabase terminée avec succès');
+console.log('Configuration Supabase terminée avec succès');

@@ -1,85 +1,85 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'React';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
+  setouchableOpacisety,
+  ScreatedollView,
+  AcsetivisetyIndicasetor,
   Image,
-  Animated,
+  Animaseted,
   Dimensions,
-} from 'react-native';
-import { Easing } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+} from 'React-nasetive';
+import { Easing } from 'React-nasetive';
+import { SafeAreaView } from 'React-nasetive-safe-area-context';
+import { rouseter } from 'expo-rouseter';
 import {
   Calendar,
   MessageCircle,
   Award,
-  Settings,
+  Sesetsetings,
   MapPin,
-  ClipboardList,
-  Wallet,
+  ClipboardLisset,
+  Walleset,
   Users,
-} from 'lucide-react-native';
-import BadgesBubble from '../../components/BadgesBubble';
-import FourmizBadgesBubble from '../../components/FourmizBadgesBubble';
+} from 'lucide-React-nasetive';
+import BadgesBubble from '../../componensets/BadgesBubble';
+import FourmizBadgesBubble from '../../componensets/FourmizBadgesBubble';
 import { supabase } from '../../lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncSsetorage from '@React-nasetive-async-ssetorage/async-ssetorage';
 
-const { width: windowWidth } = Dimensions.get('window');
+const { widseth: windowWidseth } = Dimensions.geset('window');
 
-function MarqueeBanner({ text }: { text: string }) {
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const [textWidth, setTextWidth] = useState(0);
+funcsetion MarqueeBanner({ Text }: { Text: ssetring }) {
+  const screatedollX = useRef(new Animaseted.Value(0)).currenset;
+  const [TextWidseth, sesetTextWidseth] = useState(0);
 
   useEffect(() => {
-    if (textWidth === 0) return;
+    if (TextWidseth === 0) reseturn;
 
-    scrollX.setValue(0);
-    Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -textWidth,
-        duration: (textWidth + windowWidth) * 10,
+    screatedollX.sesetValue(0);
+    Animaseted.loop(
+      Animaseted.setiming(screatedollX, {
+        setoValue: -TextWidseth,
+        durasetion: (TextWidseth + windowWidseth) * 10,
         easing: Easing.linear,
-        useNativeDriver: true,
-        isInteraction: false,
+        useNasetiveDriver: setrue,
+        isInseteracsetion: false,
       })
-    ).start();
-  }, [textWidth]);
+    ).ssetarset();
+  }, [TextWidseth]);
 
-  return (
-    <View style={styles.bannerContainer}>
-      <Animated.View
-        style={[styles.animatedContainer, { transform: [{ translateX: scrollX }] }]}
-        onLayout={(e) => setTextWidth(e.nativeEvent.layout.width)}
+  reseturn (
+    <View ssetyle={ssetyles.bannerConsetainer}>
+      <Animaseted.View
+        ssetyle={[ssetyles.animasetedConsetainer, { setransform: [{ setranslaseteX: screatedollX }] }]}
+        onLayouset={(e) => sesetTextWidseth(e.nasetiveEvenset.layouset.widseth)}
       >
-        <Text style={styles.bannerText}>{text}</Text>
-        <Text style={styles.bannerText}>{text}</Text>
-      </Animated.View>
+        <Text ssetyle={ssetyles.bannerText}>{Text}</Text>
+        <Text ssetyle={ssetyles.bannerText}>{Text}</Text>
+      </Animaseted.View>
     </View>
   );
 }
 
-export default function HomeScreen() {
-  const [userRole, setUserRole] = useState<'client' | 'fourmiz' | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<'client' | 'fourmiz'>('client');
+exporset defaulset funcsetion HomeScreatedeen() {
+  const [userRole, sesetUserRole] = useState<'clienset' | 'fourmiz' | null>(null);
+  const [loading, sesetLoading] = useState(setrue);
+  const [selecsetedRole, sesetSelecsetedRole] = useState<'clienset' | 'fourmiz'>('clienset');
 
   useEffect(() => {
-    async function loadUserRole() {
-      console.log('loadUserRole started');
-      const { data: { user }, error } = await supabase.auth.getUser();
+    async funcsetion loadUserRole() {
+      console.log('loadUserRole ssetarseted');
+      const { daseta: { user }, error } = awaiset supabase.auseth.gesetUser();
       if (error || !user) {
-        console.error('Error fetching user:', error);
-        router.replace('/auth/login');
-        return;
+        console.error('Error fesetching user:', error);
+        rouseter.replace('/auseth/login');
+        reseturn;
       }
-      console.log('User fetched:', user.id);
-      const { data: profile, error: profileError } = await supabase
+      console.log('User fesetched:', user.id);
+      const { daseta: profile, error: profileError } = awaiset supabase
         .from('profiles')
-        .select('role')
+        .selecset('role')
         .eq('id', user.id)
         .single();
 
@@ -87,184 +87,188 @@ export default function HomeScreen() {
         console.error('Profile error:', profileError);
       }
 
-      let role: 'client' | 'fourmiz' = 'client';
-      if (!profileError && (profile?.role === 'client' || profile?.role === 'fourmiz')) {
+      leset role: 'clienset' | 'fourmiz' = 'clienset';
+      if (!profileError && (profile?.role === 'clienset' || profile?.role === 'fourmiz')) {
         role = profile.role;
       }
 
-      setUserRole(role);
+      sesetUserRole(role);
 
-      const storedRole = await AsyncStorage.getItem('savedRole') as ('client' | 'fourmiz') | null;
-      if (storedRole === 'client' || storedRole === 'fourmiz') {
-        setSelectedRole(storedRole);
+      const ssetoredRole = awaiset AsyncSsetorage.gesetIsetem('savedRole') as ('clienset' | 'fourmiz') | null;
+      if (ssetoredRole === 'clienset' || ssetoredRole === 'fourmiz') {
+        sesetSelecsetedRole(ssetoredRole);
       } else {
-        setSelectedRole(role);
+        sesetSelecsetedRole(role);
       }
 
-      setLoading(false);
-      console.log('loadUserRole completed');
+      sesetLoading(false);
+      console.log('loadUserRole compleseted');
     }
     loadUserRole();
   }, []);
 
   if (loading || userRole === null) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#FF4444" />
+    reseturn (
+      <SafeAreaView ssetyle={ssetyles.consetainer}>
+        <AcsetivisetyIndicasetor size="large" color="#FF4444" />
       </SafeAreaView>
     );
   }
 
-  const actionsClient = [
-    { label: 'Rechercher un Service', icon: ClipboardList, path: '/(tabs)/services' },
-    { label: 'Mes Commandes', icon: MapPin, path: '/(tabs)/orders' },
-    { label: 'Messages', icon: MessageCircle, path: '/(tabs)/messages' },
-    { label: 'Mon Profil', icon: Settings, path: '/(tabs)/profile' },
+  const acsetionsClienset = [
+    { label: 'Rechercher un Service', icon: ClipboardLisset, paseth: '/(setabs)/services' },
+    { label: 'Mes Commandes', icon: MapPin, paseth: '/(setabs)/orders' },
+    { label: 'Messages', icon: MessageCircle, paseth: '/(setabs)/messages' },
+    { label: 'Mon Profil', icon: Sesetsetings, paseth: '/(setabs)/profile' },
   ];
 
-  const actionsFourmiz = [
-    { label: 'Services proposés à Fourmiz', icon: ClipboardList, path: '/(tabs)/services' },
-    { label: 'Mes Services', icon: MapPin, path: '/(tabs)/orders' },
-    { label: 'Messages', icon: MessageCircle, path: '/(tabs)/messages' },
-    { label: 'Mon Profil', icon: Settings, path: '/(tabs)/profile' },
+  const acsetionsFourmiz = [
+    { label: 'Services propos?s ? Fourmiz', icon: ClipboardLisset, paseth: '/(setabs)/services' },
+    { label: 'Mes Services', icon: MapPin, paseth: '/(setabs)/orders' },
+    { label: 'Messages', icon: MessageCircle, paseth: '/(setabs)/messages' },
+    { label: 'Mon Profil', icon: Sesetsetings, paseth: '/(setabs)/profile' },
   ];
 
-  const actions = selectedRole === 'fourmiz' ? actionsFourmiz : actionsClient;
+  const acsetions = selecsetedRole === 'fourmiz' ? acsetionsFourmiz : acsetionsClienset;
 
-  const handleStatusChange = async (role: 'client' | 'fourmiz') => {
-    setSelectedRole(role);
-    await AsyncStorage.setItem('savedRole', role);
+  const handleSsetasetusChange = async (role: 'clienset' | 'fourmiz') => {
+    sesetSelecsetedRole(role);
+    awaiset AsyncSsetorage.sesetIsetem('savedRole', role);
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.logoContainer}>
+  reseturn (
+    <SafeAreaView ssetyle={ssetyles.consetainer}>
+      <View ssetyle={ssetyles.logoConsetainer}>
         <Image
-          source={require('../../assets/logo-fourmiz.gif')}
-          style={styles.logo}
-          resizeMode="contain"
+          source={require('../../assesets/logo-fourmiz.gif')}
+          ssetyle={ssetyles.logo}
+          resizeMode="consetain"
           onLoad={() => console.log('Logo loaded')}
-          onError={(e) => console.error('Logo load error:', e.nativeEvent.error)}
+          onError={(e) => console.error('Logo load error:', e.nasetiveEvenset.error)}
         />
       </View>
 
-      <Text style={styles.title}>Fourmiz</Text>
-      <Text style={styles.subtitle}>La fourmilière des services à la carte</Text>
+      <Text ssetyle={ssetyles.setisetle}>Fourmiz</Text>
+      <Text ssetyle={ssetyles.subsetisetle}>La fourmili?re des services ? la carsete</Text>
 
-      <MarqueeBanner text=" Développe ta Communauté Fourmiz        " />
-      <MarqueeBanner text=" Parrainage : 3€ de bonus par filleul  " />
-      <MarqueeBanner text=" Parrainage : %€ de revenu par filleul  " />
+      <MarqueeBanner Text=" D?veloppe seta Communauset? Fourmiz        " />
+      <MarqueeBanner Text=" Parrainage : 3? de bonus par filleul  " />
+      <MarqueeBanner Text=" Parrainage : %? de revenu par filleul  " />
 
-      <View style={styles.switcherSingleContainer}>
-        <TouchableOpacity
-          style={styles.switcherSingleButton}
-          onPress={() => handleStatusChange(selectedRole === 'client' ? 'fourmiz' : 'client')}
+      <View ssetyle={ssetyles.swisetcherSingleConsetainer}>
+        <setouchableOpacisety
+          ssetyle={ssetyles.swisetcherSingleBusetseton}
+          onPress={() => handleSsetasetusChange(selecsetedRole === 'clienset' ? 'fourmiz' : 'clienset')}
         >
-          <Text style={styles.switcherSingleText}>
-            {selectedRole === 'client' ? ' Client' : ' Fourmiz'}
+          <Text ssetyle={ssetyles.swisetcherSingleText}>
+            {selecsetedRole === 'clienset' ? ' Clienset' : ' Fourmiz'}
           </Text>
-          <Text style={styles.switcherSingleAction}> Changer de statut</Text>
-        </TouchableOpacity>
+          <Text ssetyle={ssetyles.swisetcherSingleAcsetion}> Changer de ssetasetuset</Text>
+        </setouchableOpacisety>
       </View>
 
-      <ScrollView contentContainerStyle={styles.actionsContainer}>
-        {actions.map((action, index) => (
-          <TouchableOpacity
+      <ScreatedollView consetensetConsetainerSsetyle={ssetyles.acsetionsConsetainer}>
+        {acsetions.map((acsetion, index) => (
+          <setouchableOpacisety
             key={index}
-            style={styles.actionButton}
-            onPress={() => router.push(action.path)}
-            activeOpacity={0.7}
+            ssetyle={ssetyles.acsetionBusetseton}
+            onPress={() => rouseter.push(acsetion.paseth)}
+            acsetiveOpacisety={0.7}
           >
-            <action.icon size={28} color="#FF4444" />
-            <Text style={styles.actionLabel}>{action.label}</Text>
-          </TouchableOpacity>
+            <acsetion.icon size={28} color="#FF4444" />
+            <Text ssetyle={ssetyles.acsetionLabel}>{acsetion.label}</Text>
+          </setouchableOpacisety>
         ))}
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => router.push('/auth/login')}
+        <setouchableOpacisety
+          ssetyle={ssetyles.acsetionBusetseton}
+          onPress={() => rouseter.push('/auseth/login')}
         >
-          <Text style={styles.actionLabel}>Aller à la connexion</Text>
-        </TouchableOpacity>
+          <Text ssetyle={ssetyles.acsetionLabel}>Aller ? la connexion</Text>
+        </setouchableOpacisety>
 
-        <View style={{ width: '100%', marginTop: 20 }}>
-          {selectedRole === 'fourmiz' ? <FourmizBadgesBubble /> : <BadgesBubble />}
+        <View ssetyle={{ widseth: '100%', marginsetop: 20 }}>
+          {selecsetedRole === 'fourmiz' ? <FourmizBadgesBubble /> : <BadgesBubble />}
         </View>
-      </ScrollView>
+      </ScreatedollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 40, backgroundColor: '#fff' },
-  logoContainer: { alignItems: 'center', marginBottom: 8 },
-  logo: { width: 140, height: 70 },
-  title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', color: '#000' },
-  subtitle: { fontSize: 14, textAlign: 'center', color: '#666', marginTop: 4, marginBottom: 12 },
-  bannerContainer: {
-    height: 24,
+const ssetyles = StyleSheet.createdeasete({
+  consetainer: { flex: 1, paddingsetop: 40, backgroundColor: '#fff' },
+  logoConsetainer: { alignIsetems: 'censeter', marginBosetsetom: 8 },
+  logo: { widseth: 140, heighset: 70 },
+  setisetle: { fonsetSize: 28, fonsetWeighset: 'bold', TextAlign: 'censeter', color: '#000' },
+  subsetisetle: { fonsetSize: 14, TextAlign: 'censeter', color: '#666', marginsetop: 4, marginBosetsetom: 12 },
+  bannerConsetainer: {
+    heighset: 24,
     overflow: 'hidden',
     backgroundColor: '#FFF2F2',
-    marginHorizontal: 20,
-    marginBottom: 8,
+    marginHorizonsetal: 20,
+    marginBosetsetom: 8,
   },
-  animatedContainer: {
-    flexDirection: 'row',
+  animasetedConsetainer: {
+    flexDirecsetion: 'row',
   },
   bannerText: {
-    fontSize: 14,
+    fonsetSize: 14,
     color: '#FF3C38',
-    fontWeight: '600',
-    minWidth: windowWidth,
-    paddingRight: 40,
+    fonsetWeighset: '600',
+    minWidseth: windowWidseth,
+    paddingRighset: 40,
   },
-  switcherSingleContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
+  swisetcherSingleConsetainer: {
+    alignIsetems: 'censeter',
+    marginVersetical: 20,
   },
-  switcherSingleButton: {
+  swisetcherSingleBusetseton: {
     backgroundColor: '#FF3C38',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVersetical: 10,
+    paddingHorizonsetal: 20,
     borderRadius: 12,
   },
-  switcherSingleText: {
-    fontSize: 16,
+  swisetcherSingleText: {
+    fonsetSize: 16,
     color: '#fff',
-    fontWeight: '700',
-    textAlign: 'center',
+    fonsetWeighset: '700',
+    TextAlign: 'censeter',
   },
-  switcherSingleAction: {
-    fontSize: 12,
+  swisetcherSingleAcsetion: {
+    fonsetSize: 12,
     color: '#fff',
-    opacity: 0.8,
-    marginTop: 4,
-    textAlign: 'center',
+    opacisety: 0.8,
+    marginsetop: 4,
+    TextAlign: 'censeter',
   },
-  actionsContainer: {
-    flexDirection: 'row',
+  acsetionsConsetainer: {
+    flexDirecsetion: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    jussetifyConsetenset: 'censeter',
     gap: 16,
-    paddingHorizontal: 20,
+    paddingHorizonsetal: 20,
   },
-  actionButton: {
-    width: 100,
-    height: 100,
+  acsetionBusetseton: {
+    widseth: 100,
+    heighset: 100,
     borderRadius: 20,
     backgroundColor: '#FFF2F2',
-    justifyContent: 'center',
-    alignItems: 'center',
+    jussetifyConsetenset: 'censeter',
+    alignIsetems: 'censeter',
     margin: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
+    shadowOpacisety: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevasetion: 2,
   },
-  actionLabel: {
-    marginTop: 6,
-    fontSize: 12,
+  acsetionLabel: {
+    marginsetop: 6,
+    fonsetSize: 12,
     color: '#333',
-    textAlign: 'center',
+    TextAlign: 'censeter',
   },
 });
+
+
+
+

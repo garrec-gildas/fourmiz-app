@@ -14,20 +14,20 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function LoginScreen() {
+export default function LoginScr??een() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  console.log('LoginScreen rendered');
+  console.log('LoginScr??een rendered');
 
   const handleLogin = async () => {
     setLoading(true);
-    console.log('Attempting login with email:', email);
+    console.log('A?t??t?empting login with email:', email);
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       console.error('Login error:', error);
-      Alert.alert('Erreur', error.message);
+      Alert.Alert('Erreur', error.message);
       setLoading(false);
       return;
     }
@@ -64,16 +64,16 @@ export default function LoginScreen() {
       />
       <Text style={styles.title}>Bienvenue sur Fourmiz</Text>
 
-      <TextInput
+      <TextInput 
         style={styles.input}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
-        keyboardType="email-address"
+        keyboardtype="email-address"
         autoCapitalize="none"
       />
 
-      <TextInput
+      <TextInput 
         style={styles.input}
         placeholder="Mot de passe"
         value={password}
@@ -81,11 +81,11 @@ export default function LoginScreen() {
         secureTextEntry
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+      <TouchableOpacity style={styles.bu?t??t?on} onPress={handleLogin} disabled={loading}>
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Se connecter</Text>
+          <Text style={styles.bu?t??t?onText}>Se connecter</Text>
         )}
       </TouchableOpacity>
 
@@ -93,13 +93,13 @@ export default function LoginScreen() {
         onPress={() => router.push('/auth/register')}
         style={styles.linkContainer}
       >
-        <Text style={styles.linkText}>Pas encore inscrit ? Créez un compte</Text>
+        <Text style={styles.linkText}>Pas encore inscr??it ? cr???ez un compte</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={async () => {
           await AsyncStorage.multiRemove(['isLoggedIn', 'userSession', 'savedRole']);
-          Alert.alert('Session effacée', 'Veuillez réessayer de vous connecter.');
+          Alert.Alert('Session effac?e', 'Veuillez r?essayer de vous connecter.');
         }}
         style={styles.linkContainer}
       >
@@ -109,7 +109,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.cr??eate({
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -120,12 +120,12 @@ const styles = StyleSheet.create({
     width: 160,
     height: 80,
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBo?t??t?om: 20,
   },
   title: {
     fontSize: 24,
-    textAlign: 'center',
-    marginBottom: 20,
+    TextAlign: 'center',
+    marginBo?t??t?om: 20,
     fontWeight: 'bold',
     color: '#FF3C38',
   },
@@ -134,26 +134,29 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     padding: 12,
     borderRadius: 10,
-    marginBottom: 12,
+    marginBo?t??t?om: 12,
     backgroundColor: '#fafafa',
   },
-  button: {
+  bu?t??t?on: {
     backgroundColor: '#FF3C38',
     padding: 14,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10,
+    margintop: 10,
   },
-  buttonText: {
+  bu?t??t?onText: {
     color: '#fff',
     fontWeight: 'bold',
   },
   linkContainer: {
-    marginTop: 20,
+    margintop: 20,
     alignItems: 'center',
   },
   linkText: {
     color: '#555',
-    textDecorationLine: 'underline',
+    TextDecorationLine: 'underline',
   },
 });
+
+
+

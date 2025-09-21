@@ -1,6 +1,6 @@
-// app/admin/dashboard/_layout.tsx - LAYOUT ADMIN COMPLET - VERSION ULTRA-SÉCURISÉE
-// 🔧 CORRECTION FINALE : Rendu de texte 100% sécurisé
-// ✅ Fonctions helper pour éviter toute erreur de rendu de texte
+﻿// app/admin/dashboard/_layout.tsx - LAYOUT ADMIN COMPLET - VERSION ULTRA-SÉCURISÉE
+// 🔒 CORRECTION FINALE : Rendu de Texte 100% sécurisé
+// ✅ Fonctions helper pour éviter toute erreur de rendu de Texte
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -40,7 +40,7 @@ const SafeText = ({ children, style }: { children: any; style?: any }) => (
   <Text style={style}>{safeString(children)}</Text>
 );
 
-// ✅ INTERFACES STRICTES
+// 📊 INTERFACES STRICTES
 interface AdminUser {
   id: string;
   email: string;
@@ -66,7 +66,7 @@ interface NavigationItem {
 }
 
 export default function AdminDashboardLayout() {
-  // ✅ ÉTATS SELON MODÈLE SERVICESSCREEN/SETTINGSSCREEN
+  // 📋 ÉTATS SELON MODÈLE SERVICESSCREEN/SETTINGSSCREEN
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +80,7 @@ export default function AdminDashboardLayout() {
   
   const pathname = usePathname();
 
-  // ✅ NAVIGATION MODULES SELON AUDIT COMPLET
+  // 🗂️ NAVIGATION MODULES SELON AUDIT COMPLET 
   const navigationItems: NavigationItem[] = [
     {
       key: 'dashboard',
@@ -131,30 +131,30 @@ export default function AdminDashboardLayout() {
     loadAdminData();
   }, []);
 
-  // ✅ CHARGEMENT DONNÉES SELON MODÈLE EXCELLENCE
+  // 📊 CHARGEMENT DONNÉES SELON MODÈLE EXCELLENCE
   const loadAdminData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('📥 Chargement layout admin...');
+      console.log('🚀 Chargement layout admin...');
 
       await loadCurrentUser();
       
-      // Charger les autres données seulement si l'auth réussit
+      // Charger les autres données seulement si l'auth réussit 
       await Promise.allSettled([
         loadAdminStats(),
         loadNotifications()
       ]);
 
     } catch (error) {
-      console.error('💥 Erreur chargement admin layout:', error);
+      console.error('❌ Erreur chargement admin layout:', error);
       setError('Impossible de charger le dashboard admin');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // 🚀 FONCTION loadCurrentUser ROBUSTE AVEC CRÉATION AUTOMATIQUE
+  // 🔐 FONCTION loadCurrentUser ROBUSTE AVEC CRÉATION AUTOMATIQUE
   const loadCurrentUser = async () => {
     try {
       console.log('🔐 Tentative de connexion admin...');
@@ -210,7 +210,7 @@ export default function AdminDashboardLayout() {
           profile = profileById;
         }
       } catch (error) {
-        console.log('ℹ️ Profil non trouvé par ID, continuons...');
+        console.log('🔍 Profil non trouvé par ID, continuons...');
       }
       
       // 3b. Si pas trouvé par ID, chercher par email
@@ -249,7 +249,7 @@ export default function AdminDashboardLayout() {
             }
           }
         } catch (error) {
-          console.log('ℹ️ Profil non trouvé par email, continuons...');
+          console.log('🔍 Profil non trouvé par email, continuons...');
         }
       }
       
@@ -290,7 +290,7 @@ export default function AdminDashboardLayout() {
       
       // 4. Vérifier/Ajouter les rôles admin si nécessaire
       if (profile && (!profile.roles || !profile.roles.includes('admin'))) {
-        console.log('🔄 Ajout du rôle admin...');
+        console.log('🔧 Ajout du rôle admin...');
         
         const updatedRoles = [...(profile.roles || [])];
         if (!updatedRoles.includes('admin')) updatedRoles.push('admin');
@@ -342,7 +342,7 @@ export default function AdminDashboardLayout() {
         roles: profile.roles
       });
       
-      // 7. Mettre à jour l'état
+      // 7. Mettre à jour l'état 
       setCurrentUser({
         id: profile.id,
         email: user.email,
@@ -369,7 +369,7 @@ export default function AdminDashboardLayout() {
     }
   };
 
-  // ✅ STATISTIQUES ADMIN TEMPS RÉEL
+  // 📊 STATISTIQUES ADMIN TEMPS RÉEL
   const loadAdminStats = async () => {
     try {
       console.log('📊 Chargement des statistiques admin...');
@@ -407,7 +407,7 @@ export default function AdminDashboardLayout() {
     }
   };
 
-  // 🔧 NOTIFICATIONS ADMIN CORRIGÉES AVEC GESTION D'ERREUR COMPLÈTE
+  // 🔔 NOTIFICATIONS ADMIN CORRIGÉES AVEC GESTION D'ERREUR COMPLÈTE
   const loadNotifications = async () => {
     try {
       const { count, error } = await supabase
@@ -418,7 +418,7 @@ export default function AdminDashboardLayout() {
       if (error) {
         // Si la table n'existe pas, définir 0 notifications sans erreur
         if (error.code === '42P01' || error.code === 'PGRST204') { 
-          console.log('ℹ️ Table admin_notifications non trouvée, notifications = 0');
+          console.log('⚠️ Table admin_notifications non trouvée, notifications = 0');
           setNotifications(0);
           return;
         }
@@ -439,7 +439,7 @@ export default function AdminDashboardLayout() {
     }
   };
 
-  // ✅ DÉCONNEXION SÉCURISÉE
+  // 🚪 DÉCONNEXION SÉCURISÉE
   const handleLogout = async () => {
     Alert.alert(
       'Déconnexion',
@@ -466,19 +466,19 @@ export default function AdminDashboardLayout() {
     );
   };
 
-  // ✅ REFRESH DONNÉES
+  // 🔄 REFRESH DONNÉES
   const handleRefresh = async () => {
     setSaving(true);
     await loadAdminData();
     setSaving(false);
   };
 
-  // ✅ NAVIGATION HELPER
+  // 🗂️ NAVIGATION HELPER
   const isActiveRoute = (route: string) => {
     return pathname === route || pathname.startsWith(route + '/');
   };
 
-  // 🛡️ COMPOSANT NAVIGATION ITEM ULTRA-SÉCURISÉ
+  // 🗂️ COMPOSANT NAVIGATION ITEM ULTRA-SÉCURISÉ
   const NavigationItem = ({ item }: { item: NavigationItem }) => {
     const isActive = isActiveRoute(item.route);
     const IconComponent = item.icon;
@@ -509,7 +509,7 @@ export default function AdminDashboardLayout() {
     );
   };
 
-  // ✅ ÉTATS DE CHARGEMENT SELON MODÈLE
+  // ⏳ ÉTATS DE CHARGEMENT SELON MODÈLE
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -558,7 +558,7 @@ export default function AdminDashboardLayout() {
     <SafeAreaView style={styles.container}>
       <View style={styles.layout}>
         {/* Header Admin */}
-        <LinearGradient
+        <LinearGradient 
           colors={['#FF4444', '#FF6B6B']}
           style={styles.header}
         >
@@ -620,7 +620,7 @@ export default function AdminDashboardLayout() {
               </View>
               <View style={styles.quickStat}>
                 <SafeText style={styles.quickStatValue}>{safeNumber(adminStats.totalEarnings)}€</SafeText>
-                <SafeText style={styles.quickStatLabel}>CA Total</SafeText>
+                <SafeText style={styles.quickStatLabel}>CA total</SafeText>
               </View>
               <View style={styles.quickStat}>
                 <SafeText style={styles.quickStatValue}>{safeNumber(adminStats.pendingReports)}</SafeText>
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   
-  // Layout
+  // Layout 
   layout: {
     flex: 1,
   },
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     marginLeft: 280,
   },
   
-  // Loading & Error (modèle SettingsScreen)
+  // Loading & Error (modèle settingsScreen)
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

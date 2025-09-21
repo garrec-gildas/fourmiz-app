@@ -1,5 +1,5 @@
-// components/TestReferralComponent.tsx
-// 🧪 COMPOSANT TEMPORAIRE POUR DÉBUGGER LES CODES DE PARRAINAGE
+﻿// components/TestReferralComponent.tsx
+// 🔧 COMPOSANT TEMPORAIRE POUR DÉBUGGER LES CODES DE PARRAINAGE
 
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
@@ -20,7 +20,7 @@ export const TestReferralComponent: React.FC = () => {
     setLogs([]);
   };
 
-  // Test 1: Vérifier si les tables existent
+  // Test 1: Vérifier si les tables existent 
   const testTablesExist = async () => {
     addLog('🔍 Test existence des tables...');
     
@@ -76,7 +76,7 @@ export const TestReferralComponent: React.FC = () => {
 
       addLog(`📊 ${data.length} codes trouvés:`);
       data.forEach(code => {
-        addLog(`  - Code: ${code.code}, Actif: ${code.is_active}, User: ${code.user_id?.substr(0, 8)}...`);
+        addLog(`  - Code: ${code.code}, Actif: ${code.is_active}, User: ${code.user_id?.substring(0, 8)}...`);
       });
 
     } catch (error) {
@@ -86,7 +86,7 @@ export const TestReferralComponent: React.FC = () => {
 
   // Test 3: Chercher le code spécifique
   const searchSpecificCode = async (code: string) => {
-    addLog(`🎯 Recherche du code: ${code}`);
+    addLog(`🔍 Recherche du code: ${code}`);
     
     try {
       const cleanCode = code.trim().toUpperCase();
@@ -102,7 +102,7 @@ export const TestReferralComponent: React.FC = () => {
       }
 
       if (!data || data.length === 0) {
-        addLog(`❌ Code ${cleanCode} introuvable`);
+        addLog(`🔍 Code ${cleanCode} introuvable`);
         return;
       }
 
@@ -116,9 +116,9 @@ export const TestReferralComponent: React.FC = () => {
     }
   };
 
-  // Test 4: Créer le code manquant
+  // Test 4: Créer le code manquant 
   const createMissingCode = async () => {
-    addLog('🆕 Création du code 5B2X5F...');
+    addLog('🔨 Création du code 5B2X5F...');
     
     try {
       // Récupérer l'utilisateur connecté
@@ -130,7 +130,7 @@ export const TestReferralComponent: React.FC = () => {
       }
 
       const userId = authData.user.id;
-      addLog(`👤 Utilisateur connecté: ${userId.substr(0, 8)}...`);
+      addLog(`👤 Utilisateur connecté: ${userId.substring(0, 8)}...`);
 
       // Créer le code
       const { data, error } = await supabase
@@ -147,7 +147,7 @@ export const TestReferralComponent: React.FC = () => {
         addLog(`❌ Erreur création: ${error.message}`);
         
         if (error.code === '23505') {
-          addLog('💡 Le code existe déjà - tentative de mise à jour...');
+          addLog('🔄 Le code existe déjà - tentative de mise à jour...');
           
           const { error: updateError } = await supabase
             .from('referral_codes')
@@ -172,7 +172,7 @@ export const TestReferralComponent: React.FC = () => {
 
   // Test 5: Test complet de validation
   const fullValidationTest = async (code: string) => {
-    addLog(`🎯 Test complet de validation: ${code}`);
+    addLog(`🧪 Test complet de validation: ${code}`);
     
     try {
       const cleanCode = code.trim().toUpperCase();
@@ -187,7 +187,7 @@ export const TestReferralComponent: React.FC = () => {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          addLog('❌ Résultat: Code introuvable');
+          addLog('🔍 Résultat: Code introuvable');
         } else {
           addLog(`❌ Résultat: Erreur DB - ${error.message}`);
         }
@@ -225,20 +225,20 @@ export const TestReferralComponent: React.FC = () => {
     await searchSpecificCode(testCode);
     await fullValidationTest(testCode);
     
-    addLog('✅ Tests terminés!');
+    addLog('🎉 Tests terminés!');
     setIsLoading(false);
   };
 
   return (
     <View style={{ flex: 1, padding: 20, backgroundColor: '#f5f5f5' }}>
       <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
-        🩺 Diagnostic Parrainage
+        🔧 Diagnostic Parrainage
       </Text>
 
       {/* Input du code à tester */}
       <View style={{ marginBottom: 20 }}>
         <Text style={{ marginBottom: 5, fontWeight: 'bold' }}>Code à tester:</Text>
-        <TextInput
+        <TextInput 
           style={{
             borderWidth: 1,
             borderColor: '#ddd',
@@ -332,7 +332,7 @@ export const TestReferralComponent: React.FC = () => {
 
       {/* Zone de logs */}
       <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: 'bold', marginBottom: 10 }}>📋 Logs de diagnostic:</Text>
+        <Text style={{ fontWeight: 'bold', marginBottom: 10 }}>📝 Logs de diagnostic:</Text>
         <ScrollView 
           style={{ 
             flex: 1, 

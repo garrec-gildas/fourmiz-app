@@ -15,11 +15,11 @@ export const ChatBadge: React.FC<ChatBadgeProps> = ({
 }) => {
   if (count <= 0) return null;
 
-  const displayCount = count > maxCount ? `${maxCount}+` : count.toString();
+  const displayCount = count > maxCount ? `${maxCount}+` : count.tostring();
 
   return (
     <View style={[styles.container, style]}>
-      <Text style={styles.text}>
+      <Text style={styles.Text}>
         {displayCount}
       </Text>
     </View>
@@ -36,9 +36,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  text: {
+  Text: {
     fontSize: 12,
     color: '#fff',
     fontWeight: 'bold',
   },
 });
+

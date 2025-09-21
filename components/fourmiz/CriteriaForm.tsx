@@ -1,4 +1,4 @@
-// components/fourmiz/CriteriaForm.tsx - VERSION ADAPTÉE
+﻿// components/fourmiz/CriteriaForm.tsx - VERSION ADAPTÉE
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -14,10 +14,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import ServiceSelector from './ServiceSelector';
 import { FOURMIZ_CRITERIA } from '@/constants/fourmiz-criteria';
 
-// Types adaptés à la nouvelle structure
+// types adaptés à la nouvelle structure
 interface FourmizCriteriaAdapted {
   user_id: string;
   
@@ -34,7 +33,7 @@ interface FourmizCriteriaAdapted {
   categories_completes: string[];
   selected_service_ids: number[];
   
-  // Transport
+  // Transport 
   transport_moyens: string[];
   rayon_deplacement_km: number;
   
@@ -65,6 +64,14 @@ interface Props {
   onSave?: (data: Partial<FourmizCriteriaAdapted>) => void;
 }
 
+interface RgpdState {
+  cgu: boolean;
+  politique: boolean;
+  donnees: boolean;
+  newsletter: boolean;
+  notifications: boolean;
+}
+
 export default function CriteriaForm({ userId, onSave }: Props) {
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -83,7 +90,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
   const [location, setLocation] = useState('');
 
   // RGPD obligatoires
-  const [rgpdAccepte, setRgpdAccepte] = useState({
+  const [rgpdAccepte, setRgpdAccepte] = useState<RgpdState>({
     cgu: false,
     politique: false,
     donnees: false,
@@ -95,7 +102,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
     loadUserAndCriteria();
   }, []);
 
-  const loadUserAndCriteria = async () => {
+  const loadUserAndCriteria = async (): Promise<void> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
@@ -108,7 +115,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
     }
   };
 
-  const loadExistingCriteria = async (userIdParam: string) => {
+  const loadExistingCriteria = async (userIdParam: string): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('fourmiz_criteria')
@@ -146,7 +153,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
     }
   };
 
-  const handleCategoryToggle = (categoryKey: string) => {
+  const handleCategoryToggle = (categoryKey: string): void => {
     setSelectedCategories(prev => 
       prev.includes(categoryKey)
         ? prev.filter(c => c !== categoryKey)
@@ -154,7 +161,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
     );
   };
 
-  const handleServiceToggle = (serviceId: number) => {
+  const handleServiceToggle = (serviceId: number): void => {
     setSelectedServiceIds(prev => 
       prev.includes(serviceId)
         ? prev.filter(id => id !== serviceId)
@@ -162,7 +169,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
     );
   };
 
-  const toggleTransport = (transportKey: string) => {
+  const toggleTransport = (transportKey: string): void => {
     setTransportMoyens(prev => 
       prev.includes(transportKey)
         ? prev.filter(t => t !== transportKey)
@@ -170,7 +177,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
     );
   };
 
-  const toggleDisponibilite = (disponibiliteKey: string) => {
+  const toggleDisponibilite = (disponibiliteKey: string): void => {
     setDisponibilites(prev => 
       prev.includes(disponibiliteKey)
         ? prev.filter(d => d !== disponibiliteKey)
@@ -178,7 +185,11 @@ export default function CriteriaForm({ userId, onSave }: Props) {
     );
   };
 
-  const saveCriteria = async () => {
+  const updateRgpdState = (key: keyof RgpdState, value: boolean): void => {
+    setRgpdAccepte(prev => ({ ...prev, [key]: value }));
+  };
+
+  const saveCriteria = async (): Promise<void> => {
     if (!currentUser) {
       Alert.alert('Erreur', 'Vous devez être connecté pour sauvegarder');
       return;
@@ -209,7 +220,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
         categories_completes: selectedCategories,
         selected_service_ids: selectedServiceIds,
         
-        // Transport
+        // Transport 
         transport_moyens: transportMoyens,
         rayon_deplacement_km: rayonMax,
         
@@ -231,7 +242,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
         is_available: true,
       };
 
-      // Utilisation de la contrainte UNIQUE pour upsert
+      // Utilisation de la contrainte UNIQUE pour upsert 
       const { error } = await supabase
         .from('fourmiz_criteria')
         .upsert(criteriaData, { 
@@ -259,18 +270,18 @@ export default function CriteriaForm({ userId, onSave }: Props) {
         <View style={styles.header}>
           <Text style={styles.title}>⚙️ Configurez vos critères</Text>
           <Text style={styles.subtitle}>
-            💡 Définissez vos préférences pour recevoir les missions qui vous correspondent
+            📝 Définissez vos préférences pour recevoir les missions qui vous correspondent 
           </Text>
         </View>
 
         {/* RGPD - Section obligatoire */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔒 Acceptation obligatoire (RGPD)</Text>
+          <Text style={styles.sectionTitle}>📋 Acceptation obligatoire (RGPD)</Text>
           
           <View style={styles.checkboxRow}>
             <Switch
               value={rgpdAccepte.cgu}
-              onValueChange={(value) => setRgpdAccepte(prev => ({...prev, cgu: value}))}
+              onValueChange={(value) => updateRgpdState('cgu', value)}
               trackColor={{ false: '#ddd', true: '#FF4444' }}
             />
             <Text style={styles.checkboxLabel}>J'accepte les CGU *</Text>
@@ -279,7 +290,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
           <View style={styles.checkboxRow}>
             <Switch
               value={rgpdAccepte.politique}
-              onValueChange={(value) => setRgpdAccepte(prev => ({...prev, politique: value}))}
+              onValueChange={(value) => updateRgpdState('politique', value)}
               trackColor={{ false: '#ddd', true: '#FF4444' }}
             />
             <Text style={styles.checkboxLabel}>J'accepte la Politique de Confidentialité *</Text>
@@ -288,7 +299,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
           <View style={styles.checkboxRow}>
             <Switch
               value={rgpdAccepte.donnees}
-              onValueChange={(value) => setRgpdAccepte(prev => ({...prev, donnees: value}))}
+              onValueChange={(value) => updateRgpdState('donnees', value)}
               trackColor={{ false: '#ddd', true: '#FF4444' }}
             />
             <Text style={styles.checkboxLabel}>J'accepte le traitement de mes données *</Text>
@@ -297,7 +308,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
           <View style={styles.checkboxRow}>
             <Switch
               value={rgpdAccepte.newsletter}
-              onValueChange={(value) => setRgpdAccepte(prev => ({...prev, newsletter: value}))}
+              onValueChange={(value) => updateRgpdState('newsletter', value)}
               trackColor={{ false: '#ddd', true: '#FF4444' }}
             />
             <Text style={styles.checkboxLabel}>Newsletter marketing (optionnel)</Text>
@@ -307,7 +318,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
         {/* Localisation */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📍 Localisation</Text>
-          <TextInput
+          <TextInput 
             style={styles.textInput}
             placeholder="Paris, Lyon, Marseille..."
             value={location}
@@ -386,7 +397,7 @@ export default function CriteriaForm({ userId, onSave }: Props) {
 
         {/* Disponibilités */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⏰ Disponibilités</Text>
+          <Text style={styles.sectionTitle}>🕐 Disponibilités</Text>
           <View style={styles.horaireGrid}>
             {FOURMIZ_CRITERIA.disponibilites.horaires_detaillees.slice(6, 22).map((horaire) => (
               <TouchableOpacity
@@ -456,8 +467,8 @@ export default function CriteriaForm({ userId, onSave }: Props) {
 
         {/* Mots-clés */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔤 Mots-clés notifications</Text>
-          <TextInput
+          <Text style={styles.sectionTitle}>🔍 Mots-clés notifications</Text>
+          <TextInput 
             style={styles.textInput}
             placeholder="urgent, luxury, samedi, anglais..."
             value={motsCles}
@@ -485,11 +496,11 @@ export default function CriteriaForm({ userId, onSave }: Props) {
         {/* Résumé */}
         <View style={styles.summary}>
           <Text style={styles.summaryTitle}>📊 Résumé</Text>
-          <Text style={styles.summaryText}>• {selectedCategories.length} catégories sélectionnées</Text>
-          <Text style={styles.summaryText}>• {transportMoyens.length} moyens de transport</Text>
-          <Text style={styles.summaryText}>• {disponibilites.length} créneaux horaires</Text>
-          <Text style={styles.summaryText}>• À partir de {prixMinimum}€/h dans un rayon de {rayonMax}km</Text>
-          <Text style={styles.summaryText}>• Localisation: {location || 'Non définie'}</Text>
+          <Text style={styles.summaryText}>✓ {selectedCategories.length} catégories sélectionnées</Text>
+          <Text style={styles.summaryText}>✓ {transportMoyens.length} moyens de transport</Text>
+          <Text style={styles.summaryText}>✓ {disponibilites.length} créneaux horaires</Text>
+          <Text style={styles.summaryText}>✓ À partir de {prixMinimum}€/h dans un rayon de {rayonMax}km</Text>
+          <Text style={styles.summaryText}>✓ Localisation: {location || 'Non définie'}</Text>
         </View>
 
       </ScrollView>

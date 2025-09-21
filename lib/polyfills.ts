@@ -1,15 +1,15 @@
-// lib/polyfills.ts
+﻿// lib/polyfills.ts
 // 🛡️ POLYFILLS AVEC MOCK SAFEAREAVIEW GLOBAL
 
 console.log('🔧 Chargement des polyfills...');
 
-// 🤫 NOUVEAU : Suppresseur d'erreur SafeArea EN PREMIER
+// 🚨 NOUVEAU : Suppresseur d'erreur SafeArea EN PREMIER
 import './errorSuppressor';
 
-// ✅ POLYFILL URL (existant)
+// 🌐 POLYFILL URL (existant)
 import 'react-native-url-polyfill/auto';
 
-// 🛡️ MOCK SAFEAREAVIEW INLINE (pour éviter les problèmes d'import circulaire)
+// 🎭 MOCK SAFEAREAVIEW INLINE (pour éviter les problèmes d'import circulaire)
 import React from 'react';
 import { View, Platform, Dimensions } from 'react-native';
 
@@ -35,19 +35,19 @@ const DEFAULT_METRICS = {
   frame: DEFAULT_FRAME,
 };
 
-console.log('🛡️ SafeAreaMock initialisé avec insets:', DEFAULT_INSETS);
+console.log('🎯 SafeAreaMock initialisé avec insets:', DEFAULT_INSETS);
 
-// 🛡️ MOCK CONTEXT
+// 🎭 MOCK CONTEXT
 const SafeAreaContext = React.createContext(DEFAULT_METRICS);
 
-// 🛡️ MOCK SAFEAREAVIEW
+// 📱 MOCK SAFEAREAVIEW
 function SafeAreaView({ 
   children, 
   style, 
   edges = ['top', 'bottom', 'left', 'right'],
   ...props 
 }: any) {
-  console.log('🛡️ SafeAreaView mocké rendu avec edges:', edges);
+  console.log('🎭 SafeAreaView mocké rendu avec edges:', edges);
   
   const paddingStyle = {
     paddingTop: edges.includes('top') ? DEFAULT_INSETS.top : 0,
@@ -62,9 +62,9 @@ function SafeAreaView({
   }, children);
 }
 
-// 🛡️ MOCK SAFEAREAPROVIDER
+// 🎯 MOCK SAFEAREAPROVIDER
 function SafeAreaProvider({ children, initialMetrics, ...props }: any) {
-  console.log('🛡️ SafeAreaProvider mocké rendu');
+  console.log('🎭 SafeAreaProvider mocké rendu');
   
   return React.createElement(SafeAreaContext.Provider, {
     value: DEFAULT_METRICS
@@ -74,34 +74,34 @@ function SafeAreaProvider({ children, initialMetrics, ...props }: any) {
   }, children));
 }
 
-// 🛡️ MOCK HOOKS
+// 🎪 MOCK HOOKS
 function useSafeAreaInsets() {
-  console.log('🛡️ useSafeAreaInsets mocké appelé');
+  console.log('🎭 useSafeAreaInsets mocké appelé');
   return DEFAULT_INSETS;
 }
 
 function useSafeAreaFrame() {
-  console.log('🛡️ useSafeAreaFrame mocké appelé');
+  console.log('🎭 useSafeAreaFrame mocké appelé');
   return DEFAULT_FRAME;
 }
 
 function useSafeAreaMetrics() {
-  console.log('🛡️ useSafeAreaMetrics mocké appelé');
+  console.log('🎭 useSafeAreaMetrics mocké appelé');
   return DEFAULT_METRICS;
 }
 
-// 🛡️ MOCK CONSUMER
+// 🔄 MOCK CONSUMER
 const SafeAreaConsumer = SafeAreaContext.Consumer;
 
-// 🛡️ MOCK FONCTION UTILITAIRE
+// 🔧 MOCK FONCTION UTILITAIRE
 function withSafeAreaInsets<T>(Component: React.ComponentType<T>) {
   return React.forwardRef<any, T>((props, ref) => {
-    console.log('🛡️ withSafeAreaInsets mocké appelé');
+    console.log('🎭 withSafeAreaInsets mocké appelé');
     return React.createElement(Component, { ...props, ref, insets: DEFAULT_INSETS });
   });
 }
 
-// 🛡️ MOCK EDGE CONSTANT
+// 📏 MOCK EDGE CONSTANT
 const Edge = {
   TOP: 'top',
   BOTTOM: 'bottom',
@@ -109,10 +109,10 @@ const Edge = {
   RIGHT: 'right',
 } as const;
 
-// 🛡️ STATIC PROPERTIES POUR REACT NAVIGATION
+// ⚡ STATIC PROPERTIES POUR REACT NAVIGATION
 (SafeAreaProvider as any).initialMetrics = DEFAULT_METRICS;
 
-// 🛡️ OBJET MOCK COMPLET
+// 📦 OBJET MOCK COMPLET
 const SafeAreaMock = {
   SafeAreaView,
   SafeAreaProvider,
@@ -125,16 +125,16 @@ const SafeAreaMock = {
   initialMetrics: DEFAULT_METRICS,
 };
 
-console.log('🛡️ Installation du mock SafeAreaContext...');
+console.log('🔧 Installation du mock SafeAreaContext...');
 
-// 🚨 REMPLACEMENT GLOBAL DU MODULE - METHOD 1: require() override
+// 🛠️ REMPLACEMENT GLOBAL DU MODULE - METHOD 1: require() override
 try {
   const Module = require('module');
   const originalRequire = Module.prototype.require;
   
   Module.prototype.require = function(id: string) {
     if (id === 'react-native-safe-area-context') {
-      console.log('🛡️ Intercept require() react-native-safe-area-context -> utilisation du mock');
+      console.log('🔧 Intercept require() react-native-safe-area-context -> utilisation du mock');
       return SafeAreaMock;
     }
     return originalRequire.apply(this, arguments);
@@ -145,7 +145,7 @@ try {
   console.warn('⚠️ Erreur installation mock via require:', error);
 }
 
-// 🚨 METHOD 2: Global override pour les imports ES6
+// 🌐 METHOD 2: Global override pour les imports ES6
 try {
   if (typeof global !== 'undefined') {
     // @ts-ignore
@@ -156,7 +156,7 @@ try {
   console.warn('⚠️ Erreur installation mock via global:', error);
 }
 
-// 🚨 METHOD 3: Module cache override
+// 💾 METHOD 3: Module cache override
 try {
   // @ts-ignore
   if (require.cache) {
@@ -175,7 +175,7 @@ try {
   console.warn('⚠️ Erreur installation mock via cache:', error);
 }
 
-// 🚨 METHOD 4: Jest-style mock pour Metro
+// 🧪 METHOD 4: Jest-style mock pour Metro
 try {
   // @ts-ignore
   if (typeof jest !== 'undefined') {
@@ -186,9 +186,9 @@ try {
   // Jest non disponible, normal
 }
 
-console.log('🛡️ Polyfills SafeAreaMock terminés');
+console.log('🎉 Polyfills SafeAreaMock terminés');
 
-// 🔧 FONCTION UTILITAIRE POUR TESTER LE MOCK
+// 🧪 FONCTION UTILITAIRE POUR TESTER LE MOCK
 export function testSafeAreaMock() {
   try {
     const safeAreaModule = require('react-native-safe-area-context');
@@ -209,7 +209,7 @@ export function testSafeAreaMock() {
   }
 }
 
-// 🧪 Auto-test au chargement avec délai
+// 🚀 Auto-test au chargement avec délai
 setTimeout(() => {
   const testResult = testSafeAreaMock();
   if (testResult) {
@@ -225,14 +225,14 @@ global.__importDefault = function(mod: any) {
   if (mod && mod.__esModule && mod.default && typeof mod.default === 'object') {
     // Si c'est react-native-safe-area-context, utiliser notre mock
     if (JSON.stringify(Object.keys(mod.default)).includes('SafeAreaProvider')) {
-      console.log('🛡️ Override import dynamique SafeAreaContext détecté');
+      console.log('🎭 Override import dynamique SafeAreaContext détecté');
       return SafeAreaMock;
     }
   }
   return originalImport(mod);
 };
 
-console.log('🔧 Polyfills terminés - SafeAreaMock complètement installé');
+console.log('🎉 Polyfills terminés - SafeAreaMock complètement installé');
 
 // Export pour utilisation externe si nécessaire
 export default SafeAreaMock;

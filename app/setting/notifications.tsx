@@ -1,4 +1,4 @@
-// app/settings/notifications.tsx - Écran de paramètres des notifications
+﻿// app/settings/notifications.tsx - Écran de paramètres des notifications
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -156,13 +156,13 @@ export default function NotificationSettingsScreen() {
     try {
       await pushNotificationService.sendNotificationToUser(
         currentUser.id,
-        '🧪 Notification de test',
+        '🔔 Notification de test',
         'Ceci est une notification de test pour vérifier que tout fonctionne correctement.',
         { type: 'system_alert', urgency: 'normal' }
       );
 
       Alert.alert(
-        '📱 Test envoyé',
+        '📤 Test envoyé',
         'Une notification de test a été envoyée. Vous devriez la recevoir dans quelques secondes.'
       );
     } catch (error) {

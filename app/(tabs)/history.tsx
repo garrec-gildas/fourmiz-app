@@ -55,16 +55,16 @@ interface CompletedMission {
 
 const STATUS_CONFIG = {
   'terminee': {
-    label: 'ðŸŽ‰ TerminÃ©e',
+    label: '? Terminée',
     color: '#8b5cf6',
     bgColor: '#ede9fe',
     description: 'Mission accomplie'
   },
   'annulee': {
-    label: 'âŒ AnnulÃ©e',
+    label: '? Annulée',
     color: '#ef4444',
     bgColor: '#fee2e2',
-    description: 'Mission annulÃ©e'
+    description: 'Mission annulée'
   }
 };
 
@@ -80,7 +80,7 @@ export default function HistoryScreen() {
     getCurrentUser();
   }, []);
 
-  // Recharger l'historique quand on revient sur l'Ã©cran
+  // Recharger l'historique quand on revient sur l'écran
   useFocusEffect(
     useCallback(() => {
       if (currentUser) {
@@ -97,8 +97,8 @@ export default function HistoryScreen() {
         await fetchCompletedMissions();
       }
     } catch (error) {
-      console.error('Erreur lors de la rÃ©cupÃ©ration de l\'utilisateur:', error);
-      setError('Impossible de rÃ©cupÃ©rer les informations utilisateur');
+      console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+      setError('Impossible de récupérer les informations utilisateur');
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export default function HistoryScreen() {
 
     try {
       setError(null);
-      console.log('ðŸ“š Chargement de l\'historique pour fourmiz:', currentUser.id);
+      console.log('?? Chargement de l\'historique pour fourmiz:', currentUser.id);
       
       const { data, error } = await supabase
         .from('orders')
@@ -127,19 +127,19 @@ export default function HistoryScreen() {
             email
           )
         `)
-        .eq('fourmiz_id', currentUser.id) // âœ… Missions de cette fourmiz
-        .in('status', ['terminee', 'annulee']) // âœ… Seulement historique
+        .eq('fourmiz_id', currentUser.id) // ?? Missions de cette fourmiz
+        .in('status', ['terminee', 'annulee']) // ?? Seulement historique
         .order('updated_at', { ascending: false }); // Trier par date de fin
 
       if (error) {
-        console.error('âŒ Erreur lors de la rÃ©cupÃ©ration de l\'historique:', error);
+        console.error('? Erreur lors de la récupération de l\'historique:', error);
         throw error;
       }
 
-      console.log('âœ… Historique rÃ©cupÃ©rÃ©:', data?.length || 0);
+      console.log('?? Historique récupéré:', data?.length || 0);
       setCompletedMissions(data || []);
     } catch (error: any) {
-      console.error('âŒ Erreur lors de la rÃ©cupÃ©ration de l\'historique:', error);
+      console.error('? Erreur lors de la récupération de l\'historique:', error);
       setError(`Impossible de charger l'historique: ${error.message}`);
     }
   };
@@ -150,7 +150,7 @@ export default function HistoryScreen() {
     setRefreshing(false);
   };
 
-  // Filtrer les missions selon le statut sÃ©lectionnÃ©
+  // Filtrer les missions selon le statut sélectionné
   const filteredMissions = filterStatus === 'all' 
     ? completedMissions 
     : completedMissions.filter(mission => mission.status === filterStatus);
@@ -201,7 +201,7 @@ export default function HistoryScreen() {
           <Ionicons name="warning" size={48} color="#FF4444" />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-            <Text style={styles.retryButtonText}>RÃ©essayer</Text>
+            <Text style={styles.retryButtonText}>Réessayer</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -226,7 +226,7 @@ export default function HistoryScreen() {
           styles.filterButtonText,
           filterStatus === 'all' && styles.filterButtonTextActive
         ]}>
-          ðŸ“‹ Toutes ({completedMissions.length})
+          ?? Toutes ({completedMissions.length})
         </Text>
       </TouchableOpacity>
 
@@ -267,22 +267,22 @@ export default function HistoryScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>TerminÃ©es</Text>
+            <Text style={styles.statLabel}>Terminées</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{stats.averageRating}</Text>
             <Text style={styles.statLabel}>Note moyenne</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{((stats.totalEarnings || 0) / 100).toFixed(0)}â‚¬</Text>
-            <Text style={styles.statLabel}>Total gagnÃ©</Text>
+            <Text style={styles.statNumber}>{((stats.totalEarnings || 0) / 100).toFixed(0)}€</Text>
+            <Text style={styles.statLabel}>Total gagné</Text>
           </View>
         </View>
 
         {/* Filtres */}
         {renderFilterButtons()}
 
-        <Text style={styles.sectionTitle}>ðŸ“š Historique de mes missions</Text>
+        <Text style={styles.sectionTitle}>?? Historique de mes missions</Text>
 
         {filteredMissions.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -295,7 +295,7 @@ export default function HistoryScreen() {
             </Text>
             <Text style={styles.emptySubtitle}>
               {filterStatus === 'all'
-                ? 'Vos missions terminÃ©es apparaÃ®tront ici'
+                ? 'Vos missions terminées apparaîtront ici'
                 : 'Changez de filtre pour voir d\'autres missions'
               }
             </Text>
@@ -338,7 +338,7 @@ const CompletedMissionCard = ({
     <View style={styles.missionCard}>
       <View style={styles.missionHeader}>
         <View style={styles.missionInfo}>
-          <Text style={styles.missionTitle}>#{mission.id} â€¢ {mission.services?.title}</Text>
+          <Text style={styles.missionTitle}>#{mission.id} • {mission.services?.title}</Text>
           <Text style={styles.missionCategory}>{mission.services?.categorie}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: statusConfig?.bgColor }]}>
@@ -348,13 +348,13 @@ const CompletedMissionCard = ({
         </View>
       </View>
 
-      {/* DÃ©tails */}
+      {/* Détails */}
       <View style={styles.missionDetails}>
         <View style={styles.detailRow}>
           <Ionicons name="calendar" size={16} color="#6b7280" />
           <Text style={styles.detailText}>
             {formatDate(mission.date)}
-            {mission.start_time && ` Ã  ${formatTime(mission.start_time)}`}
+            {mission.start_time && ` à ${formatTime(mission.start_time)}`}
             {mission.end_time && ` - ${formatTime(mission.end_time)}`}
           </Text>
         </View>
@@ -369,13 +369,13 @@ const CompletedMissionCard = ({
 
         <View style={styles.detailRow}>
           <Ionicons name="card" size={16} color="#6b7280" />
-          <Text style={styles.detailText}>{((mission.proposed_amount || 0) / 100).toFixed(2)}â‚¬</Text>
+          <Text style={styles.detailText}>{((mission.proposed_amount || 0) / 100).toFixed(2)}€</Text>
         </View>
 
         <View style={styles.detailRow}>
           <Ionicons name="checkmark-done" size={16} color="#6b7280" />
           <Text style={styles.detailText}>
-            {mission.status === 'terminee' ? 'TerminÃ©e' : 'AnnulÃ©e'} le {formatDate(mission.updated_at)}
+            {mission.status === 'terminee' ? 'Terminée' : 'Annulée'} le {formatDate(mission.updated_at)}
           </Text>
         </View>
       </View>
@@ -412,7 +412,7 @@ const CompletedMissionCard = ({
         <View style={styles.ratingSection}>
           {mission.rating ? (
             <View style={styles.ratingDisplay}>
-              <Text style={styles.ratingText}>Note reÃ§ue: </Text>
+              <Text style={styles.ratingText}>Note reçue: </Text>
               <View style={styles.stars}>
                 {[...Array(5)].map((_, i) => (
                   <Ionicons
@@ -426,7 +426,7 @@ const CompletedMissionCard = ({
               <Text style={styles.ratingValue}>({mission.rating}/5)</Text>
             </View>
           ) : (
-            <Text style={styles.noRatingText}>Pas encore notÃ©e</Text>
+            <Text style={styles.noRatingText}>Pas encore notée</Text>
           )}
           
           {mission.feedback && (

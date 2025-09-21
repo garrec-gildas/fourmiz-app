@@ -1,5 +1,4 @@
-
-import { SafeAreaView, Text, StyleSheet } from 'react-native';
+﻿import { SafeAreaView, Text, StyleSheet } from 'react-native';
 
 export default function MessagesScreen() {
   return (

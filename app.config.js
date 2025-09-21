@@ -13,7 +13,7 @@ export default ({ config }) => ({
   // CONFIGURATION NOTIFICATIONS
   // ===================================
   notification: {
-    icon: "./assets/images/icon.png", // Utilise l'icône principale
+    icon: "./assets/images/icon.png",
     color: "#FF4444",
     androidMode: "default",
     androidCollapsedTitle: "Fourmiz - Nouveau message",
@@ -23,13 +23,20 @@ export default ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.garrec.fourmizapp",
+    
+    // ❌ ENTITLEMENTS APPLE PAY TEMPORAIREMENT DÉSACTIVÉS POUR RÉSOUDRE LE BUILD
+    // entitlements: {
+    //   "com.apple.developer.in-app-payments": [
+    //     "merchant.com.lesfourmiz.fourmiz"
+    //   ]
+    // },
+    
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
         "Cette app utilise votre position pour vous géolocaliser.",
       NSPhotoLibraryUsageDescription:
         "Cette application a besoin d'accéder à vos photos pour télécharger vos documents d'identité.",
-      // Permissions notifications iOS
       NSUserNotificationsUsageDescription:
         "Cette application envoie des notifications pour vous informer des nouveaux messages et des mises à jour de vos commandes.",
     },
@@ -46,14 +53,12 @@ export default ({ config }) => ({
       "ACCESS_FINE_LOCATION",
       "WRITE_EXTERNAL_STORAGE",
       "READ_EXTERNAL_STORAGE",
-      // Permissions notifications Android
       "NOTIFICATIONS",
       "WAKE_LOCK",
       "VIBRATE",
       "RECEIVE_BOOT_COMPLETED",
     ],
-    // Configuration spécifique Android pour notifications
-    googleServicesFile: process.env.GOOGLE_SERVICES_JSON, // Optionnel pour Firebase
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
   },
   
   web: {
@@ -73,32 +78,46 @@ export default ({ config }) => ({
         photosPermission: "L'application accède à vos photos pour vous permettre de sélectionner vos documents."
       }
     ],
-    // ===================================
-    // PLUGIN NOTIFICATIONS
-    // ===================================
     [
       "expo-notifications",
       {
-        icon: "./assets/images/icon.png", // Utilise l'icône principale
+        icon: "./assets/images/icon.png",
         color: "#ffffff",
         defaultChannel: "default",
-        mode: "production", // ou "development"
-        // Configuration Android
+        mode: "production",
         android: {
           color: "#FF4444",
           sound: "default",
           priority: "high",
           vibrationPattern: [0, 250, 250, 250],
         },
-        // Configuration iOS
         ios: {
           sound: "default",
           displayInForeground: true,
           categoryId: "fourmiz_notifications",
         }
       }
+    ],
+    // ===================================
+    // PLUGIN STRIPE - APPLE PAY TEMPORAIREMENT DÉSACTIVÉ
+    // ===================================
+    [
+      "@stripe/stripe-react-native",
+      {
+        merchantDisplayName: "Fourmiz",
+        enableGooglePay: true,
+        enableApplePay: false, // ❌ DÉSACTIVÉ TEMPORAIREMENT
+        // ❌ CONFIGURATION APPLE PAY COMMENTÉE TEMPORAIREMENT
+        // applePay: {
+        //   merchantCountryCode: "FR",
+        //   merchantIdentifier: "merchant.com.lesfourmiz.fourmiz",
+        // },
+        googlePay: {
+          merchantCountryCode: "FR",
+          testEnv: process.env.NODE_ENV !== "production",
+        }
+      }
     ]
-    // RETIRÉ: expo-device n'est pas un plugin de configuration
   ],
   
   experiments: {
@@ -112,18 +131,15 @@ export default ({ config }) => ({
     },
     EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
     EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    EXPO_PUBLIC_STRIPE_KEY: process.env.EXPO_PUBLIC_STRIPE_KEY,
+    EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
     EXPO_PUBLIC_GOOGLE_MAPS_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY,
-    
-    // ===================================
-    // CONFIGURATION NOTIFICATIONS
-    // ===================================
     EXPO_PUBLIC_NOTIFICATIONS_ENABLED: process.env.EXPO_PUBLIC_NOTIFICATIONS_ENABLED || "true",
-    EXPO_PUBLIC_PUSH_SERVER_URL: process.env.EXPO_PUBLIC_PUSH_SERVER_URL, // Optionnel: serveur push personnalisé
+    EXPO_PUBLIC_PUSH_SERVER_URL: process.env.EXPO_PUBLIC_PUSH_SERVER_URL,
   },
   
   // ===================================
-  // CONFIGURATION BUILD (optionnel)
+  // CONFIGURATION BUILD POUR EAS
   // ===================================
   build: {
     development: {
@@ -136,17 +152,10 @@ export default ({ config }) => ({
         buildType: "apk"
       }
     },
-    production: {
-      // Configuration production
-    }
+    production: {}
   },
   
-  // ===================================
-  // HOOKS (optionnel)
-  // ===================================
   hooks: {
-    postPublish: [
-      // Hooks post-publication si nécessaire
-    ]
+    postPublish: []
   }
 });

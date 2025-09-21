@@ -1,4 +1,4 @@
-import { SafeAreaView, Text, TouchableOpacity, StyleSheet, View, Alert, Image } from 'react-native';
+﻿import { SafeAreaView, Text, TouchableOpacity, StyleSheet, View, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 
@@ -23,7 +23,7 @@ export default function RegisterSelectorScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ⭐ Logo et titre */}
+      {/* 📱 Logo et titre */}
       <View style={styles.logoSection}>
         <Image
           source={require('../../assets/logo-fourmiz.gif')}
@@ -42,7 +42,7 @@ export default function RegisterSelectorScreen() {
           onPress={() => toggleRole('client')}
         >
           <Text style={[styles.buttonText, selectedRoles.includes('client') && styles.selectedText]}>
-            Devenir Client 👤
+            Devenir Client 🛒
           </Text>
         </TouchableOpacity>
 
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, 
     backgroundColor: '#fff' 
   },
-  // ⭐ Section logo
+  // 📱 Section logo
   logoSection: {
     alignItems: 'center',
     marginBottom: 30,

@@ -1,6 +1,9 @@
-// app/(tabs)/messages.tsx - VERSION SÉCURISÉE
-// ✅ Protection complète contre les erreurs .includes()
-// 🚀 CONVERSATIONS SÉCURISÉES : Recherche et filtrage protégés
+﻿// app/(tabs)/messages.tsx - VERSION SANS HEADER LOCAL
+// 🔒 Protection complète contre les erreurs .includes()
+// 💬 CONVERSATIONS SÉCURISÉES : Recherche et filtrage protégés
+// 🎨 STYLE ÉPURÉ : Cohérent avec le design services.tsx
+// 📱 HISTORIQUE CONSERVÉ : Toute la logique de messagerie maintenue
+// 🔧 MODIFIÉ : Header local supprimé (utilise le header global du layout)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -21,7 +24,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Stack } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
-// 🛡️ HELPERS DE SÉCURITÉ POUR LES STRINGS
+// 🔒 HELPERS DE SÉCURITÉ POUR LES STRINGS
 const safeString = (value: any): string => {
   return value?.toString() || '';
 };
@@ -31,7 +34,7 @@ const safeStringSearch = (text: any, query: string): boolean => {
   return safeText.toLowerCase().includes(query.toLowerCase());
 };
 
-// 🛡️ HELPER POUR FILTRAGE SÉCURISÉ
+// 🔍 HELPER POUR FILTRAGE SÉCURISÉ
 const filterConversations = (conversations: Conversation[], query: string): Conversation[] => {
   if (!query.trim()) return conversations;
   
@@ -57,20 +60,12 @@ interface Conversation {
   order_status: string;
 }
 
-const STATUS_COLORS = {
-  'en_attente': '#fbbf24',
-  'acceptee': '#10b981',
-  'en_cours': '#3b82f6',
-  'terminee': '#8b5cf6',
-  'annulee': '#ef4444'
-};
-
 const STATUS_LABELS = {
-  'en_attente': '⏳ En attente',
-  'acceptee': '✅ Acceptée',
-  'en_cours': '🚀 En cours',
-  'terminee': '🎉 Terminée',
-  'annulee': '❌ Annulée'
+  'en_attente': 'En attente',
+  'acceptee': 'Acceptée',
+  'en_cours': 'En cours',
+  'terminee': 'Terminée',
+  'annulee': 'Annulée'
 };
 
 export default function MessagesScreen() {
@@ -80,7 +75,7 @@ export default function MessagesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('en_cours'); 
   const [totalUnread, setTotalUnread] = useState(0);
 
   useEffect(() => {
@@ -100,29 +95,27 @@ export default function MessagesScreen() {
     }, [currentUser])
   );
 
-  // 🛡️ FILTRAGE SÉCURISÉ - Utilisation des helpers protégés
+  // 🔍 FILTRAGE SÉCURISÉ - Utilisation des helpers protégés
   useEffect(() => {
     let filtered = conversations;
 
-    // Filtrer par statut
+    // Filtrer par statut 
     if (filterStatus !== 'all') {
       filtered = filtered.filter(conv => conv.order_status === filterStatus);
     }
 
-    // 🛡️ FILTRAGE SÉCURISÉ PAR RECHERCHE
+    // 🔒 FILTRAGE SÉCURISÉ PAR RECHERCHE
     filtered = filterConversations(filtered, searchQuery);
 
     setFilteredConversations(filtered);
   }, [conversations, filterStatus, searchQuery]);
 
-  // ✅ FONCTION CORRIGÉE avec vraie structure de votre DB
   const loadConversations = async () => {
     if (!currentUser) return;
 
     try {
-      console.log('💬 Chargement des conversations...');
+      console.log('📊 Chargement des conversations...');
 
-      // ✅ Requête corrigée avec les bonnes colonnes
       const { data: messagesData, error } = await supabase
         .from('chat_messages')
         .select(`
@@ -165,7 +158,6 @@ export default function MessagesScreen() {
 
       console.log('✅ Messages chargés:', messagesData?.length || 0);
 
-      // ✅ Filtrer les messages où l'utilisateur actuel participe
       const userMessages = messagesData?.filter(message => {
         const order = message.orders;
         return order && (
@@ -175,7 +167,7 @@ export default function MessagesScreen() {
         );
       }) || [];
 
-      console.log('📋 Messages filtrés pour utilisateur:', userMessages.length);
+      console.log('👤 Messages filtrés pour utilisateur:', userMessages.length);
 
       // Grouper les messages par conversation (order_id)
       const conversationsMap = new Map();
@@ -185,7 +177,6 @@ export default function MessagesScreen() {
         const order = message.orders;
         
         if (!conversationsMap.has(orderId) && order) {
-          // ✅ Déterminer l'autre utilisateur selon la logique de votre DB
           const isCurrentUserClient = order.client_id === currentUser.id;
           const otherUser = isCurrentUserClient ? 
             order.fourmiz_profile : 
@@ -194,12 +185,11 @@ export default function MessagesScreen() {
           // Déterminer le destinataire du message (l'autre participant)
           let otherUserId: string;
           if (order.client_id === currentUser.id) {
-            otherUserId = order.fourmiz_id; // L'utilisateur actuel est client, l'autre est fourmiz
+            otherUserId = order.fourmiz_id;
           } else {
-            otherUserId = order.client_id; // L'utilisateur actuel est fourmiz, l'autre est client
+            otherUserId = order.client_id;
           }
 
-          // 🛡️ CONSTRUCTION SÉCURISÉE DES DONNÉES DE CONVERSATION
           conversationsMap.set(orderId, {
             order_id: orderId,
             order_status: safeString(order.status) || 'unknown',
@@ -215,7 +205,6 @@ export default function MessagesScreen() {
           });
         }
         
-        // ✅ Compter les messages non lus (reçus par l'utilisateur actuel)
         // Un message est "reçu" si l'utilisateur actuel n'est PAS l'expéditeur
         if (!message.read_at && message.sender_id !== currentUser.id) {
           const conv = conversationsMap.get(orderId);
@@ -234,7 +223,7 @@ export default function MessagesScreen() {
       console.log('📬 Messages non lus:', totalUnread);
 
     } catch (error: any) {
-      console.error('💥 Erreur fatale:', error);
+      console.error('⚠️ Erreur fatale:', error);
       Alert.alert('Erreur', `Impossible de charger les conversations: ${error.message}`);
     } finally {
       setLoading(false);
@@ -255,7 +244,7 @@ export default function MessagesScreen() {
         },
         (payload) => {
           console.log('📨 Nouveau message reçu:', payload);
-          loadConversations(); // Recharger les conversations
+          loadConversations();
         }
       )
       .on(
@@ -266,7 +255,6 @@ export default function MessagesScreen() {
           table: 'chat_messages'
         },
         (payload) => {
-          // Rafraîchir si un message est marqué comme lu
           if (payload.new.read_at && !payload.old.read_at) {
             loadConversations();
           }
@@ -306,50 +294,50 @@ export default function MessagesScreen() {
     if (type === 'location') return '📍 Position';
     if (type === 'system') return '🔔 ' + message;
     
-    // 🛡️ TRONCATURE SÉCURISÉE
+    // 🔒 TRONCATURE SÉCURISÉE
     const safeMessage = safeString(message);
     return safeMessage.length > 50 ? safeMessage.substring(0, 50) + '...' : safeMessage;
   };
 
+  // 🎯 FILTRE UNIQUEMENT "EN COURS" - Suppression des terminées
   const renderFilterButtons = () => {
     const statuses = [
-      { key: 'all', label: '📋 Toutes', count: conversations.length },
-      { key: 'en_cours', label: '🚀 En cours', count: conversations.filter(c => c.order_status === 'en_cours').length },
-      { key: 'acceptee', label: '✅ Acceptées', count: conversations.filter(c => c.order_status === 'acceptee').length },
-      { key: 'terminee', label: '🎉 Terminées', count: conversations.filter(c => c.order_status === 'terminee').length },
+      { key: 'en_cours', label: 'En cours', count: conversations.filter(c => c.order_status === 'en_cours').length },
     ].filter(status => status.count > 0);
 
+    if (statuses.length === 0) return null;
+
     return (
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-      >
-        {statuses.map((status) => (
-          <TouchableOpacity
-            key={status.key}
-            style={[
-              styles.filterButton,
-              filterStatus === status.key && styles.filterButtonActive
-            ]}
-            onPress={() => setFilterStatus(status.key)}
-          >
-            <Text style={[
-              styles.filterButtonText,
-              filterStatus === status.key && styles.filterButtonTextActive
-            ]}>
-              {status.label} ({status.count})
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.filterSection}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContent}
+        >
+          {statuses.map((status) => (
+            <TouchableOpacity
+              key={status.key}
+              style={[
+                styles.filterButton,
+                filterStatus === status.key && styles.filterButtonActive
+              ]}
+              onPress={() => setFilterStatus(status.key)}
+            >
+              <Text style={[
+                styles.filterButtonText,
+                filterStatus === status.key && styles.filterButtonTextActive
+              ]}>
+                {status.label} ({status.count})
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
     );
   };
 
   const renderConversationCard = (conversation: Conversation) => {
     const hasUnread = conversation.unread_count > 0;
-    const statusColor = STATUS_COLORS[conversation.order_status as keyof typeof STATUS_COLORS];
 
     return (
       <TouchableOpacity
@@ -358,7 +346,33 @@ export default function MessagesScreen() {
           styles.conversationCard,
           hasUnread && styles.conversationCardUnread
         ]}
-        onPress={() => router.push(`/chat/${conversation.order_id}`)}
+        onPress={() => {
+          console.log('🔍 Clic sur conversation:', {
+            order_id: conversation.order_id,
+            type_order_id: typeof conversation.order_id,
+            other_user_name: conversation.other_user_name,
+            service_title: conversation.service_title,
+            conversation_complete: conversation
+          });
+          
+          if (!conversation.order_id) {
+            console.error('❌ order_id manquant!');
+            Alert.alert('Erreur', 'ID de commande manquant pour cette conversation');
+            return;
+          }
+          
+          try {
+            const chatPath = `/chat/${conversation.order_id}`;
+            console.log('🚀 Tentative navigation vers:', chatPath);
+            
+            router.push(chatPath);
+            console.log('✅ Navigation lancée avec succès');
+            
+          } catch (error) {
+            console.error('❌ Erreur navigation:', error);
+            Alert.alert('Erreur Navigation', `Impossible d'ouvrir le chat: ${error.message}`);
+          }
+        }}
       >
         <View style={styles.conversationHeader}>
           {/* Avatar */}
@@ -370,7 +384,7 @@ export default function MessagesScreen() {
               />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={24} color="#6b7280" />
+                <Ionicons name="person" size={20} color="#666666" />
               </View>
             )}
             {hasUnread && <View style={styles.unreadDot} />}
@@ -394,14 +408,8 @@ export default function MessagesScreen() {
               <Text style={styles.serviceTitle} numberOfLines={1}>
                 {conversation.service_title}
               </Text>
-              <View style={[
-                styles.statusBadge,
-                { backgroundColor: statusColor + '20' }
-              ]}>
-                <Text style={[
-                  styles.statusText,
-                  { color: statusColor }
-                ]}>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>
                   {STATUS_LABELS[conversation.order_status as keyof typeof STATUS_LABELS]}
                 </Text>
               </View>
@@ -424,36 +432,13 @@ export default function MessagesScreen() {
             </View>
           </View>
         </View>
-
-        {/* Actions rapides */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              router.push(`/orders/${conversation.order_id}`);
-            }}
-          >
-            <Ionicons name="document-text" size={16} color="#3b82f6" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              Alert.alert('Appel', 'Fonction d\'appel en cours de développement');
-            }}
-          >
-            <Ionicons name="call" size={16} color="#10b981" />
-          </TouchableOpacity>
-        </View>
       </TouchableOpacity>
     );
   };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="chatbubbles-outline" size={64} color="#d1d5db" />
+      <Ionicons name="chatbubbles-outline" size={48} color="#cccccc" />
       <Text style={styles.emptyTitle}>Aucune conversation</Text>
       <Text style={styles.emptySubtitle}>
         {searchQuery || filterStatus !== 'all' 
@@ -466,7 +451,7 @@ export default function MessagesScreen() {
           style={styles.resetButton}
           onPress={() => {
             setSearchQuery('');
-            setFilterStatus('all');
+            setFilterStatus('en_cours');
           }}
         >
           <Text style={styles.resetButtonText}>Réinitialiser les filtres</Text>
@@ -477,17 +462,17 @@ export default function MessagesScreen() {
 
   const renderSearchBar = () => (
     <View style={styles.searchContainer}>
-      <Ionicons name="search" size={20} color="#6b7280" />
-      <TextInput
+      <Ionicons name="search" size={16} color="#666666" />
+      <TextInput 
         style={styles.searchInput}
         placeholder="Rechercher une conversation..."
-        placeholderTextColor="#6b7280"
+        placeholderTextColor="#666666"
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
       {searchQuery.length > 0 && (
         <TouchableOpacity onPress={() => setSearchQuery('')}>
-          <Ionicons name="close-circle" size={20} color="#6b7280" />
+          <Ionicons name="close-circle" size={16} color="#666666" />
         </TouchableOpacity>
       )}
     </View>
@@ -496,9 +481,8 @@ export default function MessagesScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Stack.Screen options={{ title: 'Messages' }} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#000000" />
           <Text style={styles.loadingText}>Chargement des conversations...</Text>
         </View>
       </SafeAreaView>
@@ -507,25 +491,8 @@ export default function MessagesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen 
-        options={{
-          title: 'Messages',
-          headerRight: () => (
-            <View style={styles.headerActions}>
-              {totalUnread > 0 && (
-                <View style={styles.headerUnreadBadge}>
-                  <Text style={styles.headerUnreadText}>
-                    {totalUnread > 99 ? '99+' : totalUnread}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
-        }} 
-      />
-
       <View style={styles.content}>
-        {/* Barre de recherche */}
+        {/* Barre de recherche avec espacement ajusté */}
         {conversations.length > 0 && (
           <View style={styles.searchSection}>
             {renderSearchBar()}
@@ -542,8 +509,8 @@ export default function MessagesScreen() {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={onRefresh}
-              colors={['#3b82f6']}
-              tintColor="#3b82f6"
+              colors={['#000000']}
+              tintColor="#000000"
             />
           }
           showsVerticalScrollIndicator={false}
@@ -563,113 +530,106 @@ export default function MessagesScreen() {
   );
 }
 
+// 🎨 STYLES ÉPURÉS COHÉRENTS AVEC SERVICES.TSX - HEADER SUPPRIMÉ
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  content: { flex: 1 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#ffffff' 
+  },
+  content: { 
+    flex: 1 
+  },
   
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    gap: 24,
   },
-  loadingText: { fontSize: 16, color: '#6b7280' },
-
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
-  headerUnreadBadge: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  headerUnreadText: {
-    fontSize: 12,
-    color: '#fff',
-    fontWeight: 'bold',
+  loadingText: { 
+    fontSize: 13, 
+    color: '#333333',
+    fontWeight: '400',
   },
 
-  // Recherche
+  // Recherche épurée avec espacement ajusté
   searchSection: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 24,
+    paddingVertical: 20,                // ✅ Augmenté de 16 à 20 pour compenser l'absence de header
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#e0e0e0',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
     paddingHorizontal: 12,
     gap: 8,
   },
   searchInput: {
     flex: 1,
     paddingVertical: 12,
-    fontSize: 16,
-    color: '#374151',
+    fontSize: 13,
+    color: '#000000',
+    fontWeight: '400',
   },
 
-  // Filtres
-  filterContainer: {
-    backgroundColor: '#fff',
+  // Filtres épurés
+  filterSection: {
+    backgroundColor: '#ffffff',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#e0e0e0',
   },
   filterContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     gap: 8,
   },
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
+    borderRadius: 6,
+    backgroundColor: '#f8f8f8',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e0e0e0',
   },
   filterButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   filterButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#666666',
+    fontWeight: '400',
   },
   filterButtonTextActive: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: '600',
   },
 
-  // Liste
-  scrollView: { flex: 1 },
+  // Liste épurée
+  scrollView: { 
+    flex: 1 
+  },
   conversationsList: {
-    padding: 16,
-    gap: 12,
+    padding: 24,
+    gap: 16,
   },
 
-  // Carte de conversation
+  // Carte de conversation épurée
   conversationCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#f3f4f6',
+    borderColor: '#e0e0e0',
   },
   conversationCardUnread: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
-    backgroundColor: '#fefeff',
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
+    backgroundColor: '#fafafa',
   },
 
   conversationHeader: {
@@ -677,20 +637,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  // Avatar
+  // Avatar épuré
   avatarContainer: {
     position: 'relative',
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   avatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#e5e7eb',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f8f8f8',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -698,15 +658,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 2,
     right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#ef4444',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#000000',
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#ffffff',
   },
 
-  // Info conversation
+  // Info conversation épurée
   conversationInfo: {
     flex: 1,
     gap: 6,
@@ -717,18 +677,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   userName: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: '#000000',
     flex: 1,
   },
   userNameUnread: {
-    color: '#111827',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   timeStamp: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#666666',
+    fontWeight: '400',
   },
 
   serviceRow: {
@@ -738,19 +698,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   serviceTitle: {
-    fontSize: 14,
-    color: '#3b82f6',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '400',
     flex: 1,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 6,
+    backgroundColor: '#f8f8f8',
   },
   statusText: {
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#666666',
   },
 
   messageRow: {
@@ -760,82 +722,67 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   lastMessage: {
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 20,
+    fontSize: 13,
+    color: '#666666',
+    lineHeight: 18,
     flex: 1,
+    fontWeight: '400',
   },
   lastMessageUnread: {
-    color: '#374151',
-    fontWeight: '500',
+    color: '#333333',
+    fontWeight: '400',
   },
   unreadBadge: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 24,
+    backgroundColor: '#000000',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   unreadCount: {
-    fontSize: 12,
-    color: '#fff',
-    fontWeight: 'bold',
+    fontSize: 11,
+    color: '#ffffff',
+    fontWeight: '600',
   },
 
-  // Actions rapides
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    gap: 8,
-  },
-  quickActionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // État vide
+  // État vide épuré
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
     paddingVertical: 64,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#374151',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#666666',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
     marginBottom: 24,
+    fontWeight: '400',
   },
   resetButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#000000',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   resetButtonText: {
-    fontSize: 14,
-    color: '#fff',
+    fontSize: 13,
+    color: '#ffffff',
     fontWeight: '600',
   },
 
-  bottomSpacer: { height: 32 },
+  bottomSpacer: { 
+    height: 32 
+  },
 });

@@ -1,4 +1,4 @@
-// components/NotificationManager.tsx
+﻿// components/NotificationManager.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { 
@@ -32,7 +32,7 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
     }
   }, [isAuthenticated, userId]);
 
-  // Mettre à jour le statut périodiquement
+  // Mettre à jour le statut périodiquement 
   useEffect(() => {
     const interval = setInterval(() => {
       setStatus(getNotificationStatus());
@@ -41,7 +41,7 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const handleInitializeNotifications = async () => {
+  const handleInitializeNotifications = async (): Promise<void> => {
     if (!userId) return;
     
     setIsLoading(true);
@@ -50,7 +50,7 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
       if (success) {
         console.log('✅ Notifications initialisées avec succès');
       } else {
-        console.log('⚠️ Échec initialisation notifications');
+        console.log('❌ Échec initialisation notifications');
       }
     } catch (error) {
       console.error('❌ Erreur lors de l\'initialisation:', error);
@@ -60,7 +60,7 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
     }
   };
 
-  const handleForceRetry = async () => {
+  const handleForceRetry = async (): Promise<void> => {
     if (!userId) return;
     
     setIsLoading(true);
@@ -78,7 +78,7 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
     }
   };
 
-  const handleTestNotification = async () => {
+  const handleTestNotification = async (): Promise<void> => {
     try {
       const success = await sendTestNotification();
       Alert.alert(
@@ -90,13 +90,13 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
     }
   };
 
-  const getStatusColor = () => {
-    if (status.isInitialized && status.hasToken) return '#4CAF50'; // Vert
+  const getStatusColor = (): string => {
+    if (status.isInitialized && status.hasToken) return '#4CAF50'; // Vert 
     if (status.lastError) return '#F44336'; // Rouge
     return '#FF9800'; // Orange
   };
 
-  const getStatusText = () => {
+  const getStatusText = (): string => {
     if (status.isInitialized && status.hasToken) return 'Actives ✅';
     if (status.lastError) return `Erreur: ${status.lastError.code}`;
     return 'En attente...';
@@ -132,108 +132,4 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({
       <Text style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
         Token: {status.hasToken ? '✅' : '❌'}
       </Text>
-      <Text style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
-        Utilisateur: {status.userId || 'Non défini'}
-      </Text>
-      {status.retryCount > 0 && (
-        <Text style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>
-          Tentatives: {status.retryCount}/3
-        </Text>
-      )}
-
-      {/* Erreur détaillée */}
-      {status.lastError && (
-        <View style={{ 
-          backgroundColor: '#ffebee', 
-          padding: 8, 
-          borderRadius: 4, 
-          marginTop: 8,
-          marginBottom: 8 
-        }}>
-          <Text style={{ fontSize: 12, color: '#c62828' }}>
-            Dernière erreur: {status.lastError.message}
-          </Text>
-          <Text style={{ fontSize: 10, color: '#999' }}>
-            {new Date(status.lastError.timestamp).toLocaleString()}
-          </Text>
-        </View>
-      )}
-
-      {/* Boutons d'action */}
-      <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#2196F3',
-            padding: 8,
-            borderRadius: 4,
-            flex: 1,
-            opacity: isLoading ? 0.5 : 1
-          }}
-          onPress={handleInitializeNotifications}
-          disabled={isLoading}
-        >
-          <Text style={{ color: 'white', textAlign: 'center', fontSize: 12 }}>
-            {isLoading ? 'Chargement...' : 'Réinitialiser'}
-          </Text>
-        </TouchableOpacity>
-
-        {status.lastError && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#FF9800',
-              padding: 8,
-              borderRadius: 4,
-              flex: 1,
-              opacity: isLoading ? 0.5 : 1
-            }}
-            onPress={handleForceRetry}
-            disabled={isLoading}
-          >
-            <Text style={{ color: 'white', textAlign: 'center', fontSize: 12 }}>
-              Force Retry
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {status.isInitialized && status.hasToken && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#4CAF50',
-              padding: 8,
-              borderRadius: 4,
-              flex: 1
-            }}
-            onPress={handleTestNotification}
-          >
-            <Text style={{ color: 'white', textAlign: 'center', fontSize: 12 }}>
-              Test 🧪
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-};
-
-// Hook personnalisé pour utiliser les notifications
-export const useNotifications = (userId: string | null, isAuthenticated: boolean) => {
-  const [status, setStatus] = useState(getNotificationStatus());
-
-  useEffect(() => {
-    if (isAuthenticated && userId) {
-      initializeNotifications(userId);
-    }
-  }, [userId, isAuthenticated]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStatus(getNotificationStatus());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return status;
-};
-
-export default NotificationManager;
+      <Text style={{ fontSize: 14, color: '#666', marginBottom: 4 }}

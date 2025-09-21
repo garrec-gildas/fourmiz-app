@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
@@ -63,7 +63,7 @@ export default function RecoveryRedirectScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#FF3C38" />
-        <Text style={styles.text}>Vérification du lien…</Text>
+        <Text style={styles.text}>Vérification du lien...</Text>
       </SafeAreaView>
     );
   }
@@ -81,7 +81,7 @@ export default function RecoveryRedirectScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Définir un nouveau mot de passe</Text>
-      <TextInput
+      <TextInput 
         placeholder="Nouveau mot de passe"
         secureTextEntry
         style={styles.input}

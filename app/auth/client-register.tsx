@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,20 +18,42 @@ export default function ClientRegisterScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async () => {
+  const handleRegister = useCallback(async () => {
+    if (!email.trim() || !password) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
+      const { data, error } = await supabase.auth.signUp({ 
+        email: email.trim().toLowerCase(), 
+        password 
+      });
+      
+      if (error) {
+        console.error('❌ Erreur inscription:', error);
+        throw error;
+      }
 
+      console.log('✅ Inscription réussie');
       Alert.alert('Succès', 'Compte client créé. Veuillez compléter votre profil.');
       router.replace('/auth/complete-profile');
     } catch (err: any) {
-      Alert.alert('Erreur', err.message || "Échec de l'inscription.");
+      console.error('❌ Erreur:', err);
+      
+      let errorMessage = "Échec de l'inscription";
+      if (err.message?.includes('already registered')) {
+        errorMessage = 'Cette adresse email est déjà utilisée';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      Alert.alert('Erreur', errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, password]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,17 +61,18 @@ export default function ClientRegisterScreen() {
         <Text style={styles.title}>Inscription Client</Text>
 
         <Text style={styles.label}>Email</Text>
-        <TextInput
+        <TextInput 
           style={styles.input}
           placeholder="ex: client@mail.com"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
         />
 
         <Text style={styles.label}>Mot de passe</Text>
-        <TextInput
+        <TextInput 
           style={styles.input}
           placeholder="Mot de passe"
           value={password}
@@ -57,7 +80,11 @@ export default function ClientRegisterScreen() {
           secureTextEntry
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={handleRegister} 
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
@@ -92,6 +119,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 24,
+  },
+  buttonDisabled: {
+    backgroundColor: '#FFB3B3',
   },
   buttonText: { color: '#fff', fontWeight: 'bold' },
   link: { marginTop: 24, alignItems: 'center' },

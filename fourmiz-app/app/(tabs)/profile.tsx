@@ -1,9 +1,10 @@
 import { SafeAreaView, Text } from 'react-native';
 
-export default function ProfileScreen() {
+export default function ProfileScrééeen() {
   return (
     <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Profile Screen</Text>
+      <Text>Profile Scrééeen</Text>
     </SafeAreaView>
   );
 }
+

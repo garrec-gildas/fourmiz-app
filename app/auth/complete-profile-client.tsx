@@ -1,6 +1,7 @@
-// app/auth/complete-profile-client.tsx - VERSION OPTIMISÉE FOURMIZ → CLIENT
-// 🎯 Gestion intelligente : Fourmiz a déjà toutes les infos pour être Client
-// ✅ Ajout de rôle instantané si profil Fourmiz complet
+﻿// app/auth/complete-profile-client.tsx - VERSION HARMONISÉE AVEC COMPLETE-PROFILE.TSX
+// 🎯 Gestion intelligente : Fourmiz a déjà toutes les infos pour être Client 
+// ⚡ Ajout de rôle instantané si profil Fourmiz complet
+// 🎨 Style PARFAITEMENT harmonisé avec complete-profile.tsx
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -13,9 +14,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import {
   supabase,
   handleSupabaseError,
@@ -52,7 +55,7 @@ export default function CompleteClientProfileScreen() {
   // 🔄 CHARGEMENT DE LA SESSION
   const loadUserSession = useCallback(async (): Promise<void> => {
     try {
-      console.log('🔐 Vérification de la session utilisateur...');
+      console.log('🔄 Vérification de la session utilisateur...');
       
       const currentUser = await getCurrentUser();
       const currentSession = await getCurrentSession();
@@ -76,7 +79,7 @@ export default function CompleteClientProfileScreen() {
         }
       });
 
-      // Charger et analyser le profil existant
+      // Charger et analyser le profil existant 
       await loadAndAnalyzeProfile(currentUser.id);
 
     } catch (error) {
@@ -93,11 +96,11 @@ export default function CompleteClientProfileScreen() {
     }
   }, []);
 
-  // 📋 CHARGEMENT ET ANALYSE DU PROFIL EXISTANT
+  // 🔍 CHARGEMENT ET ANALYSE DU PROFIL EXISTANT 
   const loadAndAnalyzeProfile = useCallback(async (userId: string): Promise<void> => {
     try {
       setUiState(prev => ({ ...prev, checkingProfile: true }));
-      console.log('📋 Analyse du profil existant...');
+      console.log('🔍 Analyse du profil existant...');
 
       const { data: profileData, error } = await supabase
         .from('profiles')
@@ -111,6 +114,7 @@ export default function CompleteClientProfileScreen() {
           postal_code,
           rib,
           id_document_path,
+          avatar_url,
           roles,
           profile_completed
         `)
@@ -126,7 +130,7 @@ export default function CompleteClientProfileScreen() {
         console.log('📋 Profil Fourmiz existant trouvé:', profileData.firstname);
         setExistingProfile(profileData);
 
-        // ✅ ANALYSE : Peut-on faire un upgrade instantané ?
+        // 🎯 ANALYSE : Peut-on faire un upgrade instantané ?
         const basicFieldsComplete = !!(
           profileData.firstname &&
           profileData.lastname &&
@@ -146,23 +150,23 @@ export default function CompleteClientProfileScreen() {
           roles: profileData.roles
         });
 
-        // CAS 1: Déjà Client → Rediriger vers dashboard
+        // CAS 1: Déjà Client ? Rediriger vers dashboard
         if (isAlreadyClient) {
           console.log('✅ Utilisateur déjà Client, redirection dashboard');
           Alert.alert(
             'Déjà Client !',
             'Vous avez déjà le rôle Client. Redirection vers l\'application...',
-            [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+            [{ text: 'OK', onPress: () => router.replace('/(Tabs)') }]
           );
           return;
         }
 
-        // CAS 2: Fourmiz avec profil complet → Upgrade instantané possible
+        // CAS 2: Fourmiz avec profil complet ? Upgrade instantané possible
         if (isFourmiz && basicFieldsComplete) {
-          console.log('🚀 Fourmiz avec profil complet → Upgrade instantané possible');
+          console.log('⚡ Fourmiz avec profil complet → Upgrade instantané possible');
           setCanInstantUpgrade(true);
         } else {
-          console.log('⚠️ Profil incomplet, upgrade manuel nécessaire');
+          console.log('📝 Profil incomplet, upgrade manuel nécessaire');
           setCanInstantUpgrade(false);
         }
       }
@@ -173,7 +177,7 @@ export default function CompleteClientProfileScreen() {
     }
   }, []);
 
-  // 🚀 AJOUT INSTANTANÉ DU RÔLE CLIENT (POUR FOURMIZ COMPLET)
+  // ⚡ AJOUT INSTANTANÉ DU RÔLE CLIENT (POUR FOURMIZ COMPLET)
   const handleInstantClientUpgrade = useCallback(async (): Promise<void> => {
     if (!session?.user) {
       Alert.alert('Session expirée', 'Veuillez vous reconnecter');
@@ -181,8 +185,8 @@ export default function CompleteClientProfileScreen() {
       return;
     }
 
-    console.log('💾 === AJOUT RÔLE CLIENT INSTANTANÉ ===');
-    console.log('📋 Utilisateur Fourmiz:', session.user.email);
+    console.log('⚡ === AJOUT RÔLE CLIENT INSTANTANÉ ===');
+    console.log('👤 Utilisateur Fourmiz:', session.user.email);
 
     setUiState(prev => ({ ...prev, updating: true }));
 
@@ -217,17 +221,17 @@ export default function CompleteClientProfileScreen() {
       const firstName = existingProfile?.firstname || 'Utilisateur';
       Alert.alert(
         '🎉 Parfait !',
-        `Excellent ${firstName} ! Vous êtes maintenant Fourmiz ET Client.\n\n✅ Aucune information supplémentaire n'était nécessaire car votre profil Fourmiz contient déjà tout ce qu'il faut pour être Client !\n\n🛍️ Vous pouvez maintenant commander des services ET en proposer.`,
+        `Excellent ${firstName} ! Vous êtes maintenant Fourmiz ET Client.\n\n⚡ Aucune information supplémentaire n'était nécessaire car votre profil Fourmiz contient déjà tout ce qu'il faut pour être Client !\n\n🎯 Vous pouvez maintenant commander des services ET en proposer.`,
         [
           { 
             text: 'Découvrir les services', 
-            onPress: () => router.replace('/(tabs)')
+            onPress: () => router.replace('/(Tabs)')
           }
         ]
       );
 
     } catch (error: any) {
-      console.error('💥 ERREUR AJOUT RÔLE CLIENT INSTANTANÉ:', error);
+      console.error('❌ ERREUR AJOUT RÔLE CLIENT INSTANTANÉ:', error);
       
       Alert.alert(
         'Erreur',
@@ -246,9 +250,9 @@ export default function CompleteClientProfileScreen() {
     }
   }, [session, existingProfile]);
 
-  // 🚀 REDIRECTION VERS COMPLÉTION MANUELLE (SI PROFIL INCOMPLET)
+  // 📝 REDIRECTION VERS COMPLÉTION MANUELLE (SI PROFIL INCOMPLET)
   const handleManualCompletion = useCallback(() => {
-    console.log('➡️ Redirection vers complétion manuelle');
+    console.log('📝 Redirection vers complétion manuelle');
     router.push('/auth/complete-profile?roles=client');
   }, []);
 
@@ -257,12 +261,12 @@ export default function CompleteClientProfileScreen() {
     loadUserSession();
   }, [loadUserSession]);
 
-  // 📊 ÉTATS DE CHARGEMENT
+  // 📱 ÉTATS DE CHARGEMENT 
   if (uiState.sessionLoading || uiState.checkingProfile) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF4444" />
+          <ActivityIndicator size="large" color="#000000" />
           <Text style={styles.loadingText}>
             {uiState.sessionLoading 
               ? 'Vérification de votre session...' 
@@ -301,60 +305,113 @@ export default function CompleteClientProfileScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
+          {/* Header épuré */}
           <View style={styles.header}>
-            <Text style={styles.title}>🛒 Devenir Client</Text>
+            <Text style={styles.title}>Devenir Client</Text>
             <Text style={styles.subtitle}>
               Ajoutez le rôle Client à votre profil Fourmiz
             </Text>
           </View>
 
-          {/* Profil actuel */}
-          <View style={styles.profileSection}>
-            <Text style={styles.profileTitle}>👤 Votre profil Fourmiz actuel</Text>
-            <View style={styles.profileCard}>
+          {/* Profil actuel avec style épuré */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="person-outline" size={16} color="#000000" />
+              <Text style={styles.sectionTitle}>Votre profil Fourmiz actuel</Text>
+            </View>
+            
+            <View style={styles.profileContent}>
               <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>
-                  {existingProfile.firstname} {existingProfile.lastname}
-                </Text>
-                <Text style={styles.profileEmail}>{existingProfile.email}</Text>
-                <Text style={styles.profileDetails}>
-                  📞 {existingProfile.phone || 'Non renseigné'}
-                </Text>
-                <Text style={styles.profileDetails}>
-                  📍 {existingProfile.address ? `${existingProfile.address}, ${existingProfile.city}` : 'Adresse non renseignée'}
-                </Text>
-                <View style={styles.rolesContainer}>
-                  <Text style={styles.rolesLabel}>Rôle actuel :</Text>
-                  <View style={styles.roleTag}>
-                    <Text style={styles.roleText}>🐜 Fourmiz</Text>
+                {/* Avatar avec fallback */}
+                <View style={styles.avatarContainer}>
+                  {existingProfile.avatar_url ? (
+                    <Image 
+                      source={{ uri: existingProfile.avatar_url }}
+                      style={styles.avatar}
+                    />
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                      <Text style={styles.avatarText}>
+                        {existingProfile.firstname ? existingProfile.firstname.charAt(0).toUpperCase() : '👤'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                
+                <View style={styles.profileDetails}>
+                  <Text style={styles.profileName}>
+                    {existingProfile.firstname} {existingProfile.lastname}
+                  </Text>
+                  <Text style={styles.profileEmail}>{existingProfile.email}</Text>
+                  
+                  <View style={styles.profileDetailsRow}>
+                    <Ionicons name="call-outline" size={12} color="#666666" />
+                    <Text style={styles.profileDetailText}>
+                      {existingProfile.phone || 'Non renseigné'}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.profileDetailsRow}>
+                    <Ionicons name="location-outline" size={12} color="#666666" />
+                    <Text style={styles.profileDetailText}>
+                      {existingProfile.address ? `${existingProfile.address}, ${existingProfile.city}` : 'Adresse non renseignée'}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.rolesContainer}>
+                    <Text style={styles.rolesLabel}>Rôle actuel :</Text>
+                    <View style={styles.roleTag}>
+                      <Ionicons name="construct" size={12} color="#ffffff" />
+                      <Text style={styles.roleText}>Fourmiz</Text>
+                    </View>
                   </View>
                 </View>
               </View>
             </View>
           </View>
 
-          {/* ✅ UPGRADE INSTANTANÉ ou MANUEL selon le cas */}
+          {/* ⚡ UPGRADE INSTANTANÉ ou MANUEL selon le cas */}
           {canInstantUpgrade ? (
             <>
               {/* Section upgrade instantané */}
-              <View style={styles.instantSection}>
-                <Text style={styles.instantTitle}>✨ Bonne nouvelle !</Text>
-                <Text style={styles.instantText}>
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="flash-outline" size={16} color="#000000" />
+                  <Text style={styles.sectionTitle}>Bonne nouvelle !</Text>
+                </View>
+                <Text style={styles.sectionText}>
                   Votre profil Fourmiz contient déjà toutes les informations nécessaires pour devenir Client. 
                   Aucune saisie supplémentaire n'est requise !
                 </Text>
               </View>
 
               {/* Avantages Client */}
-              <View style={styles.benefitsSection}>
-                <Text style={styles.benefitsTitle}>🛍️ En tant que Client, vous pourrez :</Text>
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#000000" />
+                  <Text style={styles.sectionTitle}>En tant que Client, vous pourrez</Text>
+                </View>
                 <View style={styles.benefitsList}>
-                  <Text style={styles.benefitItem}>🔍 Rechercher et commander des services</Text>
-                  <Text style={styles.benefitItem}>⭐ Noter et commenter les autres Fourmiz</Text>
-                  <Text style={styles.benefitItem}>💬 Communiquer avec les prestataires</Text>
-                  <Text style={styles.benefitItem}>📱 Suivre vos commandes en temps réel</Text>
-                  <Text style={styles.benefitItem}>🎯 Profiter des deux facettes de Fourmiz</Text>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="search-outline" size={14} color="#000000" />
+                    <Text style={styles.benefitText}>Rechercher et commander des services</Text>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="star-outline" size={14} color="#000000" />
+                    <Text style={styles.benefitText}>Noter et commenter les autres Fourmiz</Text>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="chatbubble-outline" size={14} color="#000000" />
+                    <Text style={styles.benefitText}>Communiquer avec les prestataires</Text>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="notifications-outline" size={14} color="#000000" />
+                    <Text style={styles.benefitText}>Suivre vos commandes en temps réel</Text>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="medal-outline" size={14} color="#000000" />
+                    <Text style={styles.benefitText}>Profiter des deux facettes de Fourmiz</Text>
+                  </View>
                 </View>
               </View>
 
@@ -374,16 +431,22 @@ export default function CompleteClientProfileScreen() {
                     <Text style={styles.instantButtonLoadingText}>Ajout en cours...</Text>
                   </View>
                 ) : (
-                  <Text style={styles.instantButtonText}>🚀 Devenir Client instantanément</Text>
+                  <>
+                    <Ionicons name="flash" size={16} color="#ffffff" />
+                    <Text style={styles.instantButtonText}>Devenir Client instantanément</Text>
+                  </>
                 )}
               </TouchableOpacity>
             </>
           ) : (
             <>
               {/* Section upgrade manuel */}
-              <View style={styles.manualSection}>
-                <Text style={styles.manualTitle}>📝 Complétion nécessaire</Text>
-                <Text style={styles.manualText}>
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="document-text-outline" size={16} color="#000000" />
+                  <Text style={styles.sectionTitle}>Complétion nécessaire</Text>
+                </View>
+                <Text style={styles.sectionText}>
                   Votre profil nécessite quelques informations supplémentaires pour devenir Client. 
                   Nous allons vous rediriger vers le formulaire de complétion.
                 </Text>
@@ -395,7 +458,8 @@ export default function CompleteClientProfileScreen() {
                 onPress={handleManualCompletion}
                 activeOpacity={0.8}
               >
-                <Text style={styles.manualButtonText}>📝 Compléter mon profil</Text>
+                <Ionicons name="create-outline" size={16} color="#ffffff" />
+                <Text style={styles.manualButtonText}>Compléter mon profil</Text>
               </TouchableOpacity>
             </>
           )}
@@ -407,7 +471,7 @@ export default function CompleteClientProfileScreen() {
               if (from) {
                 router.back();
               } else {
-                router.replace('/(tabs)');
+                router.replace('/(Tabs)');
               }
             }}
             disabled={uiState.updating}
@@ -415,260 +479,299 @@ export default function CompleteClientProfileScreen() {
             <Text style={styles.cancelButtonText}>Plus tard</Text>
           </TouchableOpacity>
 
-          {/* Informations légales */}
-          <Text style={styles.legalText}>
-            En devenant Client, vous acceptez nos conditions d'utilisation pour les commandes de services.
-          </Text>
+          {/* Informations légales avec style épuré */}
+          <View style={styles.noteSection}>
+            <Ionicons name="information-circle-outline" size={14} color="#666666" />
+            <Text style={styles.noteText}>
+              En devenant Client, vous acceptez nos conditions d'utilisation pour les commandes de services.
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+// ====================================
+// 🎨 STYLES HARMONISÉS AVEC COMPLETE-PROFILE.TSX
+// ====================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
   
-  // États de chargement
+  // États de chargement harmonisés
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
-    padding: 20,
+    gap: 24,               // Harmonisé (était 16)
+    padding: 24,           // Harmonisé (était 20)
   },
   loadingText: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#333333',      // Harmonisé (était #666666)
+    fontWeight: '400',
     textAlign: 'center',
   },
   errorText: {
-    fontSize: 16,
-    color: '#FF4444',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '400',
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#000000',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,       // Harmonisé (était 8)
     marginTop: 16,
   },
   retryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 13,
   },
 
-  // Contenu principal
+  // Contenu principal harmonisé
   content: {
-    padding: 20,
+    paddingHorizontal: 24, // Harmonisé (était padding: 20)
+    paddingVertical: 16,   // Ajouté pour cohérence
     paddingBottom: 40,
   },
 
-  // Header
+  // Header harmonisé
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 20,      // Harmonisé (était 24)
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#333',
+    color: '#000000',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 13,
     textAlign: 'center',
-    color: '#666',
-    lineHeight: 22,
+    color: '#666666',
+    lineHeight: 18,
+    fontWeight: '400',
   },
 
-  // Profil utilisateur
-  profileSection: {
-    marginBottom: 32,
-  },
-  profileTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#333',
-  },
-  profileCard: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 16,
+  // Sections harmonisées
+  sectionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 20,           // Harmonisé (était 16)
+    marginBottom: 20,      // Harmonisé (était 16)
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#e0e0e0',
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
   },
-  profileInfo: {
-    gap: 8,
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  profileEmail: {
-    fontSize: 16,
-    color: '#666',
-  },
-  profileDetails: {
-    fontSize: 14,
-    color: '#666',
-  },
-  rolesContainer: {
-    marginTop: 12,
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,      // Harmonisé (était 12)
   },
-  rolesLabel: {
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+  },
+  sectionText: {
+    fontSize: 13,
+    color: '#666666',
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+
+  // Profil utilisateur harmonisé
+  profileContent: {
+    marginTop: 8,
+  },
+  profileInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  avatarContainer: {
+    marginTop: 4,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#f8f8f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
-    marginRight: 8,
+    color: '#000000',
   },
-  roleTag: {
-    backgroundColor: '#FF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+  profileDetails: {
+    flex: 1,
+    gap: 4,
   },
-  roleText: {
-    color: '#fff',
-    fontSize: 12,
+  profileName: {
+    fontSize: 14,
     fontWeight: '600',
+    color: '#000000',
+    marginBottom: 2,
   },
-
-  // Section instantanée
-  instantSection: {
-    backgroundColor: '#e8f5e8',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#c8e6c9',
+  profileEmail: {
+    fontSize: 13,
+    color: '#666666',
+    marginBottom: 6,
   },
-  instantTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2e7d32',
-    marginBottom: 8,
+  profileDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
   },
-  instantText: {
-    fontSize: 14,
-    color: '#388e3c',
-    lineHeight: 20,
+  profileDetailText: {
+    fontSize: 13,          // Harmonisé (était 12)
+    color: '#666666',
+    flex: 1,
   },
-
-  // Section manuelle
-  manualSection: {
-    backgroundColor: '#fff3cd',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#ffeaa7',
-  },
-  manualTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#856404',
-    marginBottom: 8,
-  },
-  manualText: {
-    fontSize: 14,
-    color: '#856404',
-    lineHeight: 20,
-  },
-
-  // Section avantages
-  benefitsSection: {
-    backgroundColor: '#f0f8ff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#e3f2fd',
-  },
-  benefitsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1976d2',
-    marginBottom: 12,
-  },
-  benefitsList: {
+  rolesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
     gap: 8,
   },
-  benefitItem: {
-    fontSize: 14,
-    color: '#424242',
-    lineHeight: 20,
+  rolesLabel: {
+    fontSize: 13,          // Harmonisé (était 12)
+    fontWeight: '600',
+    color: '#333333',
+  },
+  roleTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,       // Harmonisé (était 12)
+    gap: 4,
+  },
+  roleText: {
+    color: '#ffffff',
+    fontSize: 13,          // Harmonisé (était 11)
+    fontWeight: '600',
   },
 
-  // Boutons
-  instantButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 18,
-    borderRadius: 12,
+  // Avantages harmonisés
+  benefitsList: {
+    gap: 8,
+    marginTop: 8,
+  },
+  benefitItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 8,
+  },
+  benefitText: {
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '400',
+    flex: 1,
+  },
+
+  // Boutons harmonisés
+  instantButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 16,   // Harmonisé (était 12)
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,         // Ajouté pour cohérence
+    marginBottom: 24,      // Harmonisé (était 12)
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,                // Harmonisé (était 6)
   },
   instantButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#cccccc', // Harmonisé (aurait pu être différent)
   },
   instantButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 13,
   },
   instantButtonLoading: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 8,                // Harmonisé (était 6)
   },
   instantButtonLoadingText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '400',
   },
 
   manualButton: {
-    backgroundColor: '#FF4444',
-    paddingVertical: 18,
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    paddingVertical: 16,   // Harmonisé (était 12)
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 12,
+    marginTop: 16,         // Ajouté pour cohérence
+    marginBottom: 24,      // Harmonisé (était 12)
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,                // Harmonisé (était 6)
   },
   manualButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 13,
   },
 
   cancelButton: {
-    backgroundColor: '#f8f9fa',
-    paddingVertical: 12,
-    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 20,
+    paddingVertical: 12,
+    marginBottom: 24,      // Harmonisé (était 16)
   },
   cancelButtonText: {
-    color: '#666',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#666666',
+    fontSize: 13,
+    fontWeight: '400',
   },
 
-  // Mentions légales
-  legalText: {
-    fontSize: 11,
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 16,
+  // Note harmonisée
+  noteSection: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 16,           // Harmonisé (était 12)
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderLeftWidth: 3,    // Ajouté pour cohérence
+    borderLeftColor: '#000000', // Ajouté pour cohérence
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'flex-start',
+  },
+  noteText: {
+    fontSize: 13,          // Harmonisé (était 11)
+    color: '#333333',      // Harmonisé (était #666666)
+    lineHeight: 16,        // Harmonisé (était 14)
+    fontWeight: '400',
+    flex: 1,
   },
 });

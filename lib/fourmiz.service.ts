@@ -1,4 +1,4 @@
-// lib/fourmiz.service.ts
+// lib/fourmiz.service.ts - VERSION CORRIGÉE
 import { supabase } from './supabase';
 
 export interface FourmizCriteriaAdapted {
@@ -58,6 +58,8 @@ class FourmizService {
    */
   async getCriteria(userId: string): Promise<FourmizCriteriaAdapted | null> {
     try {
+      console.log('🔍 [FourmizService] Récupération critères pour:', userId);
+      
       const { data, error } = await supabase
         .from('fourmiz_criteria')
         .select('*')
@@ -65,35 +67,144 @@ class FourmizService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
+        console.error('❌ [FourmizService] Erreur récupération critères:', error);
         throw error;
+      }
+
+      if (data) {
+        console.log('✅ [FourmizService] Critères trouvés');
+      } else {
+        console.log('ℹ️ [FourmizService] Aucun critère trouvé');
       }
 
       return data;
     } catch (error) {
-      console.error('Erreur récupération critères:', error);
+      console.error('❌ [FourmizService] Exception récupération critères:', error);
       return null;
     }
   }
 
   /**
-   * Sauvegarder/Mettre à jour les critères (upsert)
+   * 🆕 AJOUT : Créer des critères par défaut
+   */
+  async createDefaultCriteria(userId: string): Promise<FourmizCriteriaAdapted | null> {
+    try {
+      console.log('🔨 [FourmizService] Création critères par défaut pour:', userId);
+      
+      const defaultCriteria: Partial<FourmizCriteriaAdapted> = {
+        user_id: userId,
+        
+        // RGPD - Valeurs par défaut minimales
+        rgpd_accepte_cgu: false,
+        rgpd_accepte_politique_confidentialite: false,
+        rgpd_accepte_traitement_donnees: false,
+        rgpd_newsletter_marketing: false,
+        rgpd_notifications_push_marketing: false,
+        
+        // Services - Vides par défaut
+        categories_completes: [],
+        selected_service_ids: [],
+        
+        // Transport - Valeurs par défaut raisonnables
+        transport_moyens: [],
+        rayon_deplacement_km: 10,
+        
+        // Disponibilités - Vide par défaut
+        disponibilites_horaires_detaillees: [],
+        
+        // Tarifs - Valeurs par défaut
+        prix_minimum_heure: 15,
+        note_client_minimum: 3,
+        
+        // Autres - Vides par défaut
+        mots_cles_notifications: [],
+        location: '',
+        is_active: false,
+        is_available: false,
+      };
+
+      const success = await this.saveCriteria(defaultCriteria);
+      
+      if (success) {
+        // Récupérer les critères créés
+        return await this.getCriteria(userId);
+      } else {
+        console.error('❌ [FourmizService] Échec création critères par défaut');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ [FourmizService] Exception création critères par défaut:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 🔧 CORRECTION : Sauvegarder/Mettre à jour les critères avec logs détaillés
    */
   async saveCriteria(criteria: Partial<FourmizCriteriaAdapted>): Promise<boolean> {
     try {
-      const { error } = await supabase
+      console.log('💾 [FourmizService] === DÉBUT SAUVEGARDE ===');
+      console.log('📊 Données à sauvegarder:', {
+        user_id: criteria.user_id,
+        has_rgpd_cgu: !!criteria.rgpd_accepte_cgu,
+        categories_count: criteria.categories_completes?.length || 0,
+        prix: criteria.prix_minimum_heure,
+        rayon: criteria.rayon_deplacement_km,
+      });
+
+      // Vérification basique
+      if (!criteria.user_id) {
+        console.error('❌ [FourmizService] user_id manquant');
+        return false;
+      }
+
+      // 🔧 CORRECTION : Validation moins stricte pour permettre sauvegarde progressive
+      const validationErrors = this.validateCriteriaForSave(criteria);
+      if (validationErrors.length > 0) {
+        console.error('❌ [FourmizService] Erreurs de validation:', validationErrors);
+        return false;
+      }
+
+      // Préparation des données pour upsert
+      const dataToSave = {
+        ...criteria,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log('🔄 [FourmizService] Tentative upsert...');
+      
+      const { data, error } = await supabase
         .from('fourmiz_criteria')
-        .upsert(criteria, { 
+        .upsert(dataToSave, { 
           onConflict: 'user_id',
           ignoreDuplicates: false 
-        });
+        })
+        .select('*')
+        .single();
 
       if (error) {
+        console.error('❌ [FourmizService] Erreur Supabase upsert:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
         throw error;
       }
 
+      console.log('✅ [FourmizService] Sauvegarde réussie');
+      console.log('📊 [FourmizService] Données sauvées:', data);
+      console.log('💾 [FourmizService] === FIN SAUVEGARDE ===');
+
       return true;
-    } catch (error) {
-      console.error('Erreur sauvegarde critères:', error);
+    } catch (error: any) {
+      console.error('❌ [FourmizService] Exception sauvegarde complète:', {
+        error: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        stack: error.stack?.split('\n').slice(0, 3), // Premiers 3 lignes de la stack
+      });
       return false;
     }
   }
@@ -197,7 +308,8 @@ class FourmizService {
         .from('fourmiz_criteria')
         .update({ 
           is_available: isAvailable,
-          derniere_activite: new Date().toISOString()
+          derniere_activite: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .eq('user_id', userId);
 
@@ -234,14 +346,20 @@ class FourmizService {
   }
 
   /**
-   * Valider les critères avant sauvegarde
+   * 🔧 CORRECTION : Validation stricte pour validation finale uniquement
    */
   validateCriteria(criteria: Partial<FourmizCriteriaAdapted>): string[] {
     const errors: string[] = [];
 
-    // RGPD obligatoire
+    // RGPD obligatoire SEULEMENT pour validation finale
     if (!criteria.rgpd_accepte_cgu || !criteria.rgpd_accepte_politique_confidentialite || !criteria.rgpd_accepte_traitement_donnees) {
       errors.push('Les acceptations RGPD obligatoires doivent être validées');
+    }
+
+    // Au moins une catégorie ou service
+    if ((!criteria.categories_completes || criteria.categories_completes.length === 0) && 
+        (!criteria.selected_service_ids || criteria.selected_service_ids.length === 0)) {
+      errors.push('Au moins une catégorie de service doit être sélectionnée');
     }
 
     // Rayon valide
@@ -257,6 +375,41 @@ class FourmizService {
     // Note valide
     if (criteria.note_client_minimum && (criteria.note_client_minimum < 1 || criteria.note_client_minimum > 5)) {
       errors.push('La note doit être entre 1 et 5');
+    }
+
+    return errors;
+  }
+
+  /**
+   * 🆕 AJOUT : Validation pour sauvegarde (moins stricte)
+   */
+  validateCriteriaForSave(criteria: Partial<FourmizCriteriaAdapted>): string[] {
+    const errors: string[] = [];
+
+    // Seuls les champs vraiment critiques pour la base de données
+    if (!criteria.user_id) {
+      errors.push('user_id obligatoire');
+    }
+
+    // Rayon valide si présent
+    if (criteria.rayon_deplacement_km !== undefined && criteria.rayon_deplacement_km !== null) {
+      if (criteria.rayon_deplacement_km < 0 || criteria.rayon_deplacement_km > 200) {
+        errors.push('Le rayon doit être entre 0 et 200 km');
+      }
+    }
+
+    // Prix valide si présent
+    if (criteria.prix_minimum_heure !== undefined && criteria.prix_minimum_heure !== null) {
+      if (criteria.prix_minimum_heure < 0 || criteria.prix_minimum_heure > 1000) {
+        errors.push('Le prix doit être entre 0 et 1000 €/h');
+      }
+    }
+
+    // Note valide si présente
+    if (criteria.note_client_minimum !== undefined && criteria.note_client_minimum !== null) {
+      if (criteria.note_client_minimum < 0 || criteria.note_client_minimum > 5) {
+        errors.push('La note doit être entre 0 et 5');
+      }
     }
 
     return errors;

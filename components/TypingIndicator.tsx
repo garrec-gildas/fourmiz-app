@@ -1,4 +1,4 @@
-// components/TypingIndicator.tsx - Indicateur "en train d'écrire"
+﻿// components/TypingIndicator.tsx - Indicateur "en train d'écrire"
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 
@@ -43,6 +43,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
         animations.forEach(anim => anim.stop());
       };
     } else {
+      // Réinitialiser l'opacité des points quand l'indicateur n'est pas visible
       dots.forEach(dot => dot.setValue(0.4));
     }
   }, [visible, dots]);

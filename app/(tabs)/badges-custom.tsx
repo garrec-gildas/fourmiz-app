@@ -1,4 +1,4 @@
-// app/(tabs)/badges-custom.tsx - CODE COMPLET AVEC CONTRÔLES ADMIN
+﻿// app/(tabs)/badges-custom.tsx - CODE COMPLET AVEC CONTRÔLES ADMIN
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Alert,
@@ -17,7 +17,7 @@ const rarityConfig = {
 };
 
 const categories = [
-  { id: 'all', label: 'Tous', icon: 'trophy-outline' },
+  { id: 'all', label: 'tous', icon: 'trophy-outline' },
   { id: 'spending', label: 'Dépenses', icon: 'trending-up-outline' },
   { id: 'referral', label: 'Parrainage', icon: 'people-outline' },
   { id: 'timing', label: 'Horaires', icon: 'time-outline' },
@@ -62,7 +62,7 @@ export default function BadgesCustomScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.replace('/auth/login');
 
-      console.log('📥 Chargement badges custom avec contrôles admin...');
+      console.log('🏆 Chargement badges custom avec contrôles admin...');
 
       // ✅ NOUVEAU - Récupérer seulement les badges actifs et visibles
       const { data: catalog, error: catalogError } = await supabase
@@ -92,10 +92,10 @@ export default function BadgesCustomScreen() {
         .eq('user_id', user.id);
 
       if (unlockedError) {
-        console.error('⚠️ Erreur badges utilisateur:', unlockedError);
+        console.error('🔥 Erreur badges utilisateur:', unlockedError);
       }
 
-      console.log(`✅ ${unlocked?.length || 0} badges utilisateur chargés`);
+      console.log(`📊 ${unlocked?.length || 0} badges utilisateur chargés`);
 
       // ✅ NOUVEAU - Fusionner avec noms/descriptions personnalisés
       const merged: Badge[] = (catalog || []).map((badge) => {
@@ -111,14 +111,14 @@ export default function BadgesCustomScreen() {
         };
       });
 
-      console.log(`📊 ${merged.length} badges finaux après fusion`);
+      console.log(`🎯 ${merged.length} badges finaux après fusion`);
       setBadgesCatalog(merged);
       
       // ✅ Marquer tous les badges comme vus quand on ouvre la page
       await markAllBadgesAsSeen(user.id);
       
     } catch (error) {
-      console.error('💥 Erreur chargement badges:', error);
+      console.error('🔥 Erreur chargement badges:', error);
       Alert.alert('Erreur', 'Impossible de charger les récompenses');
     } finally {
       setLoading(false);
@@ -136,12 +136,12 @@ export default function BadgesCustomScreen() {
         .eq('seen', false);
 
       if (error) {
-        console.error('⚠️ Erreur marquage badges vus:', error);
+        console.error('🔥 Erreur marquage badges vus:', error);
       } else {
         console.log('✅ Badges marqués comme vus');
       }
     } catch (error) {
-      console.error('💥 Erreur marquage badges:', error);
+      console.error('🔥 Erreur marquage badges:', error);
     }
   };
 
@@ -312,7 +312,7 @@ export default function BadgesCustomScreen() {
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{categoryCount}</Text>
           <Text style={styles.statLabel}>
-            {selectedCategory === 'all' ? 'Total' : categories.find(c => c.id === selectedCategory)?.label}
+            {selectedCategory === 'all' ? 'total' : categories.find(c => c.id === selectedCategory)?.label}
           </Text>
         </View>
         <View style={styles.statCard}>
@@ -326,7 +326,7 @@ export default function BadgesCustomScreen() {
         <View style={styles.emptyState}>
           <Ionicons name="trophy-outline" size={64} color="#DDD" />
           <Text style={styles.emptyText}>Aucun badge dans cette catégorie</Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={styles.emptySubText}>
             {selectedCategory === 'all' 
               ? 'Les badges seront affichés une fois créés par l\'admin'
               : 'Changez de catégorie pour voir d\'autres badges'
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-  emptySubtext: {
+  emptySubText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#d1d5db',

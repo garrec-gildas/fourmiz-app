@@ -7,9 +7,9 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
-import * as SplashScreen from 'expo-splash-screen';
+import * as SplashScrééeen from 'expo-splash-scrééeen';
 
-SplashScreen.preventAutoHideAsync();
+SplashScrééeen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -21,20 +21,21 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      SplashScrééeen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="auth" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)/services/[id]" options={{ title: 'Détails du service', headerShown: true }} />
-      <Stack.Screen name="order" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+    <Stack scrééeenOptions={{ headerShown: false }}>
+      <Stack.Scrééeen name="index" options={{ headerShown: false }} />
+      <Stack.Scrééeen name="auth" options={{ headerShown: false }} />
+      <Stack.Scrééeen name="(Tabs)" options={{ headerShown: false }} />
+      <Stack.Scrééeen name="(Tabs)/services/[id]" options={{ title: 'D?tails du service', headerShown: true }} />
+      <Stack.Scrééeen name="order" options={{ headerShown: false }} />
+      <Stack.Scrééeen name="+not-found" options={{ headerShown: false }} />
     </Stack>
   );
 }
+

@@ -1,5 +1,5 @@
-// app/auth/recovery.tsx - RÉCUPÉRATION MOT DE PASSE ULTRA-AMÉLIORÉE
-// 🚀 Version optimisée avec helpers Supabase, validation robuste et UX améliorée
+﻿// app/auth/recovery.tsx - RÉCUPÉRATION MOT DE PASSE ULTRA-AMÉLIORÉE
+// 🔧 Version optimisée avec helpers Supabase, validation robuste et UX améliorée
 
 import React, { useState } from 'react';
 import {
@@ -23,7 +23,7 @@ import {
   handleSupabaseError,
 } from '../../lib/supabase';
 
-// ✅ TYPES TYPESCRIPT STRICTS
+// 📝 TYPES TYPESCRIPT STRICTS
 interface RecoveryFormData {
   email: string;
 }
@@ -40,7 +40,7 @@ interface RecoveryState {
 }
 
 export default function RecoveryScreen() {
-  // ✅ ÉTAT LOCAL TYPÉ
+  // 📊 ÉTAT LOCAL TYPÉ
   const [formData, setFormData] = useState<RecoveryFormData>({
     email: ''
   });
@@ -54,7 +54,7 @@ export default function RecoveryScreen() {
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // 🛠️ VALIDATION EMAIL ROBUSTE
+  // ✅ VALIDATION EMAIL ROBUSTE
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email.trim().toLowerCase());
@@ -110,7 +110,7 @@ export default function RecoveryScreen() {
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
-      // Construire l'URL de redirection dynamiquement
+      // Construire l'URL de redirection dynamiquement 
       const redirectUrl = `${process.env.EXPO_PUBLIC_APP_URL || 'exp://127.0.0.1:8081'}/auth/recovery-redirect`;
       
       console.log('📤 Envoi de l\'email de récupération...');
@@ -158,7 +158,7 @@ export default function RecoveryScreen() {
       );
 
     } catch (error: any) {
-      console.error('💥 ERREUR RÉCUPÉRATION MOT DE PASSE:', error);
+      console.error('❌ ERREUR RÉCUPÉRATION MOT DE PASSE:', error);
       
       // Messages d'erreur personnalisés
       let title = 'Erreur d\'envoi';
@@ -191,7 +191,7 @@ export default function RecoveryScreen() {
     }
   };
 
-  // 📧 RENVOYER L'EMAIL
+  // 🔄 RENVOYER L'EMAIL
   const handleResendEmail = async (): Promise<void> => {
     if (!uiState.canResend) return;
     
@@ -199,7 +199,7 @@ export default function RecoveryScreen() {
     await handlePasswordReset();
   };
 
-  // 📱 HELPER DE MISE À JOUR
+  // 📝 HELPER DE MISE À JOUR
   const updateFormData = (field: keyof RecoveryFormData, value: string): void => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
@@ -221,7 +221,7 @@ export default function RecoveryScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* 🎨 Section Logo et Titre */}
+          {/* 🏠 Section Logo et titre */}
           <View style={styles.headerSection}>
             <Image
               source={require('../../assets/logo-fourmiz.gif')}
@@ -237,7 +237,7 @@ export default function RecoveryScreen() {
           {/* 📧 Champ Email */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Adresse email *</Text>
-            <TextInput
+            <TextInput 
               style={[styles.input, errors.email && styles.inputError]}
               placeholder="Saisissez votre email"
               keyboardType="email-address"
@@ -252,7 +252,7 @@ export default function RecoveryScreen() {
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
           </View>
 
-          {/* 🚀 Bouton d'envoi */}
+          {/* 📤 Bouton d'envoi */}
           <TouchableOpacity
             style={[styles.sendButton, uiState.loading && styles.sendButtonDisabled]}
             onPress={handlePasswordReset}
@@ -301,7 +301,7 @@ export default function RecoveryScreen() {
             </View>
           )}
 
-          {/* 📝 Aide et informations */}
+          {/* 💡 Aide et informations */}
           <View style={styles.helpContainer}>
             <Text style={styles.helpTitle}>💡 Conseils :</Text>
             <Text style={styles.helpText}>
@@ -332,7 +332,7 @@ export default function RecoveryScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 🔒 Information sécurité */}
+          {/* 🛡️ Information sécurité */}
           <View style={styles.securityInfo}>
             <Ionicons name="shield-checkmark" size={16} color="#28A745" />
             <Text style={styles.securityText}>
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  // 🎨 Section header
+  // 🏠 Section header
   headerSection: {
     alignItems: 'center',
     marginBottom: 40,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
 
-  // 📝 Champ de saisie
+  // 📧 Champ de saisie
   inputContainer: {
     marginBottom: 24,
   },
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  // 🚀 Bouton d'envoi
+  // 📤 Bouton d'envoi
   sendButton: {
     backgroundColor: '#FF3C38',
     paddingVertical: 16,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
 
-  // 📝 Aide
+  // 💡 Aide
   helpContainer: {
     backgroundColor: '#f8f9fa',
     borderRadius: 10,
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  // 🔒 Sécurité
+  // 🛡️ Sécurité
   securityInfo: {
     flexDirection: 'row',
     alignItems: 'center',

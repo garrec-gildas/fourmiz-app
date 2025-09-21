@@ -1,4 +1,4 @@
-// components/ChatNotificationProvider.tsx - Provider pour les notifications chat CORRIGÉ
+﻿// components/ChatNotificationProvider.tsx - Provider pour les notifications chat CORRIGÉ
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Alert, AppState, AppStateStatus } from 'react-native';
 import { supabase } from '@/lib/supabase';
@@ -41,7 +41,7 @@ export const ChatNotificationProvider: React.FC<Props> = ({ children, currentUse
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // ✅ HOOK LOCAL POUR LES MESSAGES NON LUS (remplace useUnreadMessages)
+  // 📊 HOOK LOCAL POUR LES MESSAGES NON LUS (remplace useUnreadMessages)
   useEffect(() => {
     if (!currentUserId) {
       setUnreadCount(0);
@@ -110,11 +110,11 @@ export const ChatNotificationProvider: React.FC<Props> = ({ children, currentUse
           try {
             const newMessage = payload.new as any;
             
-            console.log('💬 Nouveau message reçu:', newMessage.id);
+            console.log('📨 Nouveau message reçu:', newMessage.id);
             
             // Ne pas notifier nos propres messages
             if (newMessage.sender_id === currentUserId) {
-              console.log('⏭️ Message ignoré (notre propre message)');
+              console.log('🚫 Message ignoré (notre propre message)');
               return;
             }
             
@@ -126,12 +126,12 @@ export const ChatNotificationProvider: React.FC<Props> = ({ children, currentUse
               .single();
             
             if (orderError || !order) {
-              console.log('⏭️ Message ignoré (commande non trouvée)');
+              console.log('🚫 Message ignoré (commande non trouvée)');
               return;
             }
 
             if (order.client_id !== currentUserId && order.fourmiz_id !== currentUserId) {
-              console.log('⏭️ Message ignoré (pas notre conversation)');
+              console.log('🚫 Message ignoré (pas notre conversation)');
               return;
             }
 
@@ -199,7 +199,7 @@ export const ChatNotificationProvider: React.FC<Props> = ({ children, currentUse
   };
 
   const showInAppNotification = (notification: NotificationMessage) => {
-    console.log('🔔 Affichage notification in-app:', notification.title);
+    console.log('📢 Affichage notification in-app:', notification.title);
     setCurrentNotification(notification);
     
     // Auto-hide après 4 secondes

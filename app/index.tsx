@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 
 export default function PublicWelcomeScreen() {
   console.log('🏠 Page d\'accueil rendue');
-
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.logoContainer}>
@@ -18,15 +18,15 @@ export default function PublicWelcomeScreen() {
         <Text style={styles.title}>FOURMIZ</Text>
         <Text style={styles.subtitle}>La fourmilière des petits services</Text>
       </View>
-
+      
       <Text style={styles.description}>
         Des services à portée de clic. Trouvez ou proposez de l'aide en quelques secondes.
       </Text>
-
+      
       <TouchableOpacity
         style={styles.button}
         onPress={() => {
-          console.log('🚀 Navigation vers login depuis page d\'accueil');
+          console.log('🔄 Navigation vers login depuis page d\'accueil');
           router.push('/auth/login');
         }}
       >
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   button: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#333333',
     paddingVertical: 14,
     paddingHorizontal: 36,
     borderRadius: 10,

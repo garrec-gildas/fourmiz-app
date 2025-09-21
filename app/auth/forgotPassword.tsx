@@ -1,4 +1,4 @@
-// app/auth/forgotPassword.tsx
+﻿// app/auth/forgotPassword.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -28,7 +28,7 @@ export default function ForgotPasswordScreen() {
     if (error) {
       Alert.alert('Erreur', error.message);
     } else {
-      Alert.alert('📧 Email envoyé', 'Un lien de réinitialisation vous a été envoyé.');
+      Alert.alert('✅ Email envoyé', 'Un lien de réinitialisation vous a été envoyé.');
       router.replace('/auth/login');
     }
   };
@@ -36,7 +36,7 @@ export default function ForgotPasswordScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Mot de passe oublié</Text>
-      <TextInput
+      <TextInput 
         placeholder="Votre adresse email"
         value={email}
         onChangeText={setEmail}
@@ -74,4 +74,3 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 });
-

@@ -1,6 +1,6 @@
-// components/EarningsSummary.tsx
-// 🎯 Composant résumé des gains de parrainage
-// ✅ Compatible avec le système de parrainage optimisé
+﻿// components/EarningsSummary.tsx
+// 💰 Composant résumé des gains de parrainage
+// 🚀 Compatible avec le système de parrainage optimisé
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   loadEarningsData,
   formatAmount,
-  formatGainType,
+  formatGaintype,
   formatStatus,
   getStatusColor,
   ReferralGain,
@@ -25,11 +25,11 @@ import {
   EarningsStats
 } from '../lib/referralEarnings';
 
-// ✅ INTERFACES TYPESCRIPT
+// 📋 Interfaces TypeScript 
 interface EarningsSummaryProps {
   userId: string;
   onPress?: () => void;
-  refreshTrigger?: number; // Pour forcer le refresh depuis un parent
+  refreshTrigger?: number; // Pour forcer le refresh depuis un parent 
   showDetailButton?: boolean;
   compact?: boolean; // Version compacte pour intégration
 }
@@ -50,7 +50,7 @@ interface LoadingState {
   error: string | null;
 }
 
-// 🎨 CONSTANTES DE STYLE
+// 🎨 Constantes de style
 const COLORS = {
   primary: '#FF4444',
   success: '#10B981',
@@ -79,7 +79,7 @@ export default function EarningsSummary({
   showDetailButton = true,
   compact = false
 }: EarningsSummaryProps) {
-  // ✅ ÉTAT LOCAL
+  // 📊 État local
   const [earningsData, setEarningsData] = useState<EarningsData>({
     gains: [],
     commissions: [],
@@ -104,14 +104,14 @@ export default function EarningsSummary({
     error: null
   });
 
-  // 🔄 CHARGEMENT DES DONNÉES
-  const loadData = useCallback(async (isRefresh = false) => {
+  // 🔄 Chargement des données
+  const loadData = useCallback(async (isRefresh = false): Promise<void> => {
     try {
       if (!userId) {
         throw new Error('User ID requis');
       }
 
-      console.log('📊 Chargement données gains pour:', userId);
+      console.log('💰 Chargement données gains pour:', userId);
       
       setLoadingState(prev => ({
         ...prev,
@@ -125,7 +125,7 @@ export default function EarningsSummary({
       console.log('✅ Données chargées:', {
         gains: data.gains.length,
         commissions: data.commissions.length,
-        totalAmount: data.stats.totalAmount
+        totalAmount: data.stats.totalAmount 
       });
 
       setEarningsData(data);
@@ -155,12 +155,12 @@ export default function EarningsSummary({
     }
   }, [userId]);
 
-  // 🔄 REFRESH MANUEL
-  const handleRefresh = useCallback(() => {
+  // 🔄 Refresh manuel
+  const handleRefresh = useCallback((): void => {
     loadData(true);
   }, [loadData]);
 
-  // 📊 CALCULS DÉRIVÉS
+  // 📊 Calculs dérivés
   const summaryStats = useMemo(() => {
     const { stats } = earningsData;
     
@@ -174,12 +174,12 @@ export default function EarningsSummary({
     };
   }, [earningsData]);
 
-  // 🚀 EFFETS
+  // ⚡ Effets
   useEffect(() => {
     loadData();
   }, [loadData, refreshTrigger]);
 
-  // 🎨 COMPOSANTS DE RENDU
+  // 🎨 Composants de rendu
   const renderStatCard = (
     title: string,
     value: string,
@@ -215,7 +215,7 @@ export default function EarningsSummary({
           <View key={gain.id} style={styles.activityItem}>
             <View style={styles.activityInfo}>
               <Text style={styles.activityType}>
-                {formatGainType(gain.type)}
+                {formatGaintype(gain.type)}
               </Text>
               <Text style={styles.activityDate}>
                 {new Date(gain.createdAt).toLocaleDateString('fr-FR')}
@@ -261,7 +261,7 @@ export default function EarningsSummary({
     </View>
   );
 
-  // 🏗️ RENDU PRINCIPAL
+  // 🎯 Rendu principal
   if (loadingState.isLoading && !loadingState.isRefreshing) {
     return renderLoading();
   }
@@ -283,7 +283,7 @@ export default function EarningsSummary({
         />
       }
     >
-      {/* 📊 Résumé principal */}
+      {/* 💰 Résumé principal */}
       <View style={[styles.summaryCard, CARD_SHADOW]}>
         <View style={styles.summaryHeader}>
           <View>
@@ -297,7 +297,7 @@ export default function EarningsSummary({
           </View>
         </View>
 
-        {/* 📈 Statistiques en grille */}
+        {/* 📊 Statistiques en grille */}
         <View style={styles.statsGrid}>
           {renderStatCard(
             'Disponible',
@@ -332,7 +332,7 @@ export default function EarningsSummary({
           )}
         </View>
 
-        {/* 🎯 Bouton détails */}
+        {/* 🔍 Bouton détails */}
         {showDetailButton && onPress && (
           <TouchableOpacity style={styles.detailButton} onPress={onPress}>
             <Text style={styles.detailButtonText}>Voir le détail</Text>
@@ -341,10 +341,10 @@ export default function EarningsSummary({
         )}
       </View>
 
-      {/* 📋 Activité récente */}
+      {/* 📈 Activité récente */}
       {renderRecentActivity()}
 
-      {/* 💡 Message si pas de gains */}
+      {/* 📭 Message si pas de gains */}
       {summaryStats.totalEarned === 0 && !loadingState.isLoading && (
         <View style={styles.emptyState}>
           <Ionicons name="gift-outline" size={64} color={COLORS.gray} />
@@ -358,7 +358,7 @@ export default function EarningsSummary({
   );
 }
 
-// 🎨 STYLES
+// 🎨 Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 
-  // Chargement
+  // Chargement 
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

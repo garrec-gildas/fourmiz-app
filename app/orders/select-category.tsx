@@ -1,4 +1,4 @@
-// app/orders/select-category.tsx - VERSION AVEC RECHERCHE
+﻿// app/orders/select-category.tsx - VERSION AVEC RECHERCHE
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -30,7 +30,7 @@ export default function SelectCategoryScreen() {
     loadCategories();
   }, []);
 
-  // ✅ Filtrer les catégories selon la recherche
+  // 🔍 Filtrer les catégories selon la recherche
   const filteredCategories = useMemo(() => {
     if (!searchQuery.trim()) {
       return categories;
@@ -42,16 +42,16 @@ export default function SelectCategoryScreen() {
     );
   }, [categories, searchQuery]);
 
-  // ✅ Vider la recherche
+  // 🧹 Vider la recherche
   const clearSearch = () => {
     setSearchQuery('');
   };
 
-  // ✅ Récupérer toutes les catégories uniques des services existants
+  // 📂 Récupérer toutes les catégories uniques des services existants
   const loadCategories = async () => {
     try {
       setLoading(true);
-      console.log('📥 Chargement des catégories...');
+      console.log('📂 Chargement des catégories...');
 
       // Récupérer toutes les catégories uniques
       const { data, error } = await supabase
@@ -75,20 +75,20 @@ export default function SelectCategoryScreen() {
       setCategories(uniqueCategories);
 
     } catch (error) {
-      console.error('💥 Erreur chargement catégories:', error);
+      console.error('❌ Erreur chargement catégories:', error);
       Alert.alert('Erreur', 'Impossible de charger les catégories');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Icônes par catégorie
+  // 🎨 Icônes par catégorie
   const getCategoryIcon = (category: string): string => {
     const categoryLower = category.toLowerCase();
     
     if (categoryLower.includes('jardinage')) return '🌱';
-    if (categoryLower.includes('ménage') || categoryLower.includes('aide à domicile')) return '🏠';
-    if (categoryLower.includes('transport') || categoryLower.includes('livraison')) return '🚗';
+    if (categoryLower.includes('ménage') || categoryLower.includes('aide à domicile')) return '🧹';
+    if (categoryLower.includes('transport') || categoryLower.includes('livraison')) return '🚚';
     if (categoryLower.includes('administratif')) return '📋';
     if (categoryLower.includes('bricolage') || categoryLower.includes('travaux')) return '🔨';
     if (categoryLower.includes('enfance')) return '👶';
@@ -100,9 +100,9 @@ export default function SelectCategoryScreen() {
     if (categoryLower.includes('informatique') || categoryLower.includes('tech')) return '💻';
     if (categoryLower.includes('cuisine') || categoryLower.includes('repas')) return '👨‍🍳';
     if (categoryLower.includes('événement') || categoryLower.includes('fête')) return '🎉';
-    if (categoryLower.includes('loisirs')) return '🎯';
+    if (categoryLower.includes('loisirs')) return '🎮';
     
-    return '🔧'; // Icône par défaut
+    return '⚡'; // Icône par défaut 
   };
 
   // ✅ Sélection d'une catégorie et navigation vers le formulaire
@@ -150,7 +150,7 @@ export default function SelectCategoryScreen() {
         {/* Description */}
         <View style={styles.descriptionSection}>
           <Text style={styles.descriptionTitle}>
-            📝 Demande personnalisée
+            ⚡ Demande personnalisée
           </Text>
           <Text style={styles.descriptionText}>
             Votre besoin ne figure pas dans notre liste de services ? 
@@ -174,7 +174,7 @@ export default function SelectCategoryScreen() {
           <View style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
               <Search size={20} color="#666" style={styles.searchIcon} />
-              <TextInput
+              <TextInput 
                 style={styles.searchInput}
                 placeholder="Rechercher une catégorie..."
                 value={searchQuery}
@@ -244,7 +244,7 @@ export default function SelectCategoryScreen() {
             1. <Text style={styles.infoBold}>Choisissez</Text> la catégorie la plus proche{'\n'}
             2. <Text style={styles.infoBold}>Décrivez</Text> précisément votre besoin{'\n'}
             3. <Text style={styles.infoBold}>Recevez</Text> des propositions de Fourmiz spécialisés{'\n'}
-            4. <Text style={styles.infoBold}>Sélectionnez</Text> le Fourmiz qui vous convient
+            4. <Text style={styles.infoBold}>Sélectionnez</Text> le Fourmiz qui vous convient 
           </Text>
         </View>
       </ScrollView>

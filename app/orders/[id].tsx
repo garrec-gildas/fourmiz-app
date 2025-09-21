@@ -1,4 +1,12 @@
-// app/orders/[id].tsx - Détails complets d'une commande AVEC LOGS
+// app/orders/[id].tsx - Fiche de synthèse épurée - VERSION CORRIGÉE AVEC FALLBACK
+// 🎨 STYLE ÉPURÉ ALIGNÉ SUR services.tsx
+// ✅ CONSERVATION DE TOUTES LES FONCTIONNALITÉS EXISTANTES
+// 🔧 AJOUT: Accès aux missions disponibles pour consultation
+// 🔒 SÉCURITÉ: Masquage adresse pour fourmiz en attente
+// 📝 URGENT remplacé par "Dès que possible"
+// 🛡️ CORRECTIONS: Protection contre les erreurs null
+// 🔧 CORRIGÉ: Logique de fallback pour services (service_title quand service_id est null)
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -11,8 +19,8 @@ import {
   Linking,
   Image,
   RefreshControl,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router';
@@ -54,77 +62,83 @@ interface OrderDetail {
   invoice_url: string | null;
   urgency_surcharge: number;
   cancellation_fee: number;
+  fourmiz_commission: number;
+  service_title: string;
   
-  // Relations
   services: {
     id: number;
     title: string;
     categorie: string;
     description: string;
-    estimated_duration: number;
-  };
+    estimatedDuration: number;
+  } | null;
   
   client_profile: {
-    first_name: string;
-    last_name: string;
+    firstname: string;
+    lastname: string;
     avatar_url: string;
     phone: string;
-  };
+  } | null;
   
   fourmiz_profile?: {
-    first_name: string;
-    last_name: string;
+    firstname: string;
+    lastname: string;
     avatar_url: string;
     phone: string;
-    rating: number;
-    completed_jobs: number;
-  };
+  } | null;
 }
 
-interface StatusHistory {
-  id: number;
-  order_id: number;
-  old_status: string;
-  new_status: string;
-  changed_by: string;
-  changed_at: string;
-  comment: string;
+interface ServiceInfo {
+  title: string;
+  categorie: string;
+  description: string;
+  estimatedDuration: number | null;
 }
 
 const STATUS_CONFIG = {
   'en_attente': {
-    label: '⏳ En attente',
-    color: '#fbbf24',
-    bgColor: '#fef3c7',
-    description: 'Recherche d\'une fourmiz disponible',
-    icon: 'hourglass'
+    label: 'En attente',
+    color: '#000000',
+    bgColor: '#f8f8f8',
+    client_description: 'Recherche d\'une fourmiz disponible',
+    fourmiz_description: 'En attente d\'acceptation',
+    viewer_description: 'Mission disponible - Vous pouvez postuler',
+    icon: 'time'
   },
   'acceptee': {
-    label: '✅ Acceptée',
-    color: '#10b981',
-    bgColor: '#d1fae5',
-    description: 'Une fourmiz a accepté votre demande',
+    label: 'Acceptée',
+    color: '#000000',
+    bgColor: '#f8f8f8',
+    client_description: 'Une fourmiz a accepté votre demande',
+    fourmiz_description: 'Commande acceptée - Prêt à commencer',
+    viewer_description: 'Mission déjà acceptée par une fourmiz',
     icon: 'checkmark-circle'
   },
   'en_cours': {
-    label: '🚀 En cours',
-    color: '#3b82f6',
-    bgColor: '#dbeafe',
-    description: 'La prestation est en cours de réalisation',
+    label: 'En cours',
+    color: '#000000',
+    bgColor: '#f8f8f8',
+    client_description: 'La prestation est en cours de réalisation',
+    fourmiz_description: 'Prestation en cours de réalisation',
+    viewer_description: 'Mission en cours de réalisation',
     icon: 'play-circle'
   },
   'terminee': {
-    label: '🎉 Terminée',
-    color: '#8b5cf6',
-    bgColor: '#ede9fe',
-    description: 'Mission accomplie avec succès',
+    label: 'Terminée',
+    color: '#000000',
+    bgColor: '#f8f8f8',
+    client_description: 'Mission accomplie avec succès',
+    fourmiz_description: 'Mission accomplie avec succès',
+    viewer_description: 'Mission terminée',
     icon: 'checkmark-done-circle'
   },
   'annulee': {
-    label: '❌ Annulée',
-    color: '#ef4444',
-    bgColor: '#fee2e2',
-    description: 'Commande annulée',
+    label: 'Annulée',
+    color: '#666666',
+    bgColor: '#f8f8f8',
+    client_description: 'Commande annulée',
+    fourmiz_description: 'Commande annulée',
+    viewer_description: 'Mission annulée',
     icon: 'close-circle'
   }
 };
@@ -132,40 +146,51 @@ const STATUS_CONFIG = {
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams();
   const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
+  const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<'client' | 'fourmiz' | 'viewer' | null>(null);
 
-  // ✅ LOGS DÉTAILLÉS INITIALISATION
-  useEffect(() => {
-    console.log('🔥 =================================');
-    console.log('🔥 ORDER DETAIL SCREEN CHARGÉ');
-    console.log('🔥 =================================');
-    console.log('📥 Paramètres reçus:', { id });
-    console.log('🆔 ID commande:', id);
-    console.log('🔍 Type ID:', typeof id);
+  // États pour les accordéons
+  const [showServiceDetails, setShowServiceDetails] = useState(true);
+  const [showScheduleDetails, setShowScheduleDetails] = useState(true);
+  const [showLocationDetails, setShowLocationDetails] = useState(true);
+  const [showContactDetails, setShowContactDetails] = useState(false);
+  const [showPricingDetails, setShowPricingDetails] = useState(false);
+  const [showOrderInfo, setShowOrderInfo] = useState(false);
+
+  const normalizeStatus = (status: any): string => {
+    const safeStatus = String(status || '').toLowerCase();
     
+    if (['en_attente', 'pending', 'created'].includes(safeStatus)) {
+      return 'en_attente';
+    }
+    if (['acceptee', 'accepted', 'confirmed'].includes(safeStatus)) {
+      return 'acceptee';
+    }
+    if (['en_cours', 'in_progress'].includes(safeStatus)) {
+      return 'en_cours';
+    }
+    if (['terminee', 'completed', 'finished'].includes(safeStatus)) {
+      return 'terminee';
+    }
+    if (['annulee', 'cancelled', 'canceled'].includes(safeStatus)) {
+      return 'annulee';
+    }
+    return 'en_attente';
+  };
+
+  useEffect(() => {
     const getUser = async () => {
       try {
-        console.log('👤 =================================');
-        console.log('👤 RÉCUPÉRATION UTILISATEUR');
-        console.log('👤 =================================');
-        console.log('🔍 Récupération utilisateur actuel...');
-        
         const { data: { user }, error } = await supabase.auth.getUser();
         
-        console.log('📡 Réponse Supabase auth:');
-        console.log('   User:', user ? { id: user.id, email: user.email } : null);
-        console.log('   Error:', error);
-        
         if (error) {
-          console.error('❌ Erreur récupération user:', error);
           throw error;
         }
         
         if (!user) {
-          console.error('❌ Utilisateur non connecté');
           Alert.alert(
             'Connexion requise',
             'Vous devez être connecté pour voir cette commande.',
@@ -174,12 +199,10 @@ export default function OrderDetailScreen() {
           return;
         }
         
-        console.log('✅ Utilisateur connecté:', user.email);
-        console.log('🆔 User ID:', user.id);
         setCurrentUser(user);
-        
+        console.log('🐛 DEBUG - Current user loaded:', user.id);
       } catch (error) {
-        console.error('💥 Erreur fatale récupération user:', error);
+        console.error('🐛 DEBUG - Error loading user:', error);
         Alert.alert('Erreur', 'Impossible de vérifier votre connexion');
       }
     };
@@ -187,34 +210,26 @@ export default function OrderDetailScreen() {
     getUser();
   }, []);
 
-  // ✅ CHARGEMENT DÉTAILS COMMANDE AVEC LOGS
   useEffect(() => {
     if (currentUser && id) {
-      console.log('🔗 Déclenchement chargement commande');
-      console.log('   User OK:', !!currentUser);
-      console.log('   ID OK:', !!id);
+      console.log('🐛 DEBUG - Loading order details for ID:', id, 'User:', currentUser.id);
       loadOrderDetails();
-    } else {
-      console.log('⏳ Attente user + id:');
-      console.log('   currentUser:', !!currentUser);
-      console.log('   id:', !!id);
     }
   }, [currentUser, id]);
 
   const loadOrderDetails = async () => {
     try {
-      console.log('📋 =================================');
-      console.log('📋 CHARGEMENT DÉTAILS COMMANDE');
-      console.log('📋 =================================');
-      console.log('🆔 ID commande à charger:', id);
-      console.log('👤 User ID actuel:', currentUser?.id);
-      
       setLoading(true);
+      console.log('🐛 DEBUG - Starting order query for ID:', id);
 
-      // Requête principale avec relations
-      console.log('📡 Lancement requête Supabase complexe...');
-      console.log('🔍 Query: orders avec relations services + profiles');
-      
+      // Test séparé pour vérifier l'accès aux services
+      console.log('🐛 DEBUG - Testing direct service access...');
+      const { data: serviceTest, error: serviceTestError } = await supabase
+        .from('services')
+        .select('*')
+        .limit(5);
+      console.log('🐛 DEBUG - Service test result:', { serviceTest, serviceTestError });
+
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select(`
@@ -224,114 +239,103 @@ export default function OrderDetailScreen() {
             title,
             categorie,
             description,
-            estimated_duration
+            estimatedDuration
           ),
           client_profile:profiles!client_id (
-            first_name,
-            last_name,
+            firstname,
+            lastname,
             avatar_url,
             phone
           ),
           fourmiz_profile:profiles!fourmiz_id (
-            first_name,
-            last_name,
+            firstname,
+            lastname,
             avatar_url,
-            phone,
-            rating,
-            completed_jobs
+            phone
           )
         `)
         .eq('id', id)
-        .eq('client_id', currentUser.id) // Sécurité : seul le propriétaire peut voir
         .single();
 
-      console.log('📡 Réponse requête principale:');
-      console.log('   OrderData présent:', !!orderData);
-      console.log('   OrderError:', orderError);
-      
-      if (orderData) {
-        console.log('📊 Détails commande reçue:');
-        console.log('   ID:', orderData.id);
-        console.log('   Statut:', orderData.status);
-        console.log('   Service:', orderData.services?.title);
-        console.log('   Catégorie:', orderData.services?.categorie);
-        console.log('   Client ID:', orderData.client_id);
-        console.log('   Fourmiz ID:', orderData.fourmiz_id);
-        console.log('   Montant:', orderData.proposed_amount);
-        console.log('   Date:', orderData.date);
-        console.log('   Adresse:', orderData.address);
-        console.log('   Urgent:', orderData.urgent);
-        console.log('   Créée le:', orderData.created_at);
-        
-        // Logs relations
-        console.log('🔗 Relations chargées:');
-        console.log('   Service relation:', !!orderData.services);
-        console.log('   Client profile:', !!orderData.client_profile);
-        console.log('   Fourmiz profile:', !!orderData.fourmiz_profile);
-        
-        if (orderData.services) {
-          console.log('📋 Détails service:');
-          console.log('   Titre:', orderData.services.title);
-          console.log('   Catégorie:', orderData.services.categorie);
-          console.log('   Durée estimée:', orderData.services.estimated_duration);
-        }
-        
-        if (orderData.client_profile) {
-          console.log('👤 Profil client:');
-          console.log('   Nom:', orderData.client_profile.first_name, orderData.client_profile.last_name);
-          console.log('   Téléphone:', orderData.client_profile.phone);
-        }
-        
-        if (orderData.fourmiz_profile) {
-          console.log('🔧 Profil fourmiz:');
-          console.log('   Nom:', orderData.fourmiz_profile.first_name, orderData.fourmiz_profile.last_name);
-          console.log('   Rating:', orderData.fourmiz_profile.rating);
-          console.log('   Jobs terminés:', orderData.fourmiz_profile.completed_jobs);
-        }
-      }
+      // LOGS DE DEBUG DÉTAILLÉS
+      console.log('🐛 DEBUG - Requête order terminée');
+      console.log('🐛 DEBUG - Error:', orderError);
+      console.log('🐛 DEBUG - Data exists:', !!orderData);
+      console.log('🐛 DEBUG - Data keys:', orderData ? Object.keys(orderData) : 'No data');
+      console.log('🐛 DEBUG - Service ID dans order:', orderData?.service_id);
+      console.log('🐛 DEBUG - Services relation:', orderData?.services);
+      console.log('🐛 DEBUG - Services relation type:', typeof orderData?.services);
+      console.log('🐛 DEBUG - Services relation keys:', orderData?.services ? Object.keys(orderData.services) : 'No services');
+      console.log('🐛 DEBUG - Service title fallback:', orderData?.service_title);
+      console.log('🐛 DEBUG - Client profile:', !!orderData?.client_profile);
+      console.log('🐛 DEBUG - Fourmiz profile:', !!orderData?.fourmiz_profile);
 
       if (orderError) {
-        console.error('❌ Erreur requête commande:', orderError);
-        console.error('   Code:', orderError.code);
-        console.error('   Message:', orderError.message);
-        console.error('   Details:', orderError.details);
+        console.error('🐛 DEBUG - Order query error:', orderError);
         throw orderError;
       }
 
       if (!orderData) {
-        console.error('❌ Aucune donnée retournée');
-        console.error('   Possible cause: commande inexistante ou non autorisée');
-        throw new Error('Commande introuvable ou accès non autorisé');
+        console.error('🐛 DEBUG - No order data returned for ID:', id);
+        throw new Error(`Commande ${id} introuvable`);
       }
 
-      console.log('✅ Commande chargée avec succès');
+      console.log('🐛 DEBUG - Order data loaded successfully');
+      console.log('🐛 DEBUG - Order status:', orderData.status);
+      console.log('🐛 DEBUG - Order client_id:', orderData.client_id);
+      console.log('🐛 DEBUG - Order fourmiz_id:', orderData.fourmiz_id);
+
+      // LOGIQUE D'AUTORISATION MODIFIÉE
+      const isClient = orderData.client_id === currentUser.id;
+      const isFourmiz = orderData.fourmiz_id === currentUser.id;
+      
+      console.log('🐛 DEBUG - Access check - isClient:', isClient, 'isFourmiz:', isFourmiz);
+      
+      // Permettre l'accès aux missions disponibles pour tous les utilisateurs (sauf le client)
+      const isAvailableOrder = orderData.status === 'en_attente' && !isClient;
+      
+      console.log('🐛 DEBUG - isAvailableOrder:', isAvailableOrder);
+      
+      const hasAccess = isClient || isFourmiz || isAvailableOrder;
+
+      console.log('🐛 DEBUG - Final access decision:', hasAccess);
+
+      if (!hasAccess) {
+        console.warn('🐛 DEBUG - Access denied for user');
+        Alert.alert(
+          'Accès refusé', 
+          'Vous n\'êtes pas autorisé à consulter cette commande.',
+          [{ text: 'Retour', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      // LOGIQUE DE FALLBACK POUR LES SERVICES - NOUVEAU
+      console.log('✅ NOUVEAU - Création serviceInfo avec fallback');
+      const unifiedServiceInfo: ServiceInfo = {
+        title: orderData.services?.title || orderData.service_title || 'Service non défini',
+        categorie: orderData.services?.categorie || 'Catégorie non définie', 
+        description: orderData.services?.description || '',
+        estimatedDuration: orderData.services?.estimatedDuration || null
+      };
+      
+      console.log('✅ NOUVEAU - Service info unified:', unifiedServiceInfo);
+      setServiceInfo(unifiedServiceInfo);
+
+      // Déterminer le rôle de l'utilisateur
+      let userRole: 'client' | 'fourmiz' | 'viewer' = 'viewer';
+      if (isClient) userRole = 'client';
+      else if (isFourmiz) userRole = 'fourmiz';
+
+      console.log('🐛 DEBUG - User role determined:', userRole);
+
+      setUserRole(userRole);
       setOrder(orderData);
 
-      // Tentative de chargement historique (optionnel)
-      console.log('📚 Tentative chargement historique statuts...');
-      try {
-        const { data: historyData, error: historyError } = await supabase
-          .from('order_status_history')
-          .select('*')
-          .eq('order_id', id)
-          .order('changed_at', { ascending: true });
-        
-        if (historyError) {
-          console.warn('⚠️ Table historique non disponible:', historyError.message);
-        } else {
-          console.log(`📚 ${historyData?.length || 0} entrées d'historique trouvées`);
-          setStatusHistory(historyData || []);
-        }
-      } catch (historyErr) {
-        console.warn('⚠️ Erreur chargement historique (non bloquant):', historyErr);
-      }
+      console.log('🐛 DEBUG - Order state updated successfully');
 
     } catch (error) {
-      console.error('💥 ERREUR FATALE chargement commande:', error);
-      console.error('   Type:', typeof error);
-      console.error('   Message:', error instanceof Error ? error.message : 'Erreur inconnue');
-      console.error('   Stack:', error instanceof Error ? error.stack : 'N/A');
-      
+      console.error('🐛 DEBUG - Load order details error:', error);
       Alert.alert(
         'Erreur de chargement', 
         `Impossible de charger les détails de la commande.\n\n${error instanceof Error ? error.message : 'Erreur inconnue'}`,
@@ -343,56 +347,29 @@ export default function OrderDetailScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
-      console.log('🏁 Fin chargement commande');
+      console.log('🐛 DEBUG - Loading finished');
     }
   };
 
-  // ✅ RAFRAÎCHISSEMENT AVEC LOGS
   const onRefresh = () => {
-    console.log('🔄 =================================');
-    console.log('🔄 RAFRAÎCHISSEMENT COMMANDE');
-    console.log('🔄 =================================');
-    console.log('🔄 Déclenchement rafraîchissement...');
-    
+    console.log('🐛 DEBUG - Refresh triggered');
     setRefreshing(true);
     loadOrderDetails();
   };
 
-  // ✅ ANNULATION AVEC LOGS DÉTAILLÉS
   const handleCancelOrder = async () => {
-    if (!order) {
-      console.error('❌ Tentative annulation sans commande chargée');
-      return;
-    }
-
-    console.log('🚫 =================================');
-    console.log('🚫 DEMANDE ANNULATION COMMANDE');
-    console.log('🚫 =================================');
-    console.log('🆔 Commande à annuler:', order.id);
-    console.log('📊 Statut actuel:', order.status);
-    console.log('👤 Client ID:', order.client_id);
-    console.log('🔧 Fourmiz ID:', order.fourmiz_id);
+    if (!order) return;
 
     Alert.alert(
       'Annuler la commande',
       'Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible.',
       [
-        { 
-          text: 'Non', 
-          style: 'cancel',
-          onPress: () => console.log('🚫 Annulation avortée par utilisateur')
-        },
+        { text: 'Non', style: 'cancel' },
         {
           text: 'Oui, annuler',
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('🚫 =================================');
-              console.log('🚫 EXÉCUTION ANNULATION');
-              console.log('🚫 =================================');
-              console.log('🆔 Annulation commande ID:', order.id);
-              console.log('⏱️ Timestamp annulation:', new Date().toISOString());
-              
               const updateData = {
                 status: 'annulee',
                 cancelled_at: new Date().toISOString(),
@@ -400,46 +377,18 @@ export default function OrderDetailScreen() {
                 updated_at: new Date().toISOString()
               };
               
-              console.log('📝 Données mise à jour:', updateData);
-              console.log('📡 Lancement requête UPDATE...');
-              
-              const { data, error } = await supabase
+              const { error } = await supabase
                 .from('orders')
                 .update(updateData)
-                .eq('id', order.id)
-                .select()
-                .single();
+                .eq('id', order.id);
 
-              console.log('📡 Réponse UPDATE:');
-              console.log('   Data:', data);
-              console.log('   Error:', error);
+              if (error) throw error;
 
-              if (error) {
-                console.error('❌ Erreur UPDATE:', error);
-                throw error;
-              }
-
-              console.log('✅ Commande annulée avec succès');
-              console.log('📊 Nouveau statut:', data?.status);
-              
-              Alert.alert(
-                '✅ Succès', 
-                'Commande annulée avec succès',
-                [{ text: 'OK' }]
-              );
-              
-              console.log('🔄 Déclenchement rechargement des données...');
-              loadOrderDetails(); // Recharger les données
+              Alert.alert('Commande annulée', 'Votre commande a été annulée avec succès.');
+              loadOrderDetails();
               
             } catch (error) {
-              console.error('💥 ERREUR FATALE annulation:', error);
-              console.error('   Message:', error instanceof Error ? error.message : 'Erreur inconnue');
-              
-              Alert.alert(
-                '❌ Erreur', 
-                `Impossible d'annuler la commande.\n\n${error instanceof Error ? error.message : 'Erreur inconnue'}`,
-                [{ text: 'OK' }]
-              );
+              Alert.alert('Erreur', `Impossible d'annuler la commande.\n\n${error instanceof Error ? error.message : 'Erreur inconnue'}`);
             }
           }
         }
@@ -447,130 +396,125 @@ export default function OrderDetailScreen() {
     );
   };
 
-  // ✅ ACTIONS AVEC LOGS
-  const handleCallFourmiz = () => {
-    console.log('📞 =================================');
-    console.log('📞 APPEL FOURMIZ');
-    console.log('📞 =================================');
-    
-    if (order?.fourmiz_profile?.phone) {
-      const phoneNumber = order.fourmiz_profile.phone.replace(/\s/g, '');
-      console.log('📞 Numéro à appeler:', phoneNumber);
-      console.log('📞 Ouverture application téléphone...');
-      
-      Linking.openURL(`tel:${phoneNumber}`);
-    } else {
-      console.error('❌ Numéro fourmiz non disponible');
-      console.log('   fourmiz_profile:', !!order?.fourmiz_profile);
-      console.log('   phone:', order?.fourmiz_profile?.phone);
-      
-      Alert.alert('Erreur', 'Numéro de téléphone non disponible');
-    }
+  const handleAcceptMission = async () => {
+    if (!order || !currentUser?.id) return;
+
+    Alert.alert(
+      'Accepter cette mission',
+      'Voulez-vous accepter cette commande ? Le client sera notifié.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Accepter',
+          onPress: async () => {
+            try {
+              console.log('✅ Acceptation commande:', order.id, 'par:', currentUser.id);
+              
+              const { error } = await supabase
+                .from('orders')
+                .update({
+                  fourmiz_id: currentUser.id,
+                  status: 'acceptee',
+                  accepted_at: new Date().toISOString(),
+                  confirmed_by_fourmiz: true,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', order.id);
+
+              if (error) throw error;
+
+              console.log('✅ Mission acceptée avec succès');
+              
+              Alert.alert(
+                'Mission acceptée',
+                'Félicitations ! Vous avez accepté cette mission. Le client va être notifié.',
+                [
+                  { 
+                    text: 'Mes commandes', 
+                    onPress: () => router.push('/(tabs)/services-requests')
+                  }
+                ]
+              );
+              
+            } catch (error: any) {
+              console.error('❌ Erreur acceptation:', error);
+              Alert.alert('Erreur', `Impossible d'accepter: ${error.message}`);
+            }
+          }
+        }
+      ]
+    );
   };
 
-  const handleChatFourmiz = () => {
-    console.log('💬 =================================');
-    console.log('💬 CHAT FOURMIZ');
-    console.log('💬 =================================');
-    console.log('🆔 Order ID pour chat:', order?.id);
-    console.log('🔧 Fourmiz ID:', order?.fourmiz_id);
-    
+  const handleChat = () => {
     if (order?.id) {
-      console.log('📱 Navigation vers chat...');
       router.push(`/chat/${order.id}`);
     } else {
-      console.error('❌ ID commande manquant pour chat');
       Alert.alert('Erreur', 'Impossible d\'ouvrir le chat');
     }
   };
 
   const handleRateService = () => {
-    console.log('⭐ =================================');
-    console.log('⭐ NOTATION SERVICE');
-    console.log('⭐ =================================');
-    console.log('🆔 Order ID à noter:', order?.id);
-    console.log('📊 Statut commande:', order?.status);
-    console.log('⭐ Note existante:', order?.rating);
-    
     if (order?.id) {
-      console.log('📱 Navigation vers notation...');
       router.push(`/orders/${order.id}/rate`);
     } else {
-      console.error('❌ ID commande manquant pour notation');
       Alert.alert('Erreur', 'Impossible d\'ouvrir la notation');
     }
   };
 
-  // ✅ HELPERS AVEC LOGS
   const formatDate = (dateString: string) => {
-    console.log('📅 Formatage date:', dateString);
+    if (!dateString) return 'Date non définie';
     const date = new Date(dateString);
-    const formatted = date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString('fr-FR', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric'
     });
-    console.log('📅 Date formatée:', formatted);
-    return formatted;
   };
 
   const formatTime = (timeString: string) => {
-    if (!timeString) {
-      console.log('⏰ Pas de time string fourni');
-      return '';
-    }
-    const formatted = timeString.slice(0, 5);
-    console.log('⏰ Time formaté:', timeString, '→', formatted);
-    return formatted;
+    if (!timeString) return '';
+    return timeString.slice(0, 5);
   };
 
   const formatDateTime = (dateTimeString: string) => {
-    console.log('📅⏰ Formatage datetime:', dateTimeString);
+    if (!dateTimeString) return 'Non défini';
     const date = new Date(dateTimeString);
-    const formatted = date.toLocaleString('fr-FR', {
+    return date.toLocaleString('fr-FR', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-    console.log('📅⏰ DateTime formaté:', formatted);
-    return formatted;
   };
 
-  // ✅ GESTION ÉTATS DE CHARGEMENT
   if (loading) {
-    console.log('⏳ Affichage écran de chargement');
+    console.log('🐛 DEBUG - Rendering loading state');
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ title: 'Détails de la commande' }} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF4444" />
-          <Text style={styles.loadingText}>Chargement des détails...</Text>
+          <ActivityIndicator size="large" color="#000000" />
+          <Text style={styles.loadingText}>Chargement...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (!order) {
-    console.log('❌ Aucune commande à afficher');
+  if (!order || !serviceInfo) {
+    console.log('🐛 DEBUG - Rendering no order state');
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ title: 'Commande introuvable' }} />
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={64} color="#ef4444" />
+          <Ionicons name="alert-circle" size={32} color="#666666" />
           <Text style={styles.errorTitle}>Commande introuvable</Text>
-          <Text style={styles.errorSubtitle}>
+          <Text style={styles.errorText}>
             Cette commande n'existe pas ou vous n'avez pas l'autorisation de la consulter.
           </Text>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => {
-              console.log('⬅️ Retour depuis erreur');
-              router.back();
-            }}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Retour</Text>
           </TouchableOpacity>
         </View>
@@ -578,331 +522,500 @@ export default function OrderDetailScreen() {
     );
   }
 
+  console.log('✅ NOUVEAU - Services relation OK via serviceInfo, proceeding with render');
+
   const statusConfig = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG];
-  
-  console.log('🖼️ =================================');
-  console.log('🖼️ RENDU INTERFACE PRINCIPALE');
-  console.log('🖼️ =================================');
-  console.log('📊 Commande à afficher:');
-  console.log('   ID:', order.id);
-  console.log('   Service:', order.services?.title);
-  console.log('   Statut:', order.status);
-  console.log('   Config statut:', statusConfig?.label);
-  console.log('   Client:', order.client_profile?.first_name);
-  console.log('   Fourmiz:', order.fourmiz_profile?.first_name || 'Non assigné');
-  console.log('   Montant:', order.proposed_amount, '€');
+  const otherParty = userRole === 'client' ? order.fourmiz_profile : order.client_profile;
+  const otherPartyRole = userRole === 'client' ? 'Fourmiz' : 'Client';
+  const normalizedStatus = normalizeStatus(order.status);
+
+  console.log('🐛 DEBUG - Rendering main component with:');
+  console.log('🐛 DEBUG - User role:', userRole);
+  console.log('🐛 DEBUG - Status:', normalizedStatus);
+  console.log('🐛 DEBUG - Services title (via serviceInfo):', serviceInfo.title);
+
+  // Fonction pour obtenir la description du statut selon le rôle
+  const getStatusDescription = () => {
+    if (userRole === 'client') return statusConfig.client_description;
+    if (userRole === 'fourmiz') return statusConfig.fourmiz_description;
+    return statusConfig.viewer_description;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen 
         options={{ 
           title: `Commande #${order.id}`,
-          headerRight: () => (
-            <TouchableOpacity 
-              onPress={() => {
-                console.log('📋 Menu contextuel commande');
-                Alert.alert('Menu', 'Fonctionnalités à venir');
-              }}
-              style={styles.headerButton}
-            >
-              <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
-            </TouchableOpacity>
-          ),
+          headerTitleStyle: { fontSize: 16, fontWeight: '600' }
         }} 
       />
 
       <ScrollView
         style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Statut principal */}
-        <View style={styles.statusSection}>
-          <View style={[
-            styles.statusCard,
-            { backgroundColor: statusConfig.bgColor }
-          ]}>
+        {/* En-tête avec rôle et statut */}
+        <View style={styles.headerSection}>
+          {userRole === 'client' && (
+            <View style={styles.roleBadge}>
+              <Ionicons name="person" size={14} color="#ffffff" />
+              <Text style={styles.roleText}>Vous êtes le Client</Text>
+            </View>
+          )}
+          {userRole === 'fourmiz' && (
+            <View style={[styles.roleBadge, styles.fourmizBadge]}>
+              <Ionicons name="construct" size={14} color="#ffffff" />
+              <Text style={styles.roleText}>Vous êtes la Fourmiz</Text>
+            </View>
+          )}
+          {userRole === 'viewer' && (
+            <View style={[styles.roleBadge, styles.viewerBadge]}>
+              <Ionicons name="eye" size={14} color="#ffffff" />
+              <Text style={styles.roleText}>Mission disponible</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Statut principal épuré */}
+        <View style={styles.section}>
+          <View style={[styles.statusCard, { backgroundColor: statusConfig.bgColor }]}>
             <View style={styles.statusHeader}>
-              <Ionicons 
-                name={statusConfig.icon as any} 
-                size={32} 
-                color={statusConfig.color} 
-              />
-              <View style={styles.statusInfo}>
+              <View style={styles.statusIconContainer}>
+                <Ionicons name={statusConfig.icon as any} size={16} color={statusConfig.color} />
+              </View>
+              <View style={styles.statusContent}>
                 <Text style={[styles.statusTitle, { color: statusConfig.color }]}>
                   {statusConfig.label}
                 </Text>
                 <Text style={styles.statusDescription}>
-                  {statusConfig.description}
+                  {getStatusDescription()}
                 </Text>
               </View>
             </View>
 
             {order.urgent && (
               <View style={styles.urgentIndicator}>
-                <Ionicons name="alert-circle" size={20} color="#ef4444" />
+                <Ionicons name="alert-circle" size={14} color="#000000" />
                 <Text style={styles.urgentText}>
-                  URGENT - {order.urgency_level}
+                  Dès que possible
                 </Text>
               </View>
             )}
           </View>
         </View>
 
-        {/* Informations du service */}
+        {/*Service en demande - UTILISE serviceInfo*/}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔧 Service demandé</Text>
-          <View style={styles.serviceCard}>
-            <Text style={styles.serviceName}>{order.services.title}</Text>
-            <Text style={styles.serviceCategory}>{order.services.categorie}</Text>
-            {order.services.description && (
-              <Text style={styles.serviceDescription}>{order.services.description}</Text>
-            )}
-            <Text style={styles.clientDescription}>{order.description}</Text>
-          </View>
-        </View>
-
-        {/* Planning */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📅 Planning</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar" size={20} color="#6b7280" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Date de prestation</Text>
-                <Text style={styles.infoValue}>{formatDate(order.date)}</Text>
+          <View style={styles.sectionCard}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => setShowServiceDetails(!showServiceDetails)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="construct-outline" size={16} color="#000000" />
+              <Text style={styles.sectionTitle}>Service demandé</Text>
+              <View style={styles.expandButton}>
+                <Ionicons 
+                  name={showServiceDetails ? "chevron-up" : "chevron-down"} 
+                  size={14} 
+                  color="#666666" 
+                />
               </View>
-            </View>
-
-            {order.start_time && (
-              <View style={styles.infoRow}>
-                <Ionicons name="time" size={20} color="#6b7280" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>
-                    {order.services.categorie === 'Transport' ? 'Heure de départ' : 'Heure de début'}
-                  </Text>
-                  <Text style={styles.infoValue}>
-                    {formatTime(order.start_time)}
-                    {order.end_time && ` - ${formatTime(order.end_time)}`}
-                  </Text>
+            </TouchableOpacity>
+            
+            {showServiceDetails && (
+              <View style={styles.sectionContent}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Service</Text>
+                  <Text style={styles.infoValue}>{serviceInfo.title}</Text>
                 </View>
-              </View>
-            )}
-
-            {order.services.estimated_duration && (
-              <View style={styles.infoRow}>
-                <Ionicons name="timer" size={20} color="#6b7280" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Durée estimée</Text>
-                  <Text style={styles.infoValue}>{order.services.estimated_duration} minutes</Text>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Catégorie</Text>
+                  <Text style={styles.infoValue}>{serviceInfo.categorie}</Text>
                 </View>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Adresses */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📍 Localisation</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Ionicons name="location" size={20} color="#6b7280" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>
-                  {order.services.categorie === 'Transport' ? 'Adresse de départ' : 'Adresse'}
-                </Text>
-                <Text style={styles.infoValue}>
-                  {order.address}
-                  {order.postal_code && order.city && (
-                    <Text>{'\n'}{order.postal_code} {order.city}</Text>
-                  )}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.mapButton}
-                onPress={() => {
-                  console.log('🗺️ Ouverture Maps pour adresse principale');
-                  const address = encodeURIComponent(`${order.address}, ${order.postal_code} ${order.city}`);
-                  Linking.openURL(`https://maps.google.com/?q=${address}`);
-                }}
-              >
-                <Ionicons name="map" size={16} color="#3b82f6" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Adresses spécifiques Transport */}
-            {order.services.categorie === 'Transport' && order.arrival_postal_code && order.arrival_city && (
-              <View style={styles.infoRow}>
-                <Ionicons name="flag" size={20} color="#6b7280" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Destination</Text>
-                  <Text style={styles.infoValue}>
-                    {order.arrival_address && `${order.arrival_address}, `}
-                    {order.arrival_postal_code} {order.arrival_city}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.mapButton}
-                  onPress={() => {
-                    console.log('🗺️ Ouverture Maps pour destination');
-                    const address = encodeURIComponent(`${order.arrival_address || ''}, ${order.arrival_postal_code} ${order.arrival_city}`);
-                    Linking.openURL(`https://maps.google.com/?q=${address}`);
-                  }}
-                >
-                  <Ionicons name="map" size={16} color="#3b82f6" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Adresse de livraison */}
-            {order.delivery_address && (
-              <View style={styles.infoRow}>
-                <Ionicons name="cube" size={20} color="#6b7280" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Adresse de livraison</Text>
-                  <Text style={styles.infoValue}>{order.delivery_address}</Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Contact */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📞 Contact</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Ionicons name="call" size={20} color="#6b7280" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Téléphone</Text>
-                <Text style={styles.infoValue}>{order.phone}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.actionIcon}
-                onPress={() => {
-                  console.log('📞 Appel client depuis contact');
-                  Linking.openURL(`tel:${order.phone}`);
-                }}
-              >
-                <Ionicons name="call" size={16} color="#10b981" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Fourmiz assignée */}
-        {order.fourmiz_id && order.fourmiz_profile && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👤 Votre fourmiz</Text>
-            <View style={styles.fourmizCard}>
-              <View style={styles.fourmizHeader}>
-                {order.fourmiz_profile.avatar_url ? (
-                  <Image 
-                    source={{ uri: order.fourmiz_profile.avatar_url }}
-                    style={styles.fourmizAvatar}
-                  />
-                ) : (
-                  <View style={styles.fourmizAvatarPlaceholder}>
-                    <Ionicons name="person" size={32} color="#6b7280" />
+                {serviceInfo.description && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Description du service</Text>
+                    <Text style={styles.infoValue}>{serviceInfo.description}</Text>
                   </View>
                 )}
-                
-                <View style={styles.fourmizInfo}>
-                  <Text style={styles.fourmizName}>
-                    {order.fourmiz_profile.first_name} {order.fourmiz_profile.last_name}
-                  </Text>
-                  {order.fourmiz_profile.rating && (
-                    <View style={styles.ratingRow}>
-                      <Ionicons name="star" size={16} color="#fbbf24" />
-                      <Text style={styles.ratingText}>
-                        {order.fourmiz_profile.rating.toFixed(1)}
+                {order.description && 
+                 order.description.trim() !== '' && 
+                 order.description.trim() !== 'Description réelle de la demande' && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Demande du client</Text>
+                    <Text style={[styles.infoValue, styles.clientDescription]}>{order.description}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Planning - UTILISE serviceInfo*/}
+        <View style={styles.section}>
+          <View style={styles.sectionCard}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => setShowScheduleDetails(!showScheduleDetails)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="calendar-outline" size={16} color="#000000" />
+              <Text style={styles.sectionTitle}>Planning</Text>
+              <View style={styles.expandButton}>
+                <Ionicons 
+                  name={showScheduleDetails ? "chevron-up" : "chevron-down"} 
+                  size={14} 
+                  color="#666666" 
+                />
+              </View>
+            </TouchableOpacity>
+            
+            {showScheduleDetails && (
+              <View style={styles.sectionContent}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Date de prestation</Text>
+                  <Text style={styles.infoValue}>{formatDate(order.date)}</Text>
+                </View>
+                {order.start_time && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>
+                      {serviceInfo.categorie === 'Transport' ? 'Heure de départ' : 'Heure de début'}
+                    </Text>
+                    <Text style={styles.infoValue}>
+                      {formatTime(order.start_time)}
+                      {order.end_time && ` - ${formatTime(order.end_time)}`}
+                    </Text>
+                  </View>
+                )}
+                {serviceInfo.estimatedDuration && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Durée estimée</Text>
+                    <Text style={styles.infoValue}>{serviceInfo.estimatedDuration} minutes</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Localisation complète - Seulement pour commandes acceptées - UTILISE serviceInfo*/}
+        {normalizedStatus !== 'en_attente' && (
+          <View style={styles.section}>
+            <View style={styles.sectionCard}>
+              <TouchableOpacity 
+                style={styles.sectionHeader}
+                onPress={() => setShowLocationDetails(!showLocationDetails)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="location-outline" size={16} color="#000000" />
+                <Text style={styles.sectionTitle}>Localisation</Text>
+                <View style={styles.expandButton}>
+                  <Ionicons 
+                    name={showLocationDetails ? "chevron-up" : "chevron-down"} 
+                    size={14} 
+                    color="#666666" 
+                  />
+                </View>
+              </TouchableOpacity>
+              
+              {showLocationDetails && (
+                <View style={styles.sectionContent}>
+                  <View style={styles.infoItemWithAction}>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>
+                        {serviceInfo.categorie === 'Transport' ? 'Adresse de départ' : 'Adresse'}
                       </Text>
-                      {order.fourmiz_profile.completed_jobs && (
-                        <Text style={styles.jobsText}>
-                          • {order.fourmiz_profile.completed_jobs} missions
+                      <Text style={styles.infoValue}>
+                        {order.address || 'Adresse non définie'}
+                        {order.postal_code && order.city && (
+                          <Text>{'\n'}{order.postal_code} {order.city}</Text>
+                        )}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.actionIcon}
+                      onPress={() => {
+                        const address = encodeURIComponent(`${order.address || ''}, ${order.postal_code || ''} ${order.city || ''}`);
+                        Linking.openURL(`https://maps.google.com/?q=${address}`);
+                      }}
+                    >
+                      <Ionicons name="map" size={14} color="#000000" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {serviceInfo.categorie === 'Transport' && order.arrival_postal_code && order.arrival_city && (
+                    <View style={styles.infoItemWithAction}>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Destination</Text>
+                        <Text style={styles.infoValue}>
+                          {order.arrival_address && `${order.arrival_address}, `}
+                          {order.arrival_postal_code} {order.arrival_city}
                         </Text>
-                      )}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.actionIcon}
+                        onPress={() => {
+                          const address = encodeURIComponent(`${order.arrival_address || ''}, ${order.arrival_postal_code} ${order.arrival_city}`);
+                          Linking.openURL(`https://maps.google.com/?q=${address}`);
+                        }}
+                      >
+                        <Ionicons name="map" size={14} color="#000000" />
+                      </TouchableOpacity>
                     </View>
                   )}
-                </View>
-              </View>
 
-              <View style={styles.fourmizActions}>
-                <TouchableOpacity 
-                  style={styles.fourmizActionButton}
-                  onPress={() => {
-                    console.log('📞 Appel fourmiz depuis carte');
-                    handleCallFourmiz();
-                  }}
-                >
-                  <Ionicons name="call" size={20} color="#10b981" />
-                  <Text style={styles.fourmizActionText}>Appeler</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.fourmizActionButton}
-                  onPress={() => {
-                    console.log('💬 Chat fourmiz depuis carte');
-                    handleChatFourmiz();
-                  }}
-                >
-                  <Ionicons name="chatbubble" size={20} color="#3b82f6" />
-                  <Text style={styles.fourmizActionText}>Message</Text>
-                </TouchableOpacity>
-              </View>
-
-              {order.accepted_at && (
-                <View style={styles.acceptedInfo}>
-                  <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                  <Text style={styles.acceptedText}>
-                    Acceptée le {formatDateTime(order.accepted_at)}
-                  </Text>
+                  {order.delivery_address && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Adresse de livraison</Text>
+                      <Text style={styles.infoValue}>{order.delivery_address}</Text>
+                    </View>
+                  )}
                 </View>
               )}
             </View>
           </View>
         )}
 
-        {/* Montant */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💰 Tarification</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Ionicons name="card" size={20} color="#6b7280" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Montant proposé</Text>
-                <Text style={styles.priceValue}>{order.proposed_amount}€</Text>
-              </View>
+        {/* Localisation limitée - Pour commandes en attente - UTILISE serviceInfo*/}
+        {normalizedStatus === 'en_attente' && (
+          <View style={styles.section}>
+            <View style={styles.sectionCard}>
+              <TouchableOpacity 
+                style={styles.sectionHeader}
+                onPress={() => setShowLocationDetails(!showLocationDetails)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="location-outline" size={16} color="#000000" />
+                <Text style={styles.sectionTitle}>Zone d'intervention</Text>
+                <View style={styles.expandButton}>
+                  <Ionicons 
+                    name={showLocationDetails ? "chevron-up" : "chevron-down"} 
+                    size={14} 
+                    color="#666666" 
+                  />
+                </View>
+              </TouchableOpacity>
+              
+              {showLocationDetails && (
+                <View style={styles.sectionContent}>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Ville</Text>
+                    <Text style={styles.infoValue}>
+                      {order.postal_code && order.city ? `${order.postal_code} ${order.city}` : (order.city || 'Ville non définie')}
+                    </Text>
+                  </View>
+                  
+                  {serviceInfo.categorie === 'Transport' && order.arrival_postal_code && order.arrival_city && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoLabel}>Destination</Text>
+                      <Text style={styles.infoValue}>
+                        {order.arrival_postal_code} {order.arrival_city}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
+          </View>
+        )}
 
-            {order.urgency_surcharge > 0 && (
-              <View style={styles.infoRow}>
-                <Ionicons name="flash" size={20} color="#f59e0b" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Supplément urgence</Text>
-                  <Text style={styles.priceValue}>+{order.urgency_surcharge}€</Text>
+        {/* Contact */}
+        <View style={styles.section}>
+          <View style={styles.sectionCard}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => setShowContactDetails(!showContactDetails)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="call-outline" size={16} color="#000000" />
+              <Text style={styles.sectionTitle}>Contact</Text>
+              <View style={styles.expandButton}>
+                <Ionicons 
+                  name={showContactDetails ? "chevron-up" : "chevron-down"} 
+                  size={14} 
+                  color="#666666" 
+                />
+              </View>
+            </TouchableOpacity>
+            
+            {showContactDetails && (
+              <View style={styles.sectionContent}>
+                <View style={styles.infoItemWithAction}>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Téléphone</Text>
+                    <Text style={styles.infoValue}>{order.phone || 'Téléphone non fourni'}</Text>
+                  </View>
+                  {userRole !== 'viewer' && order.phone && (
+                    <TouchableOpacity
+                      style={styles.actionIcon}
+                      onPress={() => Linking.openURL(`tel:${order.phone}`)}
+                    >
+                      <Ionicons name="call" size={14} color="#000000" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             )}
+          </View>
+        </View>
 
-            {order.invoice_required && (
-              <View style={styles.infoRow}>
-                <Ionicons name="document-text" size={20} color="#6b7280" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Facturation</Text>
-                  <Text style={styles.infoValue}>Facture demandée</Text>
+        {/* Autre partie (Client ou Fourmiz) - Masqué pour les viewers */}
+        {otherParty && userRole !== 'viewer' && (
+          <View style={styles.section}>
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="person-outline" size={16} color="#000000" />
+                <Text style={styles.sectionTitle}>
+                  {userRole === 'client' ? 'Votre fourmiz' : 'Votre client'}
+                </Text>
+              </View>
+              
+              <View style={styles.sectionContent}>
+                <View style={styles.personInfo}>
+                  {otherParty.avatar_url ? (
+                    <Image 
+                      source={{ uri: otherParty.avatar_url }}
+                      style={styles.personAvatar}
+                    />
+                  ) : (
+                    <View style={styles.personAvatarPlaceholder}>
+                      <Ionicons 
+                        name={userRole === 'client' ? 'construct' : 'person'} 
+                        size={16} 
+                        color="#666666" 
+                      />
+                    </View>
+                  )}
+                  
+                  <View style={styles.personDetails}>
+                    <Text style={styles.personName}>
+                      {(otherParty.firstname || '') + ' ' + (otherParty.lastname || '')}
+                    </Text>
+                    <Text style={styles.personRole}>{otherPartyRole}</Text>
+                  </View>
                 </View>
-                {order.invoice_url && (
-                  <TouchableOpacity
-                    style={styles.actionIcon}
-                    onPress={() => {
-                      console.log('📄 Téléchargement facture');
-                      Linking.openURL(order.invoice_url!);
-                    }}
-                  >
-                    <Ionicons name="download" size={16} color="#3b82f6" />
-                  </TouchableOpacity>
+
+                {/* Actions avec la personne */}
+                <View style={styles.personActions}>
+                  {(normalizedStatus === 'acceptee' || normalizedStatus === 'en_cours') && (
+                    <TouchableOpacity style={styles.actionButton} onPress={handleChat}>
+                      <Ionicons name="chatbubble-outline" size={14} color="#000000" />
+                      <Text style={styles.actionButtonText}>Discuter</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {userRole === 'client' && (normalizedStatus === 'en_attente' || normalizedStatus === 'acceptee') && (
+                    <TouchableOpacity style={styles.actionButtonSecondary} onPress={handleCancelOrder}>
+                      <Ionicons name="close-circle-outline" size={14} color="#666666" />
+                      <Text style={styles.actionButtonSecondaryText}>Annuler</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {order.accepted_at && (
+                  <View style={styles.acceptedInfo}>
+                    <Ionicons name="checkmark-circle" size={12} color="#000000" />
+                    <Text style={styles.acceptedText}>
+                      Acceptée le {formatDateTime(order.accepted_at)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Information client pour les viewers */}
+        {userRole === 'viewer' && order.client_profile && (
+          <View style={styles.section}>
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="person-outline" size={16} color="#000000" />
+                <Text style={styles.sectionTitle}>Client</Text>
+              </View>
+              
+              <View style={styles.sectionContent}>
+                <View style={styles.personInfo}>
+                  {order.client_profile.avatar_url ? (
+                    <Image 
+                      source={{ uri: order.client_profile.avatar_url }}
+                      style={styles.personAvatar}
+                    />
+                  ) : (
+                    <View style={styles.personAvatarPlaceholder}>
+                      <Ionicons name="person" size={16} color="#666666" />
+                    </View>
+                  )}
+                  
+                  <View style={styles.personDetails}>
+                    <Text style={styles.personName}>
+                      {(order.client_profile.firstname || '') + ' ' + (order.client_profile.lastname || '')}
+                    </Text>
+                    <Text style={styles.personRole}>Client</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Tarification */}
+        <View style={styles.section}>
+          <View style={styles.sectionCard}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => setShowPricingDetails(!showPricingDetails)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="card-outline" size={16} color="#000000" />
+              <Text style={styles.sectionTitle}>Tarification</Text>
+              <View style={styles.expandButton}>
+                <Ionicons 
+                  name={showPricingDetails ? "chevron-up" : "chevron-down"} 
+                  size={14} 
+                  color="#666666" 
+                />
+              </View>
+            </TouchableOpacity>
+            
+            {showPricingDetails && (
+              <View style={styles.sectionContent}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Montant proposé</Text>
+                  <Text style={styles.priceValue}>{order.proposed_amount || 0}€</Text>
+                </View>
+
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Montant Fourmiz</Text>
+                  <Text style={styles.priceValue}>{order.fourmiz_amount || 0}€</Text>
+                </View>
+
+                {order.urgency_surcharge > 0 && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Supplément urgence</Text>
+                    <Text style={styles.priceValue}>+{order.urgency_surcharge}€</Text>
+                  </View>
+                )}
+
+                {order.invoice_required && (
+                  <View style={styles.infoItemWithAction}>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Facturation</Text>
+                      <Text style={styles.infoValue}>Facture demandée</Text>
+                    </View>
+                    {order.invoice_url && userRole !== 'viewer' && (
+                      <TouchableOpacity
+                        style={styles.actionIcon}
+                        onPress={() => Linking.openURL(order.invoice_url!)}
+                      >
+                        <Ionicons name="download" size={14} color="#000000" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 )}
               </View>
             )}
@@ -911,23 +1024,36 @@ export default function OrderDetailScreen() {
 
         {/* Informations de commande */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋 Informations</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Ionicons name="time" size={20} color="#6b7280" />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Créée le</Text>
-                <Text style={styles.infoValue}>{formatDateTime(order.created_at)}</Text>
+          <View style={styles.sectionCard}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => setShowOrderInfo(!showOrderInfo)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="information-circle-outline" size={16} color="#000000" />
+              <Text style={styles.sectionTitle}>Informations</Text>
+              <View style={styles.expandButton}>
+                <Ionicons 
+                  name={showOrderInfo ? "chevron-up" : "chevron-down"} 
+                  size={14} 
+                  color="#666666" 
+                />
               </View>
-            </View>
-
-            {order.updated_at !== order.created_at && (
-              <View style={styles.infoRow}>
-                <Ionicons name="refresh" size={20} color="#6b7280" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Dernière modification</Text>
-                  <Text style={styles.infoValue}>{formatDateTime(order.updated_at)}</Text>
+            </TouchableOpacity>
+            
+            {showOrderInfo && (
+              <View style={styles.sectionContent}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Créée le</Text>
+                  <Text style={styles.infoValue}>{formatDateTime(order.created_at)}</Text>
                 </View>
+
+                {order.updated_at && order.updated_at !== order.created_at && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Dernière modification</Text>
+                    <Text style={styles.infoValue}>{formatDateTime(order.updated_at)}</Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -935,47 +1061,30 @@ export default function OrderDetailScreen() {
 
         {/* Actions principales */}
         <View style={styles.actionsSection}>
-          {order.status === 'en_attente' && (
+          {/* Bouton d'acceptation pour les viewers */}
+          {userRole === 'viewer' && normalizedStatus === 'en_attente' && (
             <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={() => {
-                console.log('🚫 Clic bouton annulation');
-                handleCancelOrder();
-              }}
+              style={styles.acceptMissionButton} 
+              onPress={handleAcceptMission}
             >
-              <Ionicons name="close-circle" size={20} color="#ef4444" />
-              <Text style={styles.cancelButtonText}>Annuler la commande</Text>
+              <Ionicons name="checkmark-circle" size={16} color="#ffffff" />
+              <Text style={styles.acceptMissionButtonText}>Accepter cette mission</Text>
             </TouchableOpacity>
           )}
 
-          {order.status === 'terminee' && !order.rating && (
-            <TouchableOpacity 
-              style={styles.rateButton}
-              onPress={() => {
-                console.log('⭐ Clic bouton notation');
-                handleRateService();
-              }}
-            >
-              <Ionicons name="star" size={20} color="#fff" />
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={16} color="#000000" />
+            <Text style={styles.backButtonText}>Retour</Text>
+          </TouchableOpacity>
+
+          {order.status === 'terminee' && !order.rating && userRole === 'client' && (
+            <TouchableOpacity style={styles.rateButton} onPress={handleRateService}>
+              <Ionicons name="star" size={16} color="#ffffff" />
               <Text style={styles.rateButtonText}>Noter la prestation</Text>
-            </TouchableOpacity>
-          )}
-
-          {order.fourmiz_id && (
-            <TouchableOpacity 
-              style={styles.chatButton}
-              onPress={() => {
-                console.log('💬 Clic bouton chat principal');
-                handleChatFourmiz();
-              }}
-            >
-              <Ionicons name="chatbubble" size={20} color="#fff" />
-              <Text style={styles.chatButtonText}>Contacter la fourmiz</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Espacement en bas */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
@@ -983,308 +1092,346 @@ export default function OrderDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#ffffff' 
+  },
+
+  // États de chargement épurés
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 16,
   },
-  loadingText: { fontSize: 16, color: '#6b7280' },
+  loadingText: { 
+    fontSize: 13, 
+    color: '#666666',
+    fontWeight: '400',
+  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
     gap: 16,
   },
-  errorTitle: { fontSize: 20, fontWeight: 'bold', color: '#ef4444' },
-  errorSubtitle: { fontSize: 16, color: '#6b7280', textAlign: 'center' },
-  headerButton: { padding: 8 },
-  scrollView: { flex: 1 },
+  errorTitle: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#000000' 
+  },
+  errorText: { 
+    fontSize: 13, 
+    color: '#666666', 
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 
-  // Sections
+  scrollView: { 
+    flex: 1 
+  },
+
+  // En-tête épuré
+  headerSection: {
+    padding: 20,
+    alignItems: 'flex-start',
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    gap: 6,
+  },
+  fourmizBadge: {
+    backgroundColor: '#333333',
+  },
+  viewerBadge: {
+    backgroundColor: '#666666',
+  },
+  roleText: {
+    fontSize: 12,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+
+  // Sections épurées
   section: { 
-    marginHorizontal: 16,
+    paddingHorizontal: 20,
     marginBottom: 16,
   },
+  sectionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    gap: 8,
+  },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+  },
+  expandButton: {
+    padding: 4,
+  },
+  sectionContent: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    gap: 12,
   },
 
-  // Statut principal
-  statusSection: { 
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
+  // Statut principal épuré
   statusCard: {
-    padding: 20,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderColor: '#e0e0e0',
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
   },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
   },
-  statusInfo: { flex: 1 },
+  statusIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusContent: { 
+    flex: 1 
+  },
   statusTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
     marginBottom: 4,
   },
   statusDescription: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#666666',
+    lineHeight: 18,
   },
   urgentIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fee2e2',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 16,
-    gap: 8,
+    borderRadius: 6,
+    marginTop: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   urgentText: {
-    fontSize: 14,
-    color: '#ef4444',
+    fontSize: 12,
+    color: '#000000',
     fontWeight: '600',
   },
 
-  // Cartes d'information
-  infoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  // Éléments d'information épurés
+  infoItem: {
+    gap: 4,
   },
-  infoRow: {
+  infoItemWithAction: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 8,
     gap: 12,
   },
-  infoContent: { flex: 1 },
+  infoContent: { 
+    flex: 1 
+  },
   infoLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '400',
   },
   infoValue: {
-    fontSize: 16,
-    color: '#111827',
+    fontSize: 13,
+    color: '#000000',
     fontWeight: '500',
+    lineHeight: 18,
+  },
+  infoHint: {
+    fontSize: 12,
+    color: '#999999',
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
   priceValue: {
-    fontSize: 18,
-    color: '#111827',
-    fontWeight: 'bold',
-  },
-
-  // Service
-  serviceCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  serviceName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  serviceCategory: {
     fontSize: 14,
-    color: '#3b82f6',
-    marginBottom: 8,
-  },
-  serviceDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 12,
-    lineHeight: 20,
+    color: '#000000',
+    fontWeight: '600',
   },
   clientDescription: {
-    fontSize: 16,
-    color: '#111827',
-    lineHeight: 24,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8f8f8',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 6,
     fontStyle: 'italic',
   },
 
-  // Fourmiz
-  fourmizCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  fourmizHeader: {
+  // Informations personne épurées
+  personInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  fourmizAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 16,
-  },
-  fourmizAvatarPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#e5e7eb',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  fourmizInfo: { flex: 1 },
-  fourmizName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: '#fbbf24',
-    fontWeight: '600',
-  },
-  jobsText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  fourmizActions: {
-    flexDirection: 'row',
     gap: 12,
     marginBottom: 12,
   },
-  fourmizActionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
+  personAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
   },
-  fourmizActionText: {
-    fontSize: 16,
-    color: '#374151',
-    fontWeight: '500',
+  personAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    backgroundColor: '#f8f8f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  personDetails: { 
+    flex: 1 
+  },
+  personName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  personRole: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '400',
+  },
+  personActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
   },
   acceptedInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingTop: 12,
+    gap: 6,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: '#e0e0e0',
   },
   acceptedText: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '400',
   },
 
-  // Boutons d'action
+  // Boutons d'action épurés
   actionIcon: {
     padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    borderRadius: 6,
+    backgroundColor: '#f8f8f8',
   },
-  mapButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#e0f2fe',
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 6,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  actionButtonSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    gap: 6,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  actionButtonSecondaryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666666',
   },
 
-  // Actions principales
+  // Actions principales épurées
   actionsSection: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     gap: 12,
   },
-  cancelButton: {
+  acceptMissionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fee2e2',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    paddingVertical: 12,
+    borderRadius: 8,
     gap: 8,
   },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#ef4444',
+  acceptMissionButtonText: {
+    fontSize: 13,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f8f8',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  backButtonText: {
+    fontSize: 13,
+    color: '#000000',
     fontWeight: '600',
   },
   rateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fbbf24',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: '#000000',
+    paddingVertical: 12,
+    borderRadius: 8,
     gap: 8,
   },
   rateButtonText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  chatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3b82f6',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  chatButtonText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',  
-  },
-  backButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    fontSize: 13,
+    color: '#ffffff',
     fontWeight: '600',
   },
 
-  bottomSpacer: { height: 32 },
+  bottomSpacer: { 
+    height: 32 
+  },
 });

@@ -1,0 +1,60 @@
+﻿  const loadReferralHistoryDirect = async (userId: string) => {
+    try {
+      console.log(' === DEBUG COMPLET FILLEULS ===');
+      console.log(' User ID:', userId);
+      
+      // ÉTAPE 1: Test table
+      const { data: tableTest, error: tableError } = await supabase
+        .from('user_referrals').select('count(*)').limit(1);
+      console.log(' Table accessible:', !tableError);
+      if (tableError) console.log(' Erreur:', tableError);
+      
+      // ÉTAPE 2: Test différents champs
+      const possibleFields = ['referrer_user_id', 'referrer_id', 'parrain_id'];
+      
+      for (const field of possibleFields) {
+        console.log(` Test champ: ${field}`);
+        const { data: testData } = await supabase
+          .from('user_referrals').select('*').eq(field, userId).limit(5);
+        console.log(` ${field}:`, testData?.length || 0, 'résultats');
+        
+        if (testData && testData.length > 0) {
+          console.log(` TROUVÉ avec ${field}:`, testData);
+          const history = testData.map((referral: any) => ({
+            id: referral.id,
+            referred_user_name: referral.referred_user_name || referral.filleul_name || 'Filleul Test',
+            referred_user_email: referral.referred_user_email || '',  
+            referred_user_type: 'client' as const,
+            bonus_earned: referral.bonus_earned || 0,
+            commission_earned: referral.total_commission_earned || 0,
+            status: referral.status === 'completed' ? 'active' : 'pending',
+            created_at: referral.created_at,
+            code_utilise: referral.referral_code || '',
+            first_order_completed: referral.first_order_completed || false,
+          }));
+          setReferralHistory(history);
+          console.log(' Filleuls chargés:', history);
+          return;
+        }
+      }
+      
+      // ÉTAPE 3: Structure table
+      const { data: sampleData } = await supabase.from('user_referrals').select('*').limit(3);
+      console.log(' Échantillon:', sampleData);
+      console.log(' Colonnes:', sampleData?.[0] ? Object.keys(sampleData[0]) : 'Aucune');
+      
+      // ÉTAPE 4: Données test
+      console.log(' Création données test...');
+      setReferralHistory([{
+        id: 'debug-1', referred_user_name: ' Test Debug', referred_user_email: 'debug@test.com',
+        referred_user_type: 'client' as const, bonus_earned: 10, commission_earned: 25,
+        status: 'active' as const, created_at: new Date().toISOString(),
+        code_utilise: 'DEBUG123', first_order_completed: true,
+      }]);
+      console.log(' Données test créées');
+      
+    } catch (error) {
+      console.error(' Erreur debug:', error);
+      setReferralHistory([]);
+    }
+  };

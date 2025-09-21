@@ -1,11 +1,9 @@
-// lib/referralService.ts - ADAPTÉ À VOTRE VRAIE STRUCTURE
-// ✅ Compatible avec user_referrals ET referrals
-// ✅ Utilise referral_code directement (pas user_referral_codes)
-// ✅ Gère les deux systèmes de parrainage
+// lib/referralService.ts - VERSION FINALE NETTOYÉE
+// ✅ Code de production avec validation tolérante
 
 import { supabase } from './supabase';
 
-// ✅ INTERFACES ADAPTÉES À VOS TABLES
+// ✅ INTERFACES
 interface ReferralValidationResult {
   isValid: boolean;
   error?: string;
@@ -48,79 +46,112 @@ interface UserReferral {
 
 export class ReferralService {
   
-  // 🔧 CONSTANTES DE CONFIGURATION
+  // 🧪 CONSTANTES
   private static readonly DEFAULT_BONUS_AMOUNT = 50;
   private static readonly CODE_LENGTH = 6;
   private static readonly MAX_CODE_GENERATION_ATTEMPTS = 10;
 
-  // 🔍 VALIDATION PRINCIPALE - Utilise les codes stockés dans user_referrals
+  // 🔍 VALIDATION CODE DE PARRAINAGE - ✅ VERSION TOLÉRANTE DÉFINITIVE
   static async validateReferralCode(code: string): Promise<ReferralValidationResult> {
     try {
       console.log('🔍 Validation code parrainage:', code);
       
       if (!code || typeof code !== 'string') {
+        console.log('❌ Code manquant ou invalide');
         return { isValid: false, error: 'Code de parrainage requis' };
       }
 
       const cleanCode = code.trim().toUpperCase();
+      console.log('🧹 Code nettoyé:', cleanCode);
+      
       if (cleanCode.length !== this.CODE_LENGTH) {
+        console.log(`❌ Longueur incorrecte: ${cleanCode.length} (attendu: ${this.CODE_LENGTH})`);
         return { isValid: false, error: `Code invalide (${this.CODE_LENGTH} caractères requis)` };
       }
 
-      // ✅ NOUVEAU : Chercher directement dans user_referrals.referral_code
-      console.log('🔄 Recherche code dans user_referrals...');
-      const { data: referralData, error: referralError } = await supabase
-        .from('user_referrals')
-        .select(`
-          referrer_user_id,
-          referrer_name,
-          referral_code,
-          status
-        `)
-        .eq('referral_code', cleanCode)
-        .single();
+      // 1. Vérifier le code dans user_referral_codes
+      console.log('🔍 Recherche du code dans user_referral_codes...');
+      const { data: codeDataArray, error: codeError } = await supabase
+        .from('user_referral_codes')
+        .select('*')
+        .eq('code', cleanCode)
+        .eq('is_active', true);
 
-      if (referralError || !referralData) {
-        console.error('❌ Code introuvable dans user_referrals:', referralError);
+      console.log('📊 Résultat requête codes:', { 
+        error: codeError?.message, 
+        count: codeDataArray?.length,
+        data: codeDataArray 
+      });
+
+      if (codeError) {
+        console.log('❌ Erreur requête codes:', codeError);
+        return { isValid: false, error: 'Erreur recherche code de parrainage' };
+      }
+
+      if (!codeDataArray || codeDataArray.length === 0) {
+        console.log('❌ Aucun code trouvé dans la base');
         return { isValid: false, error: 'Code de parrainage invalide' };
       }
 
-      // ✅ Code trouvé, récupérer les infos du parrain
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('firstname, lastname, email')
-        .eq('user_id', referralData.referrer_user_id)
-        .single();
+      const codeData = codeDataArray[0];
+      console.log('✅ Code trouvé:', codeData);
 
-      let referrerName = referralData.referrer_name || 'Utilisateur';
-      if (profileData && profileData.firstname) {
-        referrerName = `${profileData.firstname} ${profileData.lastname || ''}`.trim();
+      const referrerId = codeData.user_id;
+      
+      if (!referrerId) {
+        console.log('❌ Aucun user_id dans le code');
+        return { isValid: false, error: 'Données de parrainage corrompues' };
       }
 
-      console.log('✅ Code valide, parrain:', referrerName);
+      console.log('🔍 Recherche profil parrain pour user_id:', referrerId);
 
+      // 2. Essayer de récupérer le profil (VERSION TOLÉRANTE)
+      const { data: profilesData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, firstname, lastname, email')
+        .eq('user_id', referrerId);
+
+      console.log('📊 Résultat requête profils:', { 
+        error: profileError?.message, 
+        count: profilesData?.length,
+        data: profilesData 
+      });
+
+      let profileData = null;
+      let referrerName = `Parrain-${cleanCode}`; // Nom par défaut basé sur le code
+
+      if (profileError) {
+        console.log('⚠️ Erreur requête profil, mais code reste valide:', profileError);
+      } else if (profilesData && profilesData.length > 0) {
+        profileData = profilesData[0];
+        console.log('✅ Profil parrain trouvé:', profileData);
+        
+        if (profileData.firstname) {
+          referrerName = `${profileData.firstname} ${profileData.lastname || ''}`.trim();
+        }
+      } else {
+        console.log('⚠️ Aucun profil trouvé, mais le CODE RESTE VALIDE avec nom par défaut');
+      }
+
+      console.log('✅ Validation réussie même sans profil - Parrain:', referrerName);
+
+      // ✅ TOUJOURS ACCEPTER LE CODE MÊME SANS PROFIL
       return {
         isValid: true,
-        parrainUserId: referralData.referrer_user_id,
+        parrainUserId: referrerId,
         referrerName: referrerName,
-        parrainProfile: profileData
+        parrainProfile: profileData // Peut être null, c'est OK
       };
 
     } catch (error) {
-      console.error('❌ Erreur validation code:', error);
+      console.error('💥 Exception validation code:', error);
       return { isValid: false, error: 'Erreur lors de la validation du code' };
     }
   }
 
-  // 🎁 APPLICATION DU PARRAINAGE - Version adaptée
-  static async applyReferral(
-    newUserId: string, 
-    referralCode: string,
-    referrerName?: string
-  ): Promise<ReferralApplicationResult> {
+  // 🎁 APPLICATION DU PARRAINAGE
+  static async applyReferral(newUserId: string, referralCode: string, referrerName?: string): Promise<ReferralApplicationResult> {
     try {
-      console.log('🎁 Application parrainage:', { newUserId, referralCode, referrerName });
-
       if (!newUserId || !referralCode) {
         return { success: false, error: 'Paramètres manquants' };
       }
@@ -136,11 +167,11 @@ export class ReferralService {
         return { success: false, error: 'Auto-parrainage interdit' };
       }
 
-      // ✅ Vérifier si déjà parrainé (dans user_referrals)
+      // Vérifier si déjà parrainé
       const { data: existingReferral } = await supabase
         .from('user_referrals')
-        .select('referrer_name')
-        .eq('referred_user_id', newUserId)
+        .select('referrer_name, user_id, referred_user_id')
+        .or(`user_id.eq.${newUserId},referred_user_id.eq.${newUserId}`)
         .single();
 
       if (existingReferral) {
@@ -150,12 +181,14 @@ export class ReferralService {
         };
       }
 
-      // ✅ Créer le parrainage dans user_referrals
+      // Insertion du parrainage
       const { error: insertError } = await supabase
         .from('user_referrals')
         .insert({
           referrer_user_id: validation.parrainUserId,
           referred_user_id: newUserId,
+          referrer_id: validation.parrainUserId,
+          user_id: newUserId,
           referral_code: referralCode.toUpperCase(),
           status: 'completed',
           bonus_earned: this.DEFAULT_BONUS_AMOUNT,
@@ -165,11 +198,11 @@ export class ReferralService {
         });
 
       if (insertError && insertError.code !== '23505') {
-        console.error('❌ Erreur insertion:', insertError);
+        console.error('Erreur insertion parrainage:', insertError);
         return { success: false, error: 'Erreur enregistrement parrainage' };
       }
 
-      // ✅ BONUS : Créer aussi dans referrals (système français)
+      // Créer aussi dans referrals (système français)
       await supabase
         .from('referrals')
         .insert({
@@ -181,33 +214,29 @@ export class ReferralService {
           created_at: new Date().toISOString()
         });
 
-      console.log('✅ Parrainage appliqué avec succès');
       return { 
         success: true,
         message: `Parrainage réussi ! Parrainé par ${validation.referrerName}`
       };
 
     } catch (error) {
-      console.error('❌ Erreur application parrainage:', error);
+      console.error('Erreur application parrainage:', error);
       return { success: false, error: 'Erreur application parrainage' };
     }
   }
 
-  // 🔧 CRÉATION DE CODE - Génère un code et le stocke directement
+  // 🔧 CRÉATION DE CODE
   static async createReferralCode(userId: string): Promise<string | null> {
     try {
-      console.log('🔧 Création code pour:', userId);
-
-      // ✅ Vérifier si l'utilisateur a déjà un code dans user_referrals
+      // Chercher code existant
       const { data: existingCode } = await supabase
         .from('user_referrals')
         .select('referral_code')
-        .eq('referrer_user_id', userId)
+        .or(`referrer_id.eq.${userId},referrer_user_id.eq.${userId}`)
         .limit(1)
         .single();
 
       if (existingCode?.referral_code) {
-        console.log('✅ Code existant trouvé:', existingCode.referral_code);
         return existingCode.referral_code;
       }
 
@@ -216,7 +245,6 @@ export class ReferralService {
       while (attempts < this.MAX_CODE_GENERATION_ATTEMPTS) {
         const code = this.generateRandomCode();
         
-        // Vérifier unicité dans user_referrals
         const { data: codeExists } = await supabase
           .from('user_referrals')
           .select('id')
@@ -224,23 +252,21 @@ export class ReferralService {
           .single();
         
         if (!codeExists) {
-          console.log(`✅ Code unique généré: ${code}`);
           return code;
         }
         
         attempts++;
       }
       
-      console.error('❌ Impossible de générer un code unique');
       return null;
       
     } catch (error) {
-      console.error('❌ Erreur création code:', error);
+      console.error('Erreur création code:', error);
       return null;
     }
   }
 
-  // 🎲 GÉNÉRATEUR DE CODE ALÉATOIRE
+  // 🎲 GÉNÉRATEUR DE CODE
   private static generateRandomCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
@@ -252,18 +278,14 @@ export class ReferralService {
     return result;
   }
 
-  // 📊 STATISTIQUES - Compatible avec vos tables
+  // 📊 STATISTIQUES
   static async getReferralStats(userId: string): Promise<ReferralStats> {
     try {
-      console.log('📊 Stats parrainage pour:', userId);
-
-      // ✅ Statistiques depuis user_referrals
       const { data: userReferrals, error: userError } = await supabase
         .from('user_referrals')
         .select('status, bonus_earned, total_commission_earned')
-        .eq('referrer_user_id', userId);
+        .or(`referrer_id.eq.${userId},referrer_user_id.eq.${userId}`);
 
-      // ✅ Statistiques depuis referrals (système français)
       const { data: referrals, error: referralError } = await supabase
         .from('referrals')
         .select('is_validated, bonus_amount, total_commission_earned')
@@ -274,7 +296,6 @@ export class ReferralService {
       let totalEarnings = 0;
       let pendingReferrals = 0;
 
-      // Calculer depuis user_referrals
       if (!userError && userReferrals) {
         totalReferrals += userReferrals.length;
         successfulReferrals += userReferrals.filter(r => r.status === 'completed').length;
@@ -284,7 +305,6 @@ export class ReferralService {
         );
       }
 
-      // Ajouter depuis referrals
       if (!referralError && referrals) {
         totalReferrals += referrals.length;
         successfulReferrals += referrals.filter(r => r.is_validated).length;
@@ -294,8 +314,6 @@ export class ReferralService {
         );
       }
 
-      console.log('✅ Stats calculées:', { totalReferrals, successfulReferrals, totalEarnings });
-
       return {
         totalReferrals,
         successfulReferrals,
@@ -304,96 +322,87 @@ export class ReferralService {
       };
 
     } catch (error) {
-      console.error('❌ Erreur stats:', error);
+      console.error('Erreur stats:', error);
       return { totalReferrals: 0, successfulReferrals: 0, totalEarnings: 0, pendingReferrals: 0 };
     }
   }
 
-  // 🔍 RÉCUPÉRER LE CODE D'UN UTILISATEUR
+  // 🔍 RÉCUPÉRER CODE UTILISATEUR
   static async getUserReferralCode(userId: string): Promise<string | null> {
     try {
-      console.log('🔍 Récupération code de:', userId);
-
-      // Chercher dans user_referrals où il est le parrain
       const { data: codeData, error } = await supabase
         .from('user_referrals')
         .select('referral_code')
-        .eq('referrer_user_id', userId)
+        .or(`referrer_id.eq.${userId},referrer_user_id.eq.${userId}`)
         .limit(1)
         .single();
 
       if (error || !codeData?.referral_code) {
-        console.log('⚠️ Aucun code trouvé, génération nécessaire');
         return null;
       }
 
-      console.log('✅ Code trouvé:', codeData.referral_code);
       return codeData.referral_code;
 
     } catch (error) {
-      console.error('❌ Erreur récupération code:', error);
+      console.error('Erreur récupération code:', error);
       return null;
     }
   }
 
-  // 📋 RÉCUPÉRER LES FILLEULS - Compatible avec les deux systèmes
+  // 📋 RÉCUPÉRER LES FILLEULS
   static async getUserReferrals(userId: string): Promise<UserReferral[]> {
     try {
-      console.log('📋 Récupération filleuls de:', userId);
-
-      // ✅ Récupérer depuis user_referrals avec les profils
-      const { data: userReferrals, error: userError } = await supabase
+      // Récupérer les parrainages
+      const { data: referrals, error: referralError } = await supabase
         .from('user_referrals')
-        .select(`
-          id,
-          referrer_user_id,
-          referred_user_id,
-          referral_code,
-          status,
-          bonus_earned,
-          referrer_name,
-          created_at,
-          referred_user:referred_user_id (
-            id,
-            email,
-            profiles (
-              firstname,
-              lastname
-            )
-          )
-        `)
-        .eq('referrer_user_id', userId)
+        .select('*')
+        .or(`referrer_id.eq.${userId},referrer_user_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
-      if (userError) {
-        console.warn('⚠️ Erreur user_referrals:', userError);
+      if (referralError || !referrals || referrals.length === 0) {
         return [];
       }
 
-      console.log('✅ Filleuls trouvés:', userReferrals?.length || 0);
-      
-      if (userReferrals && userReferrals.length > 0) {
-        console.log('👥 Liste des filleuls:', 
-          userReferrals.map(r => r.referred_user?.profiles ? 
-            `${r.referred_user.profiles.firstname} ${r.referred_user.profiles.lastname}` : 
-            r.referred_user?.email || 'Utilisateur'
-          )
-        );
+      // Extraire les IDs des filleuls
+      const filleulIds = referrals.map(r => r.user_id || r.referred_user_id).filter(Boolean);
+
+      if (filleulIds.length === 0) {
+        return [];
       }
 
-      return userReferrals || [];
+      // Récupérer les profils
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, user_id, firstname, lastname, email')
+        .in('id', filleulIds);
+
+      // Construire le résultat
+      return referrals.map(referral => {
+        const filleulId = referral.user_id || referral.referred_user_id;
+        const profile = profiles?.find(p => p.id === filleulId);
+
+        return {
+          ...referral,
+          referred_user: {
+            id: filleulId,
+            email: profile?.email || 'Email inconnu',
+            profiles: {
+              firstname: profile?.firstname || 'Utilisateur',
+              lastname: profile?.lastname || 'inconnu'
+            }
+          }
+        };
+      });
 
     } catch (error) {
-      console.error('❌ Erreur récupération filleuls:', error);
+      console.error('Erreur getUserReferrals:', error);
       return [];
     }
   }
 
-  // 📋 ALTERNATIVE : Récupérer filleuls depuis referrals (système français)
+  // 📋 FILLEULS SYSTÈME FRANÇAIS
   static async getUserReferralsFrench(userId: string): Promise<any[]> {
     try {
-      console.log('📋 Récupération filleuls français de:', userId);
-
       const { data: referrals, error } = await supabase
         .from('referrals')
         .select(`
@@ -402,34 +411,24 @@ export class ReferralService {
           filleul_id,
           bonus_amount,
           is_validated,
-          created_at,
-          filleul:filleul_id (
-            id,
-            email,
-            profiles (
-              firstname,
-              lastname
-            )
-          )
+          created_at
         `)
         .eq('parrain_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('⚠️ Erreur referrals français:', error);
         return [];
       }
 
-      console.log('✅ Filleuls français trouvés:', referrals?.length || 0);
       return referrals || [];
 
     } catch (error) {
-      console.error('❌ Erreur récupération filleuls français:', error);
+      console.error('Erreur récupération filleuls français:', error);
       return [];
     }
   }
 
-  // 🔄 MÉTHODE COMBINÉE : Récupérer depuis les deux systèmes
+  // 🔄 MÉTHODE COMBINÉE
   static async getAllUserReferrals(userId: string): Promise<any[]> {
     try {
       const [modernReferrals, frenchReferrals] = await Promise.all([
@@ -437,15 +436,9 @@ export class ReferralService {
         this.getUserReferralsFrench(userId)
       ]);
 
-      console.log('🔄 Filleuls combinés:', {
-        moderne: modernReferrals.length,
-        français: frenchReferrals.length,
-        total: modernReferrals.length + frenchReferrals.length
-      });
-
       return [...modernReferrals, ...frenchReferrals];
     } catch (error) {
-      console.error('❌ Erreur récupération combinée:', error);
+      console.error('Erreur récupération combinée:', error);
       return [];
     }
   }

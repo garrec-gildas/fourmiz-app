@@ -1,4 +1,4 @@
-// components/fourmiz/ServiceSelector.tsx
+﻿// components/fourmiz/ServiceSelector.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -110,7 +110,7 @@ export default function ServiceSelector({
         {/* Barre de recherche */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
+          <TextInput 
             style={styles.searchInput}
             placeholder="Rechercher un service..."
             value={searchQuery}
@@ -223,7 +223,7 @@ export default function ServiceSelector({
                           )}
                           {service.isEligibleTaxCredit && (
                             <View style={styles.taxCreditBadge}>
-                              <Text style={styles.taxCreditText}>Crédit d'impôt</Text>
+                              <Text style={styles.taxCreditText}>crédit d'impôt</Text>
                             </View>
                           )}
                         </View>

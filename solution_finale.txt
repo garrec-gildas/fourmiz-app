@@ -1,0 +1,79 @@
+﻿  const loadReferralHistoryDirect = async (userId: string) => {
+    try {
+      console.log(' Chargement filleuls pour:', userId);
+      
+      // Récupérer les filleuls (champ confirmé par logs: referrer_user_id)
+      const { data: referralsData, error: referralsError } = await supabase
+        .from('user_referrals')
+        .select('*')
+        .eq('referrer_user_id', userId)
+        .order('created_at', { ascending: false });
+        
+      if (referralsError) {
+        console.error(' Erreur récupération filleuls:', referralsError);
+        setReferralHistory([]);
+        return;
+      }
+      
+      if (!referralsData || referralsData.length === 0) {
+        console.log('ℹ Aucun filleul trouvé');
+        setReferralHistory([]);
+        return;
+      }
+      
+      console.log(` ${referralsData.length} filleuls trouvés`);
+      
+      // Récupérer les profiles séparément pour vrais prénoms
+      const referredUserIds = referralsData.map(r => r.referred_user_id).filter(Boolean);
+      
+      let profilesMap = {};
+      if (referredUserIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, firstname, lastname, email')
+          .in('id', referredUserIds);
+          
+        if (!profilesError && profilesData) {
+          profilesMap = profilesData.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {});
+          console.log(` ${profilesData.length} profiles récupérés`);
+        }
+      }
+      
+      // Combiner avec vrais prénoms
+      const history = referralsData.map((referral) => {
+        const profile = profilesMap[referral.referred_user_id];
+        
+        let displayName = 'Utilisateur';
+        if (profile) {
+          const firstName = profile.firstname || '';
+          const lastName = profile.lastname || '';
+          displayName = lastName ? `${firstName} ${lastName}`.trim() : firstName || 'Utilisateur';
+        } else if (referral.referred_user_name) {
+          displayName = referral.referred_user_name;
+        }
+        
+        return {
+          id: referral.id,
+          referred_user_name: displayName,
+          referred_user_email: profile?.email || referral.referred_user_email || '',
+          referred_user_type: 'client' as const,
+          bonus_earned: referral.bonus_earned || 0,
+          commission_earned: referral.total_commission_earned || 0,
+          status: referral.status === 'completed' ? 'active' : 'pending',
+          created_at: referral.created_at,
+          code_utilise: referral.referral_code || '',
+          first_order_completed: referral.first_order_completed || false,
+        };
+      });
+      
+      setReferralHistory(history);
+      console.log(' Filleuls avec vrais prénoms:', history.map(h => h.referred_user_name));
+      
+    } catch (error) {
+      console.error(' Erreur chargement filleuls:', error);
+      setReferralHistory([]);
+    }
+  };

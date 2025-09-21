@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -54,12 +54,12 @@ import { supabase } from '../../../lib/supabase'; // Ajustez le chemin selon vot
 
 const { width } = Dimensions.get('window');
 
-// ✅ INTERFACES TYPESCRIPT STRICTES ÉTENDUES
+// 📋 INTERFACES TYPESCRIPT STRICTES ÉTENDUES
 interface Service {
   id: string;
   title: string;
   description: string;
-  category: string;
+  categorie: string;
   price_min: number;
   price_max: number;
   duration_min: number;
@@ -123,28 +123,71 @@ interface FilterOptions {
   availability: string[];
 }
 
-// ✅ CONFIGURATION DES STATUTS ET TYPES
-const categoryConfig = {
-  'menage': { label: 'Ménage', color: '#4CAF50', icon: '🏠' },
-  'jardinage': { label: 'Jardinage', color: '#8BC34A', icon: '🌱' },
-  'bricolage': { label: 'Bricolage', color: '#FF9800', icon: '🔧' },
-  'courses': { label: 'Courses', color: '#2196F3', icon: '🛒' },
-  'livraison': { label: 'Livraison', color: '#9C27B0', icon: '📦' },
-  'garde': { label: 'Garde', color: '#E91E63', icon: '👶' },
-  'soutien': { label: 'Soutien scolaire', color: '#3F51B5', icon: '📚' },
-  'informatique': { label: 'Informatique', color: '#607D8B', icon: '💻' },
-  'automobile': { label: 'Automobile', color: '#795548', icon: '🚗' },
-  'autre': { label: 'Autre', color: '#9E9E9E', icon: '⭐' },
-};
+interface DynamicCategoryConfig {
+  label: string;
+  color: string;
+  icon: string;
+}
 
+// 🎯 CONFIGURATION DES STATUTS ET TYPES
 const skillLevelConfig = {
   'beginner': { label: 'Débutant', color: '#4CAF50' },
   'intermediate': { label: 'Intermédiaire', color: '#FF9800' },
   'expert': { label: 'Expert', color: '#F44336' },
 };
 
+// 🎨 GÉNÉRATEUR DYNAMIQUE DE CONFIGURATION DE CATÉGORIES
+const generateCategoryConfig = (categories: string[]): Record<string, DynamicCategoryConfig> => {
+  // Couleurs prédéfinies pour une distribution harmonieuse
+  const colors = [
+    '#4CAF50', '#8BC34A', '#FF9800', '#2196F3', '#9C27B0',
+    '#E91E63', '#3F51B5', '#607D8B', '#795548', '#FF5722',
+    '#009688', '#FFC107', '#673AB7', '#FF4081', '#00BCD4'
+  ];
+
+  // Icônes prédéfinies basées sur des mots-clés communs
+  const getIconForCategory = (category: string): string => {
+    const lowerCategory = category.toLowerCase();
+    
+    if (lowerCategory.includes('menage') || lowerCategory.includes('nettoyage')) return '🧹';
+    if (lowerCategory.includes('jardinage') || lowerCategory.includes('jardin')) return '🌿';
+    if (lowerCategory.includes('bricolage') || lowerCategory.includes('reparation')) return '🔧';
+    if (lowerCategory.includes('courses') || lowerCategory.includes('shopping')) return '🛒';
+    if (lowerCategory.includes('livraison') || lowerCategory.includes('transport')) return '📦';
+    if (lowerCategory.includes('garde') || lowerCategory.includes('enfant')) return '👶';
+    if (lowerCategory.includes('soutien') || lowerCategory.includes('education')) return '📚';
+    if (lowerCategory.includes('informatique') || lowerCategory.includes('tech')) return '💻';
+    if (lowerCategory.includes('automobile') || lowerCategory.includes('voiture')) return '🚗';
+    if (lowerCategory.includes('cuisine') || lowerCategory.includes('repas')) return '👨‍🍳';
+    if (lowerCategory.includes('sante') || lowerCategory.includes('medical')) return '🏥';
+    if (lowerCategory.includes('beaute') || lowerCategory.includes('coiffure')) return '💄';
+    if (lowerCategory.includes('sport') || lowerCategory.includes('fitness')) return '⚽';
+    if (lowerCategory.includes('musique') || lowerCategory.includes('instrument')) return '🎵';
+    if (lowerCategory.includes('art') || lowerCategory.includes('design')) return '🎨';
+    
+    return '❓'; // Icône par défaut
+  };
+
+  // Formater le nom d'affichage
+  const formatCategoryName = (category: string): string => {
+    return category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+  };
+
+  const config: Record<string, DynamicCategoryConfig> = {};
+  
+  categories.forEach((category, index) => {
+    config[category] = {
+      label: formatCategoryName(category),
+      color: colors[index % colors.length],
+      icon: getIconForCategory(category)
+    };
+  });
+
+  return config;
+};
+
 export default function ServicesScreen() {
-  // ✅ ÉTATS DE CHARGEMENT ET GESTION D'ERREUR AVANCÉE
+  // ⚛️ ÉTATS DE CHARGEMENT ET GESTION D'ERREUR AVANCÉE
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -152,6 +195,7 @@ export default function ServicesScreen() {
   const [services, setServices] = useState<Service[]>([]);
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [categoryConfig, setCategoryConfig] = useState<Record<string, DynamicCategoryConfig>>({});
   const [stats, setStats] = useState<ServiceStats | null>(null);
   const [hiddenServices, setHiddenServices] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -188,7 +232,7 @@ export default function ServicesScreen() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'moderator' | 'user'>('user');
 
-  // ✅ CHARGEMENT DES DONNÉES SUPABASE OPTIMISÉ
+  // 📊 CHARGEMENT DES DONNÉES SUPABASE OPTIMISÉ
   const loadServicesData = useCallback(async () => {
     try {
       setLoading(true);
@@ -213,17 +257,23 @@ export default function ServicesScreen() {
       }
 
       // Charger les données en parallèle avec optimisations
-      const [servicesResult, categoriesResult, statsResult, hiddenResult] = await Promise.all([
+      const [servicesResult, hiddenResult] = await Promise.all([
         loadServices(),
-        loadCategories(),
-        loadServiceStats(),
         loadHiddenServices(),
       ]);
 
       setServices(servicesResult);
-      setCategories(categoriesResult);
-      setStats(statsResult);
       setHiddenServices(new Set(hiddenResult.map(h => h.serviceId)));
+
+      // Générer les catégories et la configuration dynamiquement
+      const [categoriesResult, statsResult] = await Promise.all([
+        loadCategories(servicesResult),
+        loadServiceStats(),
+      ]);
+
+      setCategories(categoriesResult.categories);
+      setCategoryConfig(categoriesResult.config);
+      setStats(statsResult);
 
     } catch (error) {
       console.error('Erreur chargement services:', error);
@@ -234,7 +284,7 @@ export default function ServicesScreen() {
     }
   }, []);
 
-  // ✅ FONCTIONS DE CHARGEMENT MODULAIRES OPTIMISÉES
+  // 🔧 FONCTIONS DE CHARGEMENT MODULAIRES OPTIMISÉES
   const loadServices = async (): Promise<Service[]> => {
     const { data, error } = await supabase
       .from('services')
@@ -269,35 +319,84 @@ export default function ServicesScreen() {
     }));
   };
 
-  const loadCategories = async (): Promise<ServiceCategory[]> => {
-    const { data, error } = await supabase
-      .from('service_categories')
-      .select(`
-        *,
-        services!inner(id)
-      `)
-      .order('services_count', { ascending: false });
+  const loadCategories = async (servicesData: Service[]): Promise<{categories: ServiceCategory[], config: Record<string, DynamicCategoryConfig>}> => {
+    // Extraire les catégories uniques depuis les services
+    const categoryStats: Record<string, {
+      count: number;
+      totalPrice: number;
+      totalRevenue: number;
+    }> = {};
 
-    if (error) throw error;
-    return data || [];
+    servicesData.forEach(service => {
+      if (service.categorie) {
+        if (!categoryStats[service.categorie]) {
+          categoryStats[service.categorie] = {
+            count: 0,
+            totalPrice: 0,
+            totalRevenue: 0
+          };
+        }
+        categoryStats[service.categorie].count++;
+        categoryStats[service.categorie].totalPrice += (service.price_min + service.price_max) / 2;
+        categoryStats[service.categorie].totalRevenue += service.revenue_total;
+      }
+    });
+
+    // Générer la configuration dynamique
+    const uniqueCategories = Object.keys(categoryStats);
+    const dynamicConfig = generateCategoryConfig(uniqueCategories);
+
+    // Créer les objets ServiceCategory
+    const categories: ServiceCategory[] = Object.entries(categoryStats)
+      .map(([categoryName, stats]) => ({
+        id: categoryName,
+        name: dynamicConfig[categoryName].label,
+        icon: dynamicConfig[categoryName].icon,
+        color: dynamicConfig[categoryName].color,
+        services_count: stats.count,
+        average_price: stats.count > 0 ? stats.totalPrice / stats.count : 0,
+        is_popular: stats.count > 5, // Considéré populaire si plus de 5 services
+      }))
+      .sort((a, b) => b.services_count - a.services_count); // Trier par popularité
+
+    return {
+      categories,
+      config: dynamicConfig
+    };
   };
 
   const loadServiceStats = async (): Promise<ServiceStats> => {
-    const { data, error } = await supabase
-      .rpc('get_service_statistics');
+    // Si la RPC n'existe pas, calculer manuellement
+    try {
+      const { data, error } = await supabase
+        .rpc('get_service_statistics');
 
-    if (error) throw error;
-    return data || {
-      total_services: 0,
-      active_services: 0,
-      hidden_services: 0,
-      featured_services: 0,
-      credit_impot_services: 0,
-      total_revenue: 0,
-      average_rating: 0,
-      total_orders: 0,
-      categories_count: 0,
-    };
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.warn('RPC get_service_statistics non disponible, calcul manuel...');
+      
+      // Calculer les statistiques manuellement depuis les services chargés
+      const activeServices = services.filter(s => s.is_active).length;
+      const featuredServices = services.filter(s => s.is_featured).length;
+      const creditImpotServices = services.filter(s => s.credit_impot).length;
+      const totalRevenue = services.reduce((sum, s) => sum + s.revenue_total, 0);
+      const totalOrders = services.reduce((sum, s) => sum + s.orders_count, 0);
+      const averageRating = services.length > 0 ? 
+        services.reduce((sum, s) => sum + s.rating, 0) / services.length : 0;
+
+      return {
+        total_services: services.length,
+        active_services: activeServices,
+        hidden_services: hiddenServices.size,
+        featured_services: featuredServices,
+        credit_impot_services: creditImpotServices,
+        total_revenue: totalRevenue,
+        average_rating: averageRating,
+        total_orders: totalOrders,
+        categories_count: categories.length,
+      };
+    }
   };
 
   const loadHiddenServices = async (): Promise<HiddenServiceConfig[]> => {
@@ -310,7 +409,7 @@ export default function ServicesScreen() {
     }
   };
 
-  // ✅ FILTRAGE ET TRI AVANCÉS
+  // 🔍 FILTRAGE ET TRI AVANCÉS
   const applyFiltersAndSort = useCallback(() => {
     let filtered = [...services];
 
@@ -320,14 +419,14 @@ export default function ServicesScreen() {
       filtered = filtered.filter(service =>
         service.title.toLowerCase().includes(query) ||
         service.description.toLowerCase().includes(query) ||
-        service.category.toLowerCase().includes(query) ||
+        service.categorie.toLowerCase().includes(query) ||
         service.tags.some(tag => tag.toLowerCase().includes(query))
       );
     }
 
     // Appliquer les filtres avancés
     if (filters.categories.length > 0) {
-      filtered = filtered.filter(service => filters.categories.includes(service.category));
+      filtered = filtered.filter(service => filters.categories.includes(service.categorie));
     }
 
     if (filters.priceRange) {
@@ -391,7 +490,7 @@ export default function ServicesScreen() {
     setFilteredServices(filtered);
   }, [services, searchQuery, filters, sortBy, sortOrder]);
 
-  // ✅ ACTIONS DE GESTION AVANCÉES
+  // ⚡ ACTIONS DE GESTION AVANCÉES
   const toggleServiceVisibility = async (serviceId: string, hide: boolean) => {
     try {
       setSaving(true);
@@ -556,7 +655,7 @@ export default function ServicesScreen() {
     }
   };
 
-  // ✅ EXPORT AVANCÉ DES DONNÉES
+  // 📊 EXPORT AVANCÉ DES DONNÉES
   const exportServicesData = async () => {
     try {
       setExporting(true);
@@ -586,7 +685,7 @@ export default function ServicesScreen() {
   const generateCSVReport = (): string => {
     const headers = 'ID,Titre,Catégorie,Prix Min,Prix Max,Actif,Crédit Impôt,Note,Commandes,Revenus\n';
     const rows = filteredServices.map(service => 
-      `${service.id},${service.title},${service.category},${service.price_min},${service.price_max},${service.is_active},${service.credit_impot},${service.rating},${service.orders_count},${service.revenue_total}`
+      `${service.id},${service.title},${service.categorie},${service.price_min},${service.price_max},${service.is_active},${service.credit_impot},${service.rating},${service.orders_count},${service.revenue_total}`
     ).join('\n');
     
     return headers + rows;
@@ -598,6 +697,7 @@ export default function ServicesScreen() {
       stats,
       services: filteredServices,
       categories,
+      categoryConfig,
       hiddenServices: Array.from(hiddenServices),
     }, null, 2);
   };
@@ -644,14 +744,14 @@ export default function ServicesScreen() {
     }
   };
 
-  // ✅ RAFRAÎCHISSEMENT INTELLIGENT
+  // 🔄 RAFRAÎCHISSEMENT INTELLIGENT 
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadServicesData();
     setRefreshing(false);
   };
 
-  // ✅ EFFETS ET OPTIMISATIONS
+  // ⚡ EFFETS ET OPTIMISATIONS
   useEffect(() => {
     loadServicesData();
   }, [loadServicesData]);
@@ -660,7 +760,7 @@ export default function ServicesScreen() {
     applyFiltersAndSort();
   }, [applyFiltersAndSort]);
 
-  // ✅ MÉMORISATION DES DONNÉES CALCULÉES
+  // 💡 MÉMORISATION DES DONNÉES CALCULÉES
   const visibleServices = useMemo(() => {
     return filteredServices.filter(service => !hiddenServices.has(service.id));
   }, [filteredServices, hiddenServices]);
@@ -668,13 +768,17 @@ export default function ServicesScreen() {
   const servicesByCategory = useMemo(() => {
     return categories.map(category => ({
       ...category,
-      services: visibleServices.filter(service => service.category === category.id),
+      services: visibleServices.filter(service => service.categorie === category.id),
     }));
   }, [categories, visibleServices]);
 
-  // ✅ COMPOSANTS DE RENDU
+  // 🎨 COMPOSANTS DE RENDU
   const renderServiceCard = ({ item: service }: { item: Service }) => {
-    const categoryInfo = categoryConfig[service.category as keyof typeof categoryConfig] || categoryConfig.autre;
+    const categoryInfo = categoryConfig[service.categorie] || {
+      label: service.categorie,
+      color: '#9E9E9E',
+      icon: '❓'
+    };
     const isHidden = hiddenServices.has(service.id);
     const isSelected = selectedServices.has(service.id);
 
@@ -802,7 +906,7 @@ export default function ServicesScreen() {
     if (!stats) return null;
 
     return (
-      <LinearGradient
+      <LinearGradient 
         colors={['#FF4444', '#FF6666']}
         style={styles.statsCard}
       >
@@ -842,7 +946,7 @@ export default function ServicesScreen() {
     );
   };
 
-  // ✅ ÉCRAN DE CHARGEMENT
+  // ⏳ ÉCRAN DE CHARGEMENT 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -862,7 +966,7 @@ export default function ServicesScreen() {
     );
   }
 
-  // ✅ ÉCRAN D'ERREUR
+  // ❌ ÉCRAN D'ERREUR
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
@@ -890,7 +994,7 @@ export default function ServicesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ✅ HEADER AMÉLIORÉ AVEC ACTIONS MULTIPLES */}
+      {/* 🎯 HEADER AMÉLIORÉ AVEC ACTIONS MULTIPLES */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#333" />
@@ -960,14 +1064,14 @@ export default function ServicesScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ✅ CARTE STATISTIQUES */}
+        {/* 📊 CARTE STATISTIQUES */}
         {renderStatsCard()}
 
-        {/* ✅ BARRE DE RECHERCHE AVANCÉE */}
+        {/* 🔍 BARRE DE RECHERCHE AVANCÉE */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
             <Search size={20} color="#666" />
-            <TextInput
+            <TextInput 
               style={styles.searchInput}
               placeholder="Rechercher un service..."
               value={searchQuery}
@@ -982,7 +1086,7 @@ export default function ServicesScreen() {
           </View>
         </View>
 
-        {/* ✅ FILTRES AVANCÉS (si affichés) */}
+        {/* 🔧 FILTRES AVANCÉS (si affichés) */}
         {showFilters && (
           <View style={styles.filtersContainer}>
             {/* Implémentation des filtres détaillés */}
@@ -991,7 +1095,7 @@ export default function ServicesScreen() {
           </View>
         )}
 
-        {/* ✅ ACTIONS RAPIDES */}
+        {/* ⚡ ACTIONS RAPIDES */}
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.quickAction}>
             <Plus size={20} color="#4CAF50" />
@@ -1012,7 +1116,7 @@ export default function ServicesScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ LISTE DES SERVICES */}
+        {/* 📋 LISTE DES SERVICES */}
         <View style={styles.servicesSection}>
           <View style={styles.servicesSectionHeader}>
             <Text style={styles.sectionTitle}>
@@ -1048,7 +1152,7 @@ export default function ServicesScreen() {
         </View>
       </ScrollView>
 
-      {/* ✅ MODAL D'ÉDITION AVANCÉE */}
+      {/* ✏️ MODAL D'ÉDITION AVANCÉE */}
       <Modal
         visible={editModalVisible}
         animationType="slide"
@@ -1076,7 +1180,7 @@ export default function ServicesScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* ✅ MODAL STATISTIQUES DÉTAILLÉES */}
+      {/* 📊 MODAL STATISTIQUES DÉTAILLÉES */}
       <Modal
         visible={statsModalVisible}
         animationType="slide"
@@ -1136,7 +1240,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ✅ STYLES DE CHARGEMENT ET ERREUR
+  // 💫 STYLES DE CHARGEMENT ET ERREUR
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1179,7 +1283,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // ✅ STYLES STATISTIQUES
+  // 📊 STYLES STATISTIQUES
   statsCard: {
     margin: 20,
     borderRadius: 16,
@@ -1241,7 +1345,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // ✅ STYLES RECHERCHE
+  // 🔍 STYLES RECHERCHE
   searchContainer: {
     paddingHorizontal: 20,
     marginBottom: 16,
@@ -1267,7 +1371,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 
-  // ✅ STYLES FILTRES
+  // 🔧 STYLES FILTRES
   filtersContainer: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
@@ -1287,7 +1391,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // ✅ STYLES ACTIONS RAPIDES
+  // ⚡ STYLES ACTIONS RAPIDES
   quickActions: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -1316,7 +1420,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 
-  // ✅ STYLES SERVICES
+  // 📋 STYLES SERVICES
   servicesSection: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
@@ -1363,7 +1467,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  // ✅ STYLES CARTE SERVICE
+  // 🎨 STYLES CARTE SERVICE
   serviceCard: {
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
@@ -1486,7 +1590,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
 
-  // ✅ STYLES MODALS
+  // 📱 STYLES MODALS
   modalContainer: {
     flex: 1,
     backgroundColor: '#F8F9FA',

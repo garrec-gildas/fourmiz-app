@@ -190,12 +190,12 @@ export class ServicesService {
   /**
    * Rechercher des services par catégorie
    */
-  static async getServicesByCategory(category: string) {
+  static async getServicesByCategory(categorie: string) {
     try {
       const { data, error } = await supabase
         .from('services')
         .select('*')
-        .eq('category', category)
+        .eq('categorie', categorie)
         .eq('is_active', true)
         .order('name');
 
@@ -241,3 +241,5 @@ export class ServicesService {
 }
 
 export default ServicesService;
+
+

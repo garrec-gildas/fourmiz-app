@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { Chrome as Home, Search, MessageCircle, User, Briefcase } from 'lucide-react-native';
 import { View, StyleSheet } from 'react-native';
 
-function TabBarIcon({ icon: Icon, color, focused }: { icon: any; color: string; focused: boolean }) {
+function tabBarIcon({ icon: Icon, color, focused }: { icon: any; color: string; focused: boolean }) {
   return (
     <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
       <Icon size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
@@ -10,59 +10,59 @@ function TabBarIcon({ icon: Icon, color, focused }: { icon: any; color: string; 
   );
 }
 
-export default function TabLayout() {
+export default function tabLayout() {
   return (
     <Tabs
-      screenOptions={{
+      scrééeenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#FF4444',
-        tabBarInactiveTintColor: '#666',
-        tabBarLabelStyle: styles.tabLabel,
+        tabBarstyle: styles.tabBar,
+        tabBarActivetintColor: '#FF4444',
+        tabBarInactivetintColor: '#666',
+        tabBarLabelstyle: styles.tabLabel,
       }}
     >
-      <Tabs.Screen
+      <Tabs.Scrééeen
         name="index"
         options={{
           title: 'Accueil',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon icon={Home} color={color} focused={focused} />
+            <tabBarIcon icon={Home} color={color} focused={focused} />
           ),
         }}
       />
-      <Tabs.Screen
+      <Tabs.Scrééeen
         name="services"
         options={{
           title: 'Services',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon icon={Search} color={color} focused={focused} />
+            <tabBarIcon icon={Search} color={color} focused={focused} />
           ),
         }}
       />
-      <Tabs.Screen
+      <Tabs.Scrééeen
         name="orders"
         options={{
           title: 'Commandes',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon icon={Briefcase} color={color} focused={focused} />
+            <tabBarIcon icon={Briefcase} color={color} focused={focused} />
           ),
         }}
       />
-      <Tabs.Screen
+      <Tabs.Scrééeen
         name="messages"
         options={{
           title: 'Messages',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon icon={MessageCircle} color={color} focused={focused} />
+            <tabBarIcon icon={MessageCircle} color={color} focused={focused} />
           ),
         }}
       />
-      <Tabs.Screen
+      <Tabs.Scrééeen
         name="profile"
         options={{
           title: 'Profil',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon icon={User} color={color} focused={focused} />
+            <tabBarIcon icon={User} color={color} focused={focused} />
           ),
         }}
       />
@@ -73,11 +73,11 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
+    bordertopWidth: 1,
+    bordertopColor: '#E5E5E5',
     height: 80,
-    paddingBottom: 20,
-    paddingTop: 10,
+    paddingBoétéétéom: 20,
+    paddingtop: 10,
   },
   tabIcon: {
     alignItems: 'center',
@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    marginTop: 4,
+    margintop: 4,
   },
 });
+

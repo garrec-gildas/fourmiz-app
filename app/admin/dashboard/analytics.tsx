@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// 🛡️ HELPERS DE RENDU SÉCURISÉ
+// 🔒 HELPERS DE RENDU SÉCURISÉS
 const safeString = (value: any): string => {
   if (value === null || value === undefined) return '';
   return String(value);
@@ -279,7 +279,7 @@ const AdminAnalytics = () => {
         <SafeText style={styles.sectionTitle}>Performance</SafeText>
         <View style={styles.performanceGrid}>
           <View style={styles.performanceCard}>
-            <SafeText style={styles.performanceCardLabel}>Taux de completion</SafeText>
+            <SafeText style={styles.performanceCardLabel}>Taux de complétion</SafeText>
             <SafeText style={[styles.performanceCardValue, { color: '#10B981' }]}>
               {analyticsData.completionRate}%
             </SafeText>
@@ -407,9 +407,9 @@ const AdminAnalytics = () => {
               Prix Optimaux
             </SafeText>
             <SafeText style={[styles.insightText, { color: '#1E40AF' }]}>
-              • Prix le plus populaire: 15€ (1,240 commandes){'\n'}
-              • Zone optimale: 14€-16€{'\n'}
-              • Panier moyen optimal: 16.5€
+              💰 Prix le plus populaire: 15€ (1,240 commandes){'\n'}
+              📊 Zone optimale: 14€-16€{'\n'}
+              🛒 Panier moyen optimal: 16.5€
             </SafeText>
           </View>
           
@@ -418,9 +418,9 @@ const AdminAnalytics = () => {
               Recommandations
             </SafeText>
             <SafeText style={[styles.insightText, { color: '#166534' }]}>
-              • Promouvoir services 14€-16€{'\n'}
-              • Créer offres groupées 25€ et 35€{'\n'}
-              • Tester prix premium 49€ et 59€
+              📈 Promouvoir services 14€-16€{'\n'}
+              🎁 Créer offres groupées 25€ et 35€{'\n'}
+              🎯 Tester prix premium 49€ et 59€
             </SafeText>
           </View>
         </View>
@@ -445,7 +445,7 @@ const AdminAnalytics = () => {
         <SafeText style={styles.sectionTitle}>Performance des Fourmiz</SafeText>
         <View style={styles.performanceGrid}>
           <View style={styles.performanceCard}>
-            <SafeText style={styles.performanceCardLabel}>Taux de completion</SafeText>
+            <SafeText style={styles.performanceCardLabel}>Taux de complétion</SafeText>
             <SafeText style={[styles.performanceCardValue, { color: '#10B981' }]}>96.5%</SafeText>
           </View>
           
@@ -515,9 +515,9 @@ const AdminAnalytics = () => {
               Court terme (1-3 mois)
             </SafeText>
             <SafeText style={[styles.recommendationText, { color: '#166534' }]}>
-              • Augmenter bonus parrainage de 20%{'\n'}
-              • Lancer programme de fidélité{'\n'}
-              • Optimiser les heures de pointe
+              📈 Augmenter bonus parrainage de 20%{'\n'}
+              🎯 Lancer programme de fidélité{'\n'}
+              ⏰ Optimiser les heures de pointe
             </SafeText>
           </View>
           
@@ -526,9 +526,9 @@ const AdminAnalytics = () => {
               Moyen terme (3-6 mois)
             </SafeText>
             <SafeText style={[styles.recommendationText, { color: '#1E40AF' }]}>
-              • Expansion géographique{'\n'}
-              • Nouveaux services premium{'\n'}
-              • Partenariats stratégiques
+              🗺️ Expansion géographique{'\n'}
+              ⭐ Nouveaux services premium{'\n'}
+              🤝 Partenariats stratégiques
             </SafeText>
           </View>
           
@@ -537,9 +537,9 @@ const AdminAnalytics = () => {
               Long terme (6+ mois)
             </SafeText>
             <SafeText style={[styles.recommendationText, { color: '#6B21A8' }]}>
-              • IA pour optimisation routes{'\n'}
-              • Plateforme B2B{'\n'}
-              • International
+              🤖 IA pour optimisation routes{'\n'}
+              🏢 Plateforme B2B{'\n'}
+              🌍 International
             </SafeText>
           </View>
         </View>
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
     color: '#374151',
   },
 
-  // Content
+  // Content 
   content: {
     flex: 1,
   },

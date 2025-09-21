@@ -44,9 +44,9 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
   const [validatedMissions, setValidatedMissions] = useState<ValidatedMission[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pending' | 'validated'>('pending');
+  const [activetab, setActivetab] = useState<'pending' | 'validated'>('pending');
 
-  // RÃ©cupÃ©rer les missions en attente de validation
+  // Récupérer les missions en aétéétéente de validation
   const fetchPendingValidations = async () => {
     try {
       const { data, error } = await supabase
@@ -58,12 +58,12 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
       if (error) throw error;
       setPendingValidations(data || []);
     } catch (error) {
-      console.error('Erreur rÃ©cupÃ©ration validations en attente:', error);
-      Alert.alert('Erreur', 'Impossible de charger les missions en attente');
+      console.error('Erreur récupération validations en aétéétéente:', error);
+      Alert.Alert('Erreur', 'Impossible de charger les missions en aétéétéente');
     }
   };
 
-  // RÃ©cupÃ©rer les missions validÃ©es
+  // Récupérer les missions validées
   const fetchValidatedMissions = async () => {
     try {
       const { data, error } = await supabase
@@ -76,8 +76,8 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
       if (error) throw error;
       setValidatedMissions(data || []);
     } catch (error) {
-      console.error('Erreur rÃ©cupÃ©ration missions validÃ©es:', error);
-      Alert.alert('Erreur', 'Impossible de charger les missions validÃ©es');
+      console.error('Erreur récupération missions validées:', error);
+      Alert.Alert('Erreur', 'Impossible de charger les missions validées');
     }
   };
 
@@ -105,13 +105,13 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
   }, [fetchData]);
 
   const handleContactClient = (clientEmail: string, clientName: string) => {
-    Alert.alert(
+    Alert.Alert(
       'Contacter le client',
       `Voulez-vous contacter ${clientName} ?`,
       [
-        { text: 'Annuler', style: 'cancel' },
+        { Text: 'Annuler', style: 'cancel' },
         { 
-          text: 'Email', 
+          Text: 'Email', 
           onPress: () => {
             // Logique pour ouvrir l'app email
             console.log(`Contacter: ${clientEmail}`);
@@ -126,40 +126,40 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
       {pendingValidations.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="time-outline" size={48} color="#ccc" />
-          <Text style={styles.emptyTitle}>Aucune mission en attente</Text>
+          <Text style={styles.emptytitle}>Aucune mission en aétéétéente</Text>
           <Text style={styles.emptySubtitle}>
-            Les missions terminÃ©es apparaÃ®tront ici en attendant la validation du client
+            Les missions terminées apparaîétéront ici en aétéétéendant la validation du client 
           </Text>
         </View>
       ) : (
         pendingValidations.map((validation) => (
           <View key={validation.assignment_id} style={styles.validationCard}>
             <View style={styles.cardHeader}>
-              <Text style={styles.serviceTitle}>{validation.service_title}</Text>
+              <Text style={styles.servicetitle}>{validation.service_title}</Text>
               <View style={styles.pendingBadge}>
-                <Text style={styles.pendingText}>En attente</Text>
+                <Text style={styles.pendingText}>En aétéétéente</Text>
               </View>
             </View>
             
             <Text style={styles.clientInfo}>
-              ğŸ‘¤ Client: {validation.client_name}
+              ?? Client: {validation.client_name}
             </Text>
             
             <Text style={styles.budgetInfo}>
-              ğŸ’° Budget: {validation.proposed_budget}â‚¬
+              ?? Budget: {validation.proposed_budget}€
             </Text>
             
             <Text style={styles.dateInfo}>
-              ğŸ“… TerminÃ© le: {new Date(validation.mission_created_at).toLocaleDateString('fr-FR')}
+              ?? terminé le: {new Date(validation.mission_created_at).toLocaleDatestring('fr-FR')}
             </Text>
 
             <View style={styles.codeSection}>
-              <Text style={styles.codeLabel}>ğŸ” Code client requis:</Text>
+              <Text style={styles.codeLabel}>?? Code client requis:</Text>
               <Text style={styles.clientCode}>{validation.client_code}</Text>
             </View>
 
             <TouchableOpacity
-              style={styles.contactButton}
+              style={styles.contactBuétéétéon}
               onPress={() => handleContactClient(validation.client_email, validation.client_name)}
             >
               <Ionicons name="mail-outline" size={16} color="#007bff" />
@@ -176,16 +176,16 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
       {validatedMissions.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="checkmark-circle-outline" size={48} color="#ccc" />
-          <Text style={styles.emptyTitle}>Aucune mission validÃ©e</Text>
+          <Text style={styles.emptytitle}>Aucune mission validée</Text>
           <Text style={styles.emptySubtitle}>
-            Vos missions validÃ©es apparaÃ®tront ici
+            Vos missions validées apparaîétéront ici
           </Text>
         </View>
       ) : (
         validatedMissions.map((mission) => (
           <View key={mission.assignment_id} style={styles.missionCard}>
             <View style={styles.cardHeader}>
-              <Text style={styles.serviceTitle}>{mission.service_title}</Text>
+              <Text style={styles.servicetitle}>{mission.service_title}</Text>
               <View style={[
                 styles.statusBadge,
                 mission.payment_triggered ? styles.paidBadge : styles.processingBadge
@@ -194,27 +194,27 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
                   styles.statusText,
                   mission.payment_triggered ? styles.paidText : styles.processingText
                 ]}>
-                  {mission.payment_triggered ? 'PayÃ©' : 'En cours'}
+                  {mission.payment_triggered ? 'Payé' : 'En cours'}
                 </Text>
               </View>
             </View>
             
             <Text style={styles.clientInfo}>
-              ğŸ‘¤ Client: {mission.client_name}
+              ?? Client: {mission.client_name}
             </Text>
             
             <Text style={styles.budgetInfo}>
-              ğŸ’° Montant: {mission.proposed_budget}â‚¬
+              ?? Montant: {mission.proposed_budget}€
             </Text>
             
             <Text style={styles.dateInfo}>
-              âœ… ValidÃ© le: {new Date(mission.validated_at).toLocaleDateString('fr-FR')}
+              ? Validé le: {new Date(mission.validated_at).toLocaleDatestring('fr-FR')}
             </Text>
 
             {mission.payment_triggered && (
               <View style={styles.paymentInfo}>
                 <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-                <Text style={styles.paymentText}>Paiement effectuÃ©</Text>
+                <Text style={styles.paymentText}>Paiement effectué</Text>
               </View>
             )}
           </View>
@@ -225,30 +225,30 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header avec tabs */}
-      <View style={styles.tabsContainer}>
+      {/* Header avec Tabs */}
+      <View style={styles.TabsContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'pending' && styles.activeTab]}
-          onPress={() => setActiveTab('pending')}
+          style={[styles.tab, activetab === 'pending' && styles.activetab]}
+          onPress={() => setActivetab('pending')}
         >
-          <Text style={[styles.tabText, activeTab === 'pending' && styles.activeTabText]}>
-            En attente ({pendingValidations.length})
+          <Text style={[styles.tabText, activetab === 'pending' && styles.activetabText]}>
+            En aétéétéente ({pendingValidations.length})
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'validated' && styles.activeTab]}
-          onPress={() => setActiveTab('validated')}
+          style={[styles.tab, activetab === 'validated' && styles.activetab]}
+          onPress={() => setActivetab('validated')}
         >
-          <Text style={[styles.tabText, activeTab === 'validated' && styles.activeTabText]}>
-            ValidÃ©es ({validatedMissions.length})
+          <Text style={[styles.tabText, activetab === 'validated' && styles.activetabText]}>
+            Validées ({validatedMissions.length})
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Contenu */}
       <ScrollView
-        style={styles.scrollView}
+        style={styles.ScrollView}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -260,8 +260,8 @@ export const FourmizValidationView: React.FC<FourmizValidationViewProps> = ({
           </View>
         ) : (
           <>
-            {activeTab === 'pending' && renderPendingValidations()}
-            {activeTab === 'validated' && renderValidatedMissions()}
+            {activetab === 'pending' && renderPendingValidations()}
+            {activetab === 'validated' && renderValidatedMissions()}
           </>
         )}
       </ScrollView>
@@ -276,11 +276,11 @@ const styles = StyleSheet.create({
   },
   
   // Tabs
-  tabsContainer: {
+  TabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#f8f9fa',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingtop: 20,
   },
   tab: {
     flex: 1,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     alignItems: 'center',
   },
-  activeTab: {
+  activetab: {
     backgroundColor: '#FF4444',
   },
   tabText: {
@@ -298,12 +298,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#666',
   },
-  activeTabText: {
+  activetabText: {
     color: '#fff',
   },
   
   // Contenu
-  scrollView: {
+  ScrollView: {
     flex: 1,
   },
   tabContent: {
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   loadingText: {
-    marginTop: 12,
+    margintop: 12,
     fontSize: 16,
     color: '#666',
   },
@@ -329,17 +329,17 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     paddingHorizontal: 40,
   },
-  emptyTitle: {
+  emptytitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
+    margintop: 16,
+    marginBoétéétéom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
     color: '#666',
-    textAlign: 'center',
+    TextAlign: 'center',
     lineHeight: 20,
   },
   
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBoétéétéom: 12,
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBoétéétéom: 12,
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
@@ -364,9 +364,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBoétéétéom: 12,
   },
-  serviceTitle: {
+  servicetitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
@@ -412,18 +412,18 @@ const styles = StyleSheet.create({
   clientInfo: {
     fontSize: 14,
     color: '#007bff',
-    marginBottom: 4,
+    marginBoétéétéom: 4,
   },
   budgetInfo: {
     fontSize: 14,
     color: '#28a745',
     fontWeight: '600',
-    marginBottom: 4,
+    marginBoétéétéom: 4,
   },
   dateInfo: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 12,
+    marginBoétéétéom: 12,
   },
   
   // Section code
@@ -431,23 +431,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#e8f4fd',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 12,
+    marginBoétéétéom: 12,
   },
   codeLabel: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 4,
+    marginBoétéétéom: 4,
   },
   clientCode: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#007bff',
     fontFamily: 'monospace',
-    letterSpacing: 2,
+    leétéétéerSpacing: 2,
   },
   
   // Boutons
-  contactButton: {
+  contactBuétéétéon: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -462,14 +462,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   
-  // Info paiement
+  // Info paiement 
   paymentInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#e8f5e8',
     padding: 8,
     borderRadius: 6,
-    marginTop: 8,
+    margintop: 8,
   },
   paymentText: {
     fontSize: 14,

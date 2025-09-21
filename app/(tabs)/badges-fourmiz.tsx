@@ -1,4 +1,4 @@
-// app/(tabs)/badges-fourmiz.tsx - CODE COMPLET AVEC CONTRÔLES ADMIN
+// app/(tabs)/badges-fourmiz.tsx - CODE COMPLET AVEC CONTR?LES ADMIN
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Alert,
@@ -12,19 +12,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 const rarityConfig = {
   common: { label: 'Commun', color: '#607D8B', stars: 1 },
   rare: { label: 'Rare', color: '#4CAF50', stars: 2 },
-  epic: { label: 'Épique', color: '#9C27B0', stars: 3 },
-  legendary: { label: 'Légendaire', color: '#FFD700', stars: 4 },
+  epic: { label: '?pique', color: '#9C27B0', stars: 3 },
+  legendary: { label: 'L?gendaire', color: '#FFD700', stars: 4 },
 };
 
-// ✅ Catégories spécifiques aux Fourmiz
+// ? Cat?gories sp?cifiques aux Fourmiz
 const categories = [
-  { id: 'all', label: 'Tous', icon: 'trophy-outline' },
+  { id: 'all', label: 'tous', icon: 'trophy-outline' },
   { id: 'missions', label: 'Missions', icon: 'checkmark-circle-outline' },
   { id: 'earnings', label: 'Gains', icon: 'trending-up-outline' },
-  { id: 'speed', label: 'Rapidité', icon: 'flash-outline' },
-  { id: 'quality', label: 'Qualité', icon: 'star-outline' },
-  { id: 'reliability', label: 'Fiabilité', icon: 'shield-checkmark-outline' },
-  { id: 'availability', label: 'Disponibilité', icon: 'time-outline' },
+  { id: 'speed', label: 'Rapidit?', icon: 'flash-outline' },
+  { id: 'quality', label: 'Qualit?', icon: 'star-outline' },
+  { id: 'reliability', label: 'Fiabilit?', icon: 'shield-checkmark-outline' },
+  { id: 'availability', label: 'Disponibilit?', icon: 'time-outline' },
   { id: 'referral', label: 'Parrainage', icon: 'people-outline' },
 ];
 
@@ -64,9 +64,9 @@ export default function BadgesFourmizScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.replace('/auth/login');
 
-      console.log('📥 Chargement badges Fourmiz avec contrôles admin...');
+      console.log('?? Chargement badges Fourmiz avec contr?les admin...');
 
-      // ✅ NOUVEAU - Récupérer seulement les badges Fourmiz actifs et visibles
+      // ? NOUVEAU - R?cup?rer seulement les badges Fourmiz actifs et visibles
       const { data: catalog, error: catalogError } = await supabase
         .from('badges_catalog')
         .select(`
@@ -74,38 +74,38 @@ export default function BadgesFourmizScreen() {
           category, icon_name, value, currency, rarity,
           gradient_start, gradient_end, is_active, is_visible, display_order
         `)
-        .eq('is_active', true)    // ✅ Seulement les badges actifs
-        .eq('is_visible', true)   // ✅ Seulement les badges visibles
-        .in('category', ['missions', 'earnings', 'speed', 'quality', 'reliability', 'availability', 'referral']) // ✅ Catégories Fourmiz
+        .eq('is_active', true)    // ? Seulement les badges actifs
+        .eq('is_visible', true)   // ? Seulement les badges visibles
+        .in('category', ['missions', 'earnings', 'speed', 'quality', 'reliability', 'availability', 'referral']) // ? Cat?gories Fourmiz
         .order('display_order', { ascending: true })
         .order('category', { ascending: true });
 
       if (catalogError) {
-        console.error('❌ Erreur catalogue badges Fourmiz:', catalogError);
+        console.error('? Erreur catalogue badges Fourmiz:', catalogError);
         Alert.alert('Erreur', `Impossible de charger les badges Fourmiz: ${catalogError.message}`);
         return;
       }
 
-      console.log(`✅ ${catalog?.length || 0} badges Fourmiz chargés depuis le catalogue`);
+      console.log(`? ${catalog?.length || 0} badges Fourmiz charg?s depuis le catalogue`);
 
-      // Récupérer les badges débloqués par l'utilisateur Fourmiz
+      // R?cup?rer les badges d?bloqu?s par l'utilisateur Fourmiz
       const { data: unlocked, error: unlockedError } = await supabase
         .from('user_badges')
         .select('badge_id, unlocked_date, seen, is_unlocked')
         .eq('user_id', user.id);
 
       if (unlockedError) {
-        console.error('⚠️ Erreur badges utilisateur Fourmiz:', unlockedError);
+        console.error('?? Erreur badges utilisateur Fourmiz:', unlockedError);
       }
 
-      console.log(`✅ ${unlocked?.length || 0} badges utilisateur Fourmiz chargés`);
+      console.log(`? ${unlocked?.length || 0} badges utilisateur Fourmiz charg?s`);
 
-      // ✅ NOUVEAU - Fusionner avec noms/descriptions personnalisés
+      // ? NOUVEAU - Fusionner avec noms/descriptions personnalis?s
       const merged: FourmizBadge[] = (catalog || []).map((badge) => {
         const unlock = unlocked?.find((ub) => ub.badge_id === badge.id);
         return {
           ...badge,
-          // ✅ Utiliser custom_name/custom_description si disponibles
+          // ? Utiliser custom_name/custom_description si disponibles
           name: badge.custom_name || badge.name,
           description: badge.custom_description || badge.description,
           isUnlocked: unlock?.is_unlocked || false,
@@ -114,21 +114,21 @@ export default function BadgesFourmizScreen() {
         };
       });
 
-      console.log(`📊 ${merged.length} badges Fourmiz finaux après fusion`);
+      console.log(`?? ${merged.length} badges Fourmiz finaux apr?s fusion`);
       setBadgesCatalog(merged);
       
-      // ✅ Marquer tous les badges comme vus quand on ouvre la page
+      // ? Marquer tous les badges comme vus quand on ouvre la page
       await markAllBadgesAsSeen(user.id);
       
     } catch (error) {
-      console.error('💥 Erreur chargement badges Fourmiz:', error);
-      Alert.alert('Erreur', 'Impossible de charger les récompenses Fourmiz');
+      console.error('?? Erreur chargement badges Fourmiz:', error);
+      Alert.alert('Erreur', 'Impossible de charger les r?compenses Fourmiz');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Marquer tous les badges débloqués comme vus
+  // ? Marquer tous les badges d?bloqu?s comme vus
   const markAllBadgesAsSeen = async (userId: string) => {
     try {
       const { error } = await supabase
@@ -139,16 +139,16 @@ export default function BadgesFourmizScreen() {
         .eq('seen', false);
 
       if (error) {
-        console.error('⚠️ Erreur marquage badges Fourmiz vus:', error);
+        console.error('?? Erreur marquage badges Fourmiz vus:', error);
       } else {
-        console.log('✅ Badges Fourmiz marqués comme vus');
+        console.log('? Badges Fourmiz marqu?s comme vus');
       }
     } catch (error) {
-      console.error('💥 Erreur marquage badges Fourmiz:', error);
+      console.error('?? Erreur marquage badges Fourmiz:', error);
     }
   };
 
-  // ✅ NOUVEAU - Filtrer par catégorie avec meilleure logique
+  // ? NOUVEAU - Filtrer par cat?gorie avec meilleure logique
   const filteredBadges = selectedCategory === 'all'
     ? badgesCatalog
     : badgesCatalog.filter((b) => b.category === selectedCategory);
@@ -169,7 +169,7 @@ export default function BadgesFourmizScreen() {
   };
 
   const renderBadge = ({ item }: { item: FourmizBadge }) => {
-    // ✅ Dégradé selon l'état débloqué/verrouillé
+    // ? D?grad? selon l'?tat d?bloqu?/verrouill?
     const gradient = item.isUnlocked
       ? [item.gradient_start || '#4CAF50', item.gradient_end || '#2196F3']
       : ['#E0E0E0', '#BDBDBD'];
@@ -186,7 +186,7 @@ export default function BadgesFourmizScreen() {
             </View>
           )}
 
-          {/* Header avec icône et valeur */}
+          {/* Header avec ic?ne et valeur */}
           <View style={styles.badgeHeader}>
             <Ionicons 
               name={getIconName(item.icon_name) as any} 
@@ -198,7 +198,7 @@ export default function BadgesFourmizScreen() {
             </Text>
           </View>
 
-          {/* Étoiles de rareté */}
+          {/* ?toiles de raret? */}
           <View style={styles.starsContainer}>
             {Array.from({ length: 5 }).map((_, i) => (
               <Ionicons
@@ -218,19 +218,19 @@ export default function BadgesFourmizScreen() {
             {item.description}
           </Text>
 
-          {/* État du badge */}
+          {/* ?tat du badge */}
           {!item.isUnlocked ? (
             <View style={styles.lockInfo}>
               <Ionicons name="lock-closed" size={14} color="#999" />
               <Text style={styles.lockText}>
-                Mission à accomplir
+                Mission ? accomplir
               </Text>
             </View>
           ) : (
             <View style={styles.unlockedInfo}>
               <Ionicons name="checkmark-circle" size={14} color="#fff" />
               <Text style={styles.unlockedText}>
-                Débloqué le {new Date(item.unlockedDate!).toLocaleDateString('fr-FR')}
+                D?bloqu? le {new Date(item.unlockedDate!).toLocaleDateString('fr-FR')}
               </Text>
             </View>
           )}
@@ -248,12 +248,12 @@ export default function BadgesFourmizScreen() {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator size="large" color="#FF4444" />
-        <Text style={styles.loadingText}>Chargement des récompenses Fourmiz...</Text>
+        <Text style={styles.loadingText}>Chargement des r?compenses Fourmiz...</Text>
       </SafeAreaView>
     );
   }
 
-  // ✅ NOUVEAU - Statistiques améliorées spécifiques Fourmiz
+  // ? NOUVEAU - Statistiques am?lior?es sp?cifiques Fourmiz
   const unlockedCount = badgesCatalog.filter(b => b.isUnlocked).length;
   const totalCount = badgesCatalog.length;
   const legendaryCount = badgesCatalog.filter(b => b.rarity === 'legendary' && b.isUnlocked).length;
@@ -267,13 +267,13 @@ export default function BadgesFourmizScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header avec statistiques Fourmiz */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Récompenses Fourmiz</Text>
+        <Text style={styles.headerTitle}>R?compenses Fourmiz</Text>
         <Text style={styles.headerSubtitle}>
-          {unlockedCount}/{totalCount} badges débloqués
+          {unlockedCount}/{totalCount} badges d?bloqu?s
         </Text>
       </View>
 
-      {/* Filtres par catégorie Fourmiz */}
+      {/* Filtres par cat?gorie Fourmiz */}
       <View style={styles.filtersContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.filtersScroll}>
@@ -303,15 +303,15 @@ export default function BadgesFourmizScreen() {
         </ScrollView>
       </View>
 
-      {/* Statistiques Fourmiz spécifiques */}
+      {/* Statistiques Fourmiz sp?cifiques */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{unlockedCount}</Text>
-          <Text style={styles.statLabel}>Débloqués</Text>
+          <Text style={styles.statLabel}>D?bloqu?s</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{legendaryCount}</Text>
-          <Text style={styles.statLabel}>Légendaires</Text>
+          <Text style={styles.statLabel}>L?gendaires</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{missionsBadges}</Text>
@@ -327,11 +327,11 @@ export default function BadgesFourmizScreen() {
       {filteredBadges.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="construct-outline" size={64} color="#DDD" />
-          <Text style={styles.emptyText}>Aucun badge Fourmiz dans cette catégorie</Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={styles.emptyText}>Aucun badge Fourmiz dans cette cat?gorie</Text>
+          <Text style={styles.emptySubText}>
             {selectedCategory === 'all' 
-              ? 'Les badges Fourmiz seront affichés une fois créés par l\'admin'
-              : 'Changez de catégorie pour voir d\'autres badges Fourmiz'
+              ? 'Les badges Fourmiz seront affich?s une fois cr??s par l\'admin'
+              : 'Changez de cat?gorie pour voir d\'autres badges Fourmiz'
             }
           </Text>
         </View>
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
   },
 
-  // Header amélioré
+  // Header am?lior?
   header: { 
     paddingHorizontal: 20,
     paddingVertical: 20,
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-  emptySubtext: {
+  emptySubText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#d1d5db',
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between' 
   },
 
-  // Badge cards améliorées
+  // Badge cards am?lior?es
   badgeCard: { 
     width: '48%', 
     aspectRatio: 0.85,
@@ -610,3 +610,4 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 });
+

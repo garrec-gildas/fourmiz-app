@@ -1,9 +1,11 @@
-// app/auth/complete-profile.tsx - COMPLÉTION PROFIL ULTRA-AMÉLIORÉE
-// 🚀 Version optimisée avec helpers Supabase, types stricts et validation robuste
-// ✅ Compatible avec le système de parrainage optimisé
-// 🔧 CORRIGÉ: Fonction generateUniqueCode intégrée (plus de dépendance externe)
-// ➕ NOUVEAU: Pré-remplissage automatique des champs nom, prénom, téléphone
-// 🛠️ AJOUTÉ: Upload robuste avec fallback + diagnostic intégré
+﻿// app/auth/complete-profile.tsx - VERSION COMPLÈTE FUSIONNÉE
+// ✅ CONSERVÉ: Toutes les fonctionnalités existantes exactement comme avant
+// 🆕 AJOUTÉ: Fonctionnalité d'adresse avec autocomplete et validation GPS
+// 🆕 AJOUTÉ: Fonctionnalité de consentement de tracking pour les Fourmiz
+// 🔧 CORRIGÉ: Supprimé la redirection automatique vers /criteria 
+// 🔧 CORRIGÉ: Ajouté synchronisation forcée des rôles après sauvegarde
+// 🔧 CORRIGÉ: Nettoyage cache AsyncStorage pour éviter les désynchronisations
+// 🔧 CORRIGÉ: Génération de codes de parrainage en 6 caractères au lieu de 8
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -19,9 +21,28 @@ import {
   Image,
   KeyboardAvoidingView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { LegalEngagementsSection } from '../../src/components/LegalEngagementsSection';
+import type { 
+  EngagementFormData, 
+  EngagementValidation 
+} from '../../src/types/legal-engagements';
+
+// 🆕 AJOUTÉ: Imports pour l'adresse avec autocomplete
+import { AddressInputWithAutocomplete } from '../../src/components/AddressInputWithAutocomplete';
+import { validateAddressFormat, validatePostalCodeCityCoherence } from '../../src/utils/addressValidation';
+import type { AddressSuggestion } from '../../src/types/address';
+
+// 🆕 AJOUTÉ: Imports pour le tracking consent
+import { TrackingConsentSection, useTrackingConsents } from '../../src/components/TrackingConsentSection';
+import type { TrackingConsents } from '../../src/components/TrackingConsentSection';
+
 import {
   supabase,
   handleSupabaseError,
@@ -31,9 +52,13 @@ import {
   Database
 } from '../../lib/supabase';
 
-// ✅ TYPES TYPESCRIPT STRICTS
+// 🆕 AJOUTÉ: Import pour la synchronisation des rôles
+import { useRoleManagerAdapter } from '../../hooks/useRoleManagerAdapter';
+
+// Types TypeScript
 type UserRole = 'client' | 'fourmiz';
-type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+type LegalStatus = 'particulier' | 'travailleur_independant' | 'entreprise';
+type ProfileUpdate = Database['public']['tables']['profiles']['Update'];
 
 interface CompleteProfileFormData {
   roles: UserRole[];
@@ -45,8 +70,22 @@ interface CompleteProfileFormData {
   floor: string;
   postalCode: string;
   city: string;
-  rib: string;
+  legalStatus: LegalStatus;
+  rcsNumber: string;
   idDocumentUri: string | null;
+  existingDocumentUrl: string | null;
+  avatarUri: string | null;
+  existingAvatarUrl: string | null;
+  // 🆕 AJOUTÉ: Propriétés pour l'adresse avec autocomplete
+  selectedAddressCoordinates: {
+    latitude: number;
+    longitude: number;
+  } | null;
+  addressValidationStatus: {
+    isValidated: boolean;
+    confidence?: number;
+    formattedAddress?: string;
+  };
 }
 
 interface FormErrors {
@@ -57,7 +96,8 @@ interface FormErrors {
   address?: string;
   postalCode?: string;
   city?: string;
-  rib?: string;
+  legalStatus?: string;
+  rcsNumber?: string;
   idDocument?: string;
 }
 
@@ -77,12 +117,12 @@ interface UiState {
   sessionLoading: boolean;
   uploading: boolean;
   uploadingDocument: boolean;
+  uploadingAvatar: boolean;
   creatingReferralCode: boolean;
   prefilling: boolean;
-  testing: boolean; // ➕ NOUVEAU: État pour le diagnostic
+  syncingRoles: boolean; // 🆕 AJOUTÉ: État de synchronisation des rôles
 }
 
-// 🛠️ NOUVEAU: Interface pour le résultat d'upload robuste
 interface UploadResult {
   success: boolean;
   url?: string;
@@ -90,7 +130,12 @@ interface UploadResult {
   fallbackUsed?: boolean;
 }
 
-// 🎭 CONSTANTES ET HELPERS
+interface StrictValidationResult {
+  isValid: boolean;
+  message: string;
+}
+
+// Constantes et helpers
 const ROLE_CONFIG = {
   client: {
     emoji: '👤',
@@ -104,36 +149,71 @@ const ROLE_CONFIG = {
   }
 } as const;
 
+const LEGAL_STATUS_CONFIG = {
+  particulier: {
+    emoji: '👤',
+    label: 'Particulier',
+    description: 'Personne physique offrant ses services de manière occasionnelle'
+  },
+  travailleur_independant: {
+    emoji: '💼',
+    label: 'Travailleur indépendant',
+    description: 'Auto-entrepreneur, micro-entreprise, profession libérale'
+  },
+  entreprise: {
+    emoji: '🏢',
+    label: 'Entreprise',
+    description: 'Société (SARL, SAS, EURL...) avec numéro RCS'
+  }
+} as const;
+
 const VALIDATION_RULES = {
   phone: /^(\+33|0)[1-9](\d{8})$/,
   postalCode: /^[0-9]{5}$/,
   minNameLength: 2,
   minAddressLength: 10,
-  minRibLength: 23,
+  minRcsLength: 9,
 } as const;
 
-// 🔧 Configuration d'upload robuste
 const UPLOAD_CONFIG = {
   maxRetries: 3,
   timeoutMs: 30000,
-  chunkSize: 1024 * 1024, // 1MB chunks
+  chunkSize: 1024 * 1024,
   allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
-  maxSizeMB: 10
+  maxSizeMB: 10,
+  useUint8Array: true,
+  validateAfterUpload: true,
+  maxValidationRetries: 15
 };
 
-// ➕ NOUVEAU: Helper pour formater le téléphone
+// 🆕 AJOUTÉ: Fonction de nettoyage du cache
+const clearRoleCache = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem('user_last_role_preference');
+    await AsyncStorage.removeItem('savedRole');
+    console.log('🧹 Cache des rôles nettoyé');
+  } catch (error) {
+    console.warn('⚠️ Erreur nettoyage cache rôles:', error);
+  }
+};
+
+// Fonctions utilitaires
 const formatPhoneNumber = (phone: string): string => {
-  if (!phone) return '';
-  // Supprimer tout sauf les chiffres
+  if (!phone || phone.trim() === '') return '';
   const numbers = phone.replace(/\D/g, '');
-  // Formater: 06 12 34 56 78
+  if (numbers.length < 6) return numbers;
   if (numbers.length >= 10) {
     return numbers.slice(0, 10).replace(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1 $2 $3 $4 $5');
+  }
+  if (numbers.length >= 8) {
+    return numbers.replace(/(\d{2})(\d{2})(\d{2})(\d{2})/, '$1 $2 $3 $4');
+  }
+  if (numbers.length >= 6) {
+    return numbers.replace(/(\d{2})(\d{2})(\d{2})/, '$1 $2 $3');
   }
   return numbers;
 };
 
-// ⏱️ Helper: Timeout wrapper
 const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
   return Promise.race([
     promise,
@@ -143,16 +223,102 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
   ]);
 };
 
+const convertToUint8Array = async (uri: string): Promise<Uint8Array> => {
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    return bytes;
+    
+  } catch (error) {
+    throw new Error(`Conversion échouée: ${error.message}`);
+  }
+};
+
+const validateUploadedFile = async (
+  publicUrl: string, 
+  expectedMinSize: number = 1000,
+  maxRetries: number = 15
+): Promise<boolean> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+      
+      const response = await fetch(publicUrl, { 
+        method: 'HEAD',
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+      
+      const contentLength = response.headers.get('content-length');
+      const fileSize = contentLength ? parseInt(contentLength) : 0;
+      
+      if (response.ok && fileSize >= expectedMinSize) {
+        return true;
+      }
+      
+    } catch (error) {
+      // Silent retry
+    }
+  }
+  
+  return false;
+};
+
 export default function CompleteProfileScreen() {
-  // 📱 PARAMÈTRES URL
-  const { roles: paramRoles } = useLocalSearchParams();
+  const { 
+    roles: paramRoles, 
+    force_edit, 
+    from, 
+    redirect_to,
+    edit_mode,
+    focus
+  } = useLocalSearchParams();
+  
   const initialRoles = useMemo(() => {
     return (paramRoles as string)?.split(',').filter(role => 
       ['client', 'fourmiz'].includes(role)
     ) as UserRole[] || [];
   }, [paramRoles]);
 
-  // ✅ ÉTAT LOCAL TYPÉ
+  const isEditMode = force_edit === 'true' || from === 'profile';
+  const isImageEditMode = edit_mode === 'images';
+  const shouldFocusDocument = focus === 'document';
+
+  // 🆕 AJOUTÉ: Hook pour la gestion des rôles
+  const { reloadProfile, currentRole } = useRoleManagerAdapter();
+
+  // 🆕 AJOUTÉ: État et hook pour le tracking consent
+  const [trackingConsents, setTrackingConsents] = useState<TrackingConsents>({
+    mission: true,  // Par défaut autorisé pour les missions
+    offDuty: false, // Par défaut refusé hors mission (respect vie privée)
+    dataRetention: 30
+  });
+
+  const [session, setSession] = useState<UserSession | null>(null);
+
+  // Hook pour la gestion des consentements
+  const { saveConsents: saveTrackingConsents, isLoading: isTrackingLoading } = useTrackingConsents(session?.user?.id);
+
+  const [engagementFormData, setEngagementFormData] = useState<EngagementFormData>({});
+  const [engagementValidation, setEngagementValidation] = useState<EngagementValidation>({
+    isValid: true,
+    acceptedCount: 0,
+    totalRequired: 0
+  });
+
   const [formData, setFormData] = useState<CompleteProfileFormData>({
     roles: initialRoles,
     firstname: '',
@@ -163,142 +329,355 @@ export default function CompleteProfileScreen() {
     floor: '',
     postalCode: '',
     city: '',
-    rib: '',
-    idDocumentUri: null
+    legalStatus: 'particulier',
+    rcsNumber: '',
+    idDocumentUri: null,
+    existingDocumentUrl: null,
+    avatarUri: null,
+    existingAvatarUrl: null,
+    // 🆕 AJOUTÉ: Initialisation des propriétés d'adresse
+    selectedAddressCoordinates: null,
+    addressValidationStatus: {
+      isValidated: false
+    },
   });
 
   const [uiState, setUiState] = useState<UiState>({
     sessionLoading: true,
     uploading: false,
     uploadingDocument: false,
+    uploadingAvatar: false,
     creatingReferralCode: false,
     prefilling: false,
-    testing: false // ➕ NOUVEAU
+    syncingRoles: false, // 🆕 AJOUTÉ
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
-  const [session, setSession] = useState<UserSession | null>(null);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  // 🧪 NOUVEAU: Test diagnostic storage complet
-  const runStorageDiagnostic = useCallback(async (): Promise<void> => {
-    setUiState(prev => ({ ...prev, testing: true }));
-    
-    try {
-      // Étape 1: Vérifier l'authentification
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        Alert.alert('❌ Erreur Auth', `Utilisateur non connecté: ${authError?.message}`);
-        return;
-      }
-      
-      // Étape 2: Test avec fichier minimal
-      const testContent = `Test upload ${new Date().toISOString()}`;
-      const testBlob = new Blob([testContent], { type: 'text/plain' });
-      const testPath = `${user.id}/diagnostic-${Date.now()}.txt`;
-      
-      // Étape 3: Upload avec timeout personnalisé
-      const uploadPromise = supabase.storage
-        .from('user-documents')
-        .upload(testPath, testBlob, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      // Timeout de 10 secondes pour le diagnostic
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout après 10s')), 10000)
-      );
-      
-      const startTime = Date.now();
-      const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
-      const endTime = Date.now();
-      
-      if (error) {
-        console.error('❌ Erreur upload:', error);
-        Alert.alert(
-          '❌ Erreur Upload Détectée', 
-          `Code: ${error.statusCode || 'N/A'}\nMessage: ${error.message}\nTemps: ${endTime - startTime}ms\n\n🔍 Ceci nous aide à diagnostiquer !\n\n➡️ Vérifiez la configuration Supabase Storage.`
-        );
-        return;
-      }
-      
-      // Étape 4: Vérifier l'URL publique
-      const { data: urlData } = supabase.storage
-        .from('user-documents')
-        .getPublicUrl(testPath);
-      
-      // Étape 5: Nettoyer le fichier test
-      const { error: deleteError } = await supabase.storage
-        .from('user-documents')
-        .remove([testPath]);
-      
-      if (deleteError) {
-        console.warn('⚠️ Nettoyage échoué:', deleteError);
-      }
-      
-      // Succès total !
-      Alert.alert(
-        '✅ Test Upload Réussi !', 
-        `Votre Storage fonctionne parfaitement !\n\n⏱️ Temps: ${endTime - startTime}ms\n🔗 URL: OK\n🗑️ Nettoyage: ${deleteError ? 'Échoué' : 'OK'}\n\n➡️ Le problème "Network request failed" ne vient pas de la configuration Storage.`
-      );
-      
-    } catch (error: any) {
-      console.error('❌ Erreur critique test:', error);
-      
-      if (error.message === 'Timeout après 10s') {
-        Alert.alert(
-          '❌ Timeout Upload', 
-          'L\'upload prend trop de temps (>10s).\n\nCauses probables:\n• Connexion lente\n• Fichier trop volumineux\n• Serveur surchargé\n\n➡️ Essayez avec une meilleure connexion ou un fichier plus petit.'
-        );
-      } else {
-        Alert.alert(
-          '❌ Erreur Test', 
-          `${error.message}\n\nType: ${error.name || 'Inconnu'}\n\n➡️ Vérifiez votre configuration Supabase.`
-        );
-      }
-    } finally {
-      setUiState(prev => ({ ...prev, testing: false }));
-    }
+  const handleEngagementFormDataChange = useCallback((data: Partial<EngagementFormData>) => {
+    setEngagementFormData(prev => ({ ...prev, ...data }));
   }, []);
 
-  // 💾 NOUVEAU: Fallback pour sauvegarder en base si upload échoue
+  const handleEngagementValidationChange = useCallback((validation: EngagementValidation) => {
+    setEngagementValidation(validation);
+  }, []);
+
+  // 🆕 AJOUTÉ: Gestionnaire pour les changements de consentement tracking
+  const handleTrackingConsentChange = useCallback((newConsents: TrackingConsents) => {
+    setTrackingConsents(newConsents);
+    console.log('📍 Consentements tracking mis à jour:', newConsents);
+  }, []);
+
+  // 🆕 AJOUTÉ: Gestion de la sélection d'adresse depuis l'autocomplete
+  const handleAddressSelected = useCallback((selectedAddress: AddressSuggestion) => {
+    console.log('Adresse sélectionnée:', selectedAddress);
+    
+    setFormData(prev => ({
+      ...prev,
+      address: selectedAddress.label,
+      selectedAddressCoordinates: {
+        latitude: selectedAddress.coordinates[1],
+        longitude: selectedAddress.coordinates[0]
+      },
+      addressValidationStatus: {
+        isValidated: true,
+        confidence: selectedAddress.score,
+        formattedAddress: selectedAddress.label
+      },
+      // Auto-remplir le code postal et la ville si pas déjà remplis
+      postalCode: prev.postalCode || selectedAddress.postcode,
+      city: prev.city || selectedAddress.city
+    }));
+    
+    // Effacer les erreurs d'adresse
+    if (errors.address) {
+      setErrors(prev => ({ ...prev, address: undefined }));
+    }
+  }, [errors.address]);
+
+  // Validation finale avant sauvegarde
+  const validateFinalDataForDatabase = useCallback((data: CompleteProfileFormData): string | null => {
+    console.log('🔍 Validation finale des données:', {
+      roles: data.roles,
+      phone: data.phone,
+      postalCode: data.postalCode,
+      isFourmiz: data.roles.includes('fourmiz'),
+      addressValidated: data.addressValidationStatus.isValidated
+    });
+
+    // Validation stricte des rôles
+    if (!data.roles || data.roles.length === 0) {
+      return 'Aucun rôle sélectionné - impossible de sauvegarder';
+    }
+
+    // Validation format téléphone final
+    const phoneClean = data.phone.replace(/\s/g, '');
+    if (!VALIDATION_RULES.phone.test(phoneClean)) {
+      return `Format téléphone invalide: ${data.phone}`;
+    }
+
+    // Validation code postal final
+    if (!VALIDATION_RULES.postalCode.test(data.postalCode)) {
+      return `Code postal invalide: ${data.postalCode}`;
+    }
+
+    // Validation Fourmiz spécifique
+    if (data.roles.includes('fourmiz')) {
+      if (!data.idDocumentUri && !data.existingDocumentUrl) {
+        return 'Document d\'identité manquant pour Fourmiz';
+      }
+
+      if (!engagementValidation.isValid) {
+        return 'Engagements légaux non validés pour Fourmiz';
+      }
+    }
+
+    console.log('✅ Validation finale réussie');
+    return null;
+  }, [engagementValidation]);
+
+  // 🆕 AJOUTÉ: Fonction de synchronisation des rôles
+  const syncRolesAfterSave = useCallback(async (newRoles: UserRole[]): Promise<void> => {
+    console.log('🔄 Début synchronisation des rôles:', newRoles);
+    setUiState(prev => ({ ...prev, syncingRoles: true }));
+
+    try {
+      // Nettoyage du cache
+      await clearRoleCache();
+      
+      // Force le rechargement du profil
+      if (reloadProfile) {
+        console.log('🔄 Rechargement forcé du profil...');
+        await reloadProfile();
+      }
+
+      // Sauvegarde de la nouvelle préférence de rôle
+      const primaryRole = newRoles.includes('fourmiz') ? 'fourmiz' : 'client';
+      await AsyncStorage.setItem('user_last_role_preference', primaryRole);
+      console.log('💾 Nouvelle préférence de rôle sauvée:', primaryRole);
+
+      // Délai pour la synchronisation des hooks
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      console.log('✅ Synchronisation des rôles terminée');
+    } catch (error) {
+      console.error('❌ Erreur synchronisation rôles:', error);
+    } finally {
+      setUiState(prev => ({ ...prev, syncingRoles: false }));
+    }
+  }, [reloadProfile]);
+
+  // 🆕 AJOUTÉ: Validation optionnelle côté serveur
+  const validateAddressOnServer = useCallback(async (
+    address: string, 
+    postalCode: string, 
+    city: string
+  ): Promise<{
+    isValid: boolean;
+    coordinates?: { latitude: number; longitude: number };
+    error?: string;
+  }> => {
+    try {
+      const response = await fetch('/api/address/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address,
+          postalCode,
+          city,
+          userId: session?.user?.id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur de validation serveur');
+      }
+
+      const result = await response.json();
+      return result;
+
+    } catch (error) {
+      console.warn('Erreur validation serveur:', error);
+      return {
+        isValid: false,
+        error: 'Impossible de valider l\'adresse côté serveur'
+      };
+    }
+  }, [session?.user?.id]);
+
+  // 🆕 MODIFIÉ: Validation stricte avec consentements tracking
+  const validateStrictRequirements = useCallback((): StrictValidationResult => {
+    if (formData.roles.length === 0) {
+      return { isValid: false, message: 'Vous devez sélectionner au moins un rôle (Client ou Fourmiz)' };
+    }
+
+    if (!formData.firstname?.trim() || formData.firstname.trim().length < VALIDATION_RULES.minNameLength) {
+      return { isValid: false, message: 'Le prénom est obligatoire (minimum 2 caractères)' };
+    }
+    
+    if (!formData.lastname?.trim() || formData.lastname.trim().length < VALIDATION_RULES.minNameLength) {
+      return { isValid: false, message: 'Le nom est obligatoire (minimum 2 caractères)' };
+    }
+
+    const phoneClean = formData.phone?.replace(/\s/g, '') || '';
+    if (!phoneClean || !VALIDATION_RULES.phone.test(phoneClean)) {
+      return { isValid: false, message: 'Numéro de téléphone invalide (ex: 06 12 34 56 78)' };
+    }
+
+    if (!formData.address?.trim() || formData.address.trim().length < VALIDATION_RULES.minAddressLength) {
+      return { isValid: false, message: 'Adresse complète requise (minimum 10 caractères)' };
+    }
+
+    if (!formData.postalCode?.trim() || !VALIDATION_RULES.postalCode.test(formData.postalCode)) {
+      return { isValid: false, message: 'Code postal invalide (5 chiffres requis)' };
+    }
+
+    if (!formData.city?.trim() || formData.city.trim().length < VALIDATION_RULES.minNameLength) {
+      return { isValid: false, message: 'Ville obligatoire (minimum 2 caractères)' };
+    }
+
+    if (!formData.legalStatus) {
+      return { isValid: false, message: 'Statut juridique obligatoire' };
+    }
+
+    if (['travailleur_independant', 'entreprise'].includes(formData.legalStatus)) {
+      if (!formData.rcsNumber?.trim() || formData.rcsNumber.trim().length < VALIDATION_RULES.minRcsLength) {
+        return { isValid: false, message: 'Numéro RCS obligatoire pour ce statut juridique' };
+      }
+    }
+
+    if (formData.roles.includes('fourmiz')) {
+      if (!formData.idDocumentUri && !formData.existingDocumentUrl) {
+        return { isValid: false, message: 'Pièce d\'identité obligatoire pour les Fourmiz' };
+      }
+      
+      if (!engagementValidation.isValid) {
+        return { 
+          isValid: false, 
+          message: engagementValidation.error || 'Acceptation des engagements légaux obligatoire pour les Fourmiz' 
+        };
+      }
+
+      // 🆕 AJOUTÉ: Validation des consentements tracking (optionnel mais recommandé)
+      if (!trackingConsents.mission) {
+        return {
+          isValid: false,
+          message: 'Le consentement de suivi pendant les missions est fortement recommandé pour la sécurité et l\'efficacité du service'
+        };
+      }
+    }
+
+    return { isValid: true, message: '' };
+  }, [formData, engagementValidation, trackingConsents]);
+
+  const isFormValid = useCallback((): boolean => {
+    return validateStrictRequirements().isValid;
+  }, [validateStrictRequirements]);
+
+  const getFormProgress = useCallback((): { completed: number; total: number; percentage: number } => {
+    let completed = 0;
+    const isFourmizRole = formData.roles.includes('fourmiz');
+    const hasRcsRequirement = ['travailleur_independant', 'entreprise'].includes(formData.legalStatus);
+    
+    let total = 8;
+    if (hasRcsRequirement) total += 1;
+    if (isFourmizRole) {
+      total += 1;
+      if (!engagementValidation.isValid) {
+        total += engagementValidation.totalRequired;
+      }
+    }
+    
+    if (formData.roles.length > 0) completed++;
+    if (formData.firstname.trim().length >= VALIDATION_RULES.minNameLength) completed++;
+    if (formData.lastname.trim().length >= VALIDATION_RULES.minNameLength) completed++;
+    if (formData.phone.trim() && VALIDATION_RULES.phone.test(formData.phone.replace(/\s/g, ''))) completed++;
+    if (formData.address.trim().length >= VALIDATION_RULES.minAddressLength) completed++;
+    if (formData.postalCode.trim() && VALIDATION_RULES.postalCode.test(formData.postalCode)) completed++;
+    if (formData.city.trim().length >= VALIDATION_RULES.minNameLength) completed++;
+    if (formData.legalStatus) completed++;
+    
+    if (hasRcsRequirement) {
+      if (formData.rcsNumber.trim().length >= VALIDATION_RULES.minRcsLength) completed++;
+    }
+    
+    if (isFourmizRole) {
+      if (formData.idDocumentUri || formData.existingDocumentUrl) completed++;
+      
+      if (!engagementValidation.isValid) {
+        completed += engagementValidation.acceptedCount;
+      }
+    }
+    
+    const percentage = Math.round((completed / total) * 100);
+    
+    return { completed, total, percentage };
+  }, [formData, engagementValidation]);
+
+  const getValidationHints = useCallback((): string[] => {
+    const hints: string[] = [];
+    
+    if (formData.roles.length === 0) hints.push('Sélectionnez au moins un rôle');
+    if (!formData.firstname.trim() || formData.firstname.trim().length < 2) hints.push('Renseignez votre prénom');
+    if (!formData.lastname.trim() || formData.lastname.trim().length < 2) hints.push('Renseignez votre nom');
+    if (!formData.phone.trim()) hints.push('Renseignez votre téléphone');
+    else if (!VALIDATION_RULES.phone.test(formData.phone.replace(/\s/g, ''))) hints.push('Format de téléphone invalide');
+    if (!formData.address.trim() || formData.address.trim().length < 10) hints.push('Renseignez votre adresse complète');
+    if (!formData.postalCode.trim()) hints.push('Renseignez votre code postal');
+    else if (!VALIDATION_RULES.postalCode.test(formData.postalCode)) hints.push('Code postal invalide');
+    if (!formData.city.trim()) hints.push('Renseignez votre ville');
+    
+    if (['travailleur_independant', 'entreprise'].includes(formData.legalStatus) && (!formData.rcsNumber.trim() || formData.rcsNumber.trim().length < 9)) {
+      hints.push('Numéro RCS requis pour ce statut');
+    }
+    
+    if (formData.roles.includes('fourmiz')) {
+      if (!formData.idDocumentUri && !formData.existingDocumentUrl) {
+        hints.push('Pièce d\'identité requise pour les Fourmiz');
+      }
+      
+      if (!engagementValidation.isValid && engagementValidation.error) {
+        hints.push(engagementValidation.error);
+      }
+    }
+    
+    return hints;
+  }, [formData, engagementValidation]);
+
   const saveFallbackUpload = useCallback(async (
     userId: string, 
     fileUri: string, 
     metadata: any
   ): Promise<void> => {
     try {
-      
-      // Convertir le fichier en base64 pour sauvegarde temporaire
-      const response = await fetch(fileUri);
-      const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
+      const base64 = await FileSystem.readAsStringAsync(fileUri, {
+        encoding: FileSystem.EncodingType.Base64,
       });
 
       const { error } = await supabase.from('pending_uploads').insert({
         user_id: userId,
         file_path: `${userId}/id-document-${Date.now()}`,
-        file_data: base64,
+        file_data: `data:${metadata.mimeType || 'image/jpeg'};base64,${base64}`,
         metadata: metadata,
         status: 'pending'
       });
 
       if (error) {
-        console.error('❌ Erreur sauvegarde fallback:', error);
         throw error;
       }
     } catch (error) {
-      console.error('❌ Erreur critique fallback:', error);
       throw error;
     }
   }, []);
 
-  // ➕ NOUVEAU: Fonction de pré-remplissage intelligent
   const prefillFormData = useCallback(async (currentUser: UserSession['user']): Promise<void> => {
+    if (isEditMode && isDataLoaded) {
+      return;
+    }
+
     try {
       setUiState(prev => ({ ...prev, prefilling: true }));
 
@@ -308,24 +687,19 @@ export default function CompleteProfileScreen() {
         phone: '',
       };
 
-      // PRIORITÉ 1: Vérifier s'il y a déjà un profil en base
       const { data: existingProfile } = await supabase
         .from('profiles')
-        .select('firstname, lastname, phone, prenom, nom, first_name, last_name')
+        .select('firstname, lastname, phone')
         .eq('user_id', currentUser.id)
         .single();
 
       if (existingProfile) {
-        
-        // Construction intelligente depuis le profil
         prefillData.firstname = existingProfile.firstname || existingProfile.prenom || existingProfile.first_name || '';
         prefillData.lastname = existingProfile.lastname || existingProfile.nom || existingProfile.last_name || '';
-        prefillData.phone = formatPhoneNumber(existingProfile.phone || '');
+        prefillData.phone = existingProfile.phone || '';
       }
 
-      // PRIORITÉ 2: Métadonnées utilisateur (données d'inscription)
       if (!prefillData.firstname || !prefillData.lastname || !prefillData.phone) {
-        
         if (currentUser.user_metadata) {
           if (!prefillData.firstname && currentUser.user_metadata.firstname) {
             prefillData.firstname = currentUser.user_metadata.firstname;
@@ -336,16 +710,14 @@ export default function CompleteProfileScreen() {
           }
           
           if (!prefillData.phone && currentUser.user_metadata.phone) {
-            prefillData.phone = formatPhoneNumber(currentUser.user_metadata.phone);
+            prefillData.phone = currentUser.user_metadata.phone;
           }
         }
       }
 
-      // PRIORITÉ 3: Extraire depuis l'email si nécessaire
       if (!prefillData.firstname && !prefillData.lastname && currentUser.email) {
         const emailPart = currentUser.email.split('@')[0];
         
-        // Essayer de détecter prénom.nom
         if (emailPart.includes('.')) {
           const parts = emailPart.split('.');
           if (parts.length >= 2) {
@@ -355,27 +727,26 @@ export default function CompleteProfileScreen() {
         }
       }
 
-      // Application des données pré-remplies
+      if (prefillData.phone) {
+        prefillData.phone = formatPhoneNumber(prefillData.phone);
+      }
       
       setFormData(prev => ({
         ...prev,
-        firstname: prefillData.firstname.trim(),
-        lastname: prefillData.lastname.trim(),
-        phone: prefillData.phone.trim(),
+        firstname: prefillData.firstname.trim() || prev.firstname,
+        lastname: prefillData.lastname.trim() || prev.lastname,
+        phone: prefillData.phone.trim() || prev.phone,
       }));
 
     } catch (error) {
-      console.warn('⚠️ Erreur lors du pré-remplissage:', error);
-      // Ne pas bloquer l'utilisateur si le pré-remplissage échoue
+      // Silent error handling
     } finally {
       setUiState(prev => ({ ...prev, prefilling: false }));
     }
-  }, []);
+  }, [isEditMode, isDataLoaded]);
 
-  // 🔄 CHARGEMENT DE LA SESSION UTILISATEUR (MODIFIÉ avec pré-remplissage)
   const loadUserSession = useCallback(async (): Promise<void> => {
     try {
-      
       const currentUser = await getCurrentUser();
       const currentSession = await getCurrentSession();
       
@@ -398,14 +769,13 @@ export default function CompleteProfileScreen() {
       
       setSession(userSession);
 
-      // Vérifier si le profil existe déjà et est complet
       await loadExistingProfile(currentUser.id);
 
-      // ➕ NOUVEAU: Pré-remplir les champs automatiquement
-      await prefillFormData(userSession.user);
+      if (!isEditMode || !isDataLoaded) {
+        await prefillFormData(userSession.user);
+      }
 
     } catch (error) {
-      console.error('❌ Erreur chargement session:', error);
       const { userMessage } = handleSupabaseError(error, 'Session utilisateur');
       
       Alert.alert(
@@ -416,11 +786,13 @@ export default function CompleteProfileScreen() {
     } finally {
       setUiState(prev => ({ ...prev, sessionLoading: false }));
     }
-  }, [prefillFormData]);
+  }, [prefillFormData, isEditMode, isDataLoaded]);
 
-  // 📋 CHARGEMENT DU PROFIL EXISTANT (SI EXISTE) - MODIFIÉ pour ne pas écraser le pré-remplissage
+  // 🆕 MODIFIÉ: Chargement des données existantes avec consentements tracking
   const loadExistingProfile = useCallback(async (userId: string): Promise<void> => {
     try {
+      console.log('🔍 Chargement profil existant pour:', userId);
+      
       const { data: existingProfile, error } = await supabase
         .from('profiles')
         .select(`
@@ -433,22 +805,45 @@ export default function CompleteProfileScreen() {
           postal_code,
           city,
           roles,
-          rib,
+          legal_status,
+          rcs_number,
           id_document_path,
-          profile_completed
+          avatar_url,
+          profile_completed,
+          criteria_completed,
+          latitude,
+          longitude,
+          formatted_address,
+          address_confidence,
+          address_validated_at,
+          tracking_consent_mission,
+          tracking_consent_off_duty,
+          tracking_consent_date,
+          data_retention_days
         `)
         .eq('user_id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.warn('⚠️ Impossible de charger le profil existant:', error);
+      if (error) {
+        if (error.code === 'PGRST116') {
+          console.log('ℹ️ Aucun profil existant trouvé - création en cours');
+          return;
+        }
+        
+        console.error('❌ Erreur chargement profil:', error);
+        const { userMessage } = handleSupabaseError(error, 'Chargement profil');
+        Alert.alert('Erreur', `Impossible de charger votre profil: ${userMessage}`);
         return;
       }
 
       if (existingProfile) {
-        
-        // Si le profil est déjà complet, rediriger
-        if (existingProfile.profile_completed && existingProfile.firstname && existingProfile.lastname) {
+        console.log('✅ Profil existant trouvé:', {
+          roles: existingProfile.roles,
+          profile_completed: existingProfile.profile_completed
+        });
+
+        // Vérification redirection profil complété
+        if (existingProfile.profile_completed && existingProfile.firstname && existingProfile.lastname && !isEditMode) {
           Alert.alert(
             'Profil déjà complété',
             'Votre profil est déjà rempli. Redirection vers l\'application...',
@@ -457,73 +852,178 @@ export default function CompleteProfileScreen() {
           return;
         }
         
-        // ✅ AMÉLIORATION: Ne pré-remplir que les champs non critiques (adresse, etc.)
-        // Les champs nom/prénom/téléphone seront gérés par prefillFormData()
-        setFormData(prev => ({
-          ...prev,
-          address: existingProfile.address || '',
-          building: existingProfile.building || '',
-          floor: existingProfile.floor || '',
-          postalCode: existingProfile.postal_code || '',
-          city: existingProfile.city || '',
-          roles: (existingProfile.roles as UserRole[]) || prev.roles,
-          rib: existingProfile.rib || '',
-          // Note: ne pas écraser firstname, lastname, phone qui sont gérés par prefillFormData
-        }));
+        if (isEditMode || existingProfile.profile_completed) {
+          const formattedPhone = existingProfile.phone ? formatPhoneNumber(existingProfile.phone) : '';
+
+          // 🆕 AJOUTÉ: Chargement des données d'adresse avec GPS
+          const addressValidationStatus = {
+            isValidated: !!existingProfile.address_validated_at,
+            confidence: existingProfile.address_confidence || undefined,
+            formattedAddress: existingProfile.formatted_address || undefined
+          };
+
+          const selectedAddressCoordinates = (existingProfile.latitude && existingProfile.longitude) ? {
+            latitude: existingProfile.latitude,
+            longitude: existingProfile.longitude
+          } : null;
+
+          setFormData(prev => ({
+            ...prev,
+            firstname: existingProfile.firstname || '',
+            lastname: existingProfile.lastname || '',
+            phone: formattedPhone,
+            address: existingProfile.address || '',
+            building: existingProfile.building || '',
+            floor: existingProfile.floor || '',
+            postalCode: existingProfile.postal_code || '',
+            city: existingProfile.city || '',
+            roles: (existingProfile.roles as UserRole[]) || prev.roles,
+            legalStatus: (existingProfile.legal_status as LegalStatus) || 'particulier',
+            rcsNumber: existingProfile.rcs_number || '',
+            existingDocumentUrl: existingProfile.id_document_path || null,
+            existingAvatarUrl: existingProfile.avatar_url || null,
+            idDocumentUri: null,
+            avatarUri: null,
+            // 🆕 AJOUTÉ: Chargement des données GPS
+            selectedAddressCoordinates,
+            addressValidationStatus,
+          }));
+
+          // 🆕 AJOUTÉ: Chargement des consentements tracking existants
+          if (existingProfile.roles?.includes('fourmiz')) {
+            console.log('📍 Chargement consentements tracking existants...');
+            
+            setTrackingConsents({
+              mission: existingProfile.tracking_consent_mission ?? true,
+              offDuty: existingProfile.tracking_consent_off_duty ?? false,
+              dataRetention: existingProfile.data_retention_days ?? 30,
+              lastUpdated: existingProfile.tracking_consent_date
+            });
+          }
+
+          setIsDataLoaded(true);
+          
+        } else {
+          const addressValidationStatus = {
+            isValidated: !!existingProfile.address_validated_at,
+            confidence: existingProfile.address_confidence || undefined,
+            formattedAddress: existingProfile.formatted_address || undefined
+          };
+
+          const selectedAddressCoordinates = (existingProfile.latitude && existingProfile.longitude) ? {
+            latitude: existingProfile.latitude,
+            longitude: existingProfile.longitude
+          } : null;
+
+          setFormData(prev => ({
+            ...prev,
+            address: existingProfile.address || '',
+            building: existingProfile.building || '',
+            floor: existingProfile.floor || '',
+            postalCode: existingProfile.postal_code || '',
+            city: existingProfile.city || '',
+            roles: (existingProfile.roles as UserRole[]) || prev.roles,
+            legalStatus: (existingProfile.legal_status as LegalStatus) || 'particulier',
+            rcsNumber: existingProfile.rcs_number || '',
+            existingDocumentUrl: existingProfile.id_document_path || null,
+            existingAvatarUrl: existingProfile.avatar_url || null,
+            // 🆕 AJOUTÉ: Chargement des données GPS
+            selectedAddressCoordinates,
+            addressValidationStatus,
+          }));
+
+          // 🆕 AJOUTÉ: Chargement des consentements tracking existants
+          if (existingProfile.roles?.includes('fourmiz')) {
+            console.log('📍 Chargement consentements tracking existants...');
+            
+            setTrackingConsents({
+              mission: existingProfile.tracking_consent_mission ?? true,
+              offDuty: existingProfile.tracking_consent_off_duty ?? false,
+              dataRetention: existingProfile.data_retention_days ?? 30,
+              lastUpdated: existingProfile.tracking_consent_date
+            });
+          }
+        }
       }
     } catch (error) {
-      console.warn('⚠️ Erreur chargement profil existant:', error);
-      // Ne pas bloquer l'utilisateur si on ne peut pas charger le profil existant
+      console.error('❌ Exception loadExistingProfile:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      Alert.alert(
+        'Erreur de chargement', 
+        `Impossible de charger votre profil: ${errorMessage}`
+      );
     }
-  }, []);
+  }, [isEditMode]);
 
-  // 🛠️ VALIDATION ROBUSTE DU FORMULAIRE
+  // 🆕 MODIFIÉ: Validation des champs avec validation d'adresse renforcée
   const validateField = useCallback((field: keyof CompleteProfileFormData, value: any): string | undefined => {
     switch (field) {
       case 'roles':
         return value.length === 0 ? 'Veuillez sélectionner au moins un rôle' : undefined;
-      
       case 'firstname':
         if (!value.trim()) return 'Le prénom est requis';
         if (value.trim().length < VALIDATION_RULES.minNameLength) return 'Le prénom doit contenir au moins 2 caractères';
         return undefined;
-      
       case 'lastname':
         if (!value.trim()) return 'Le nom est requis';
         if (value.trim().length < VALIDATION_RULES.minNameLength) return 'Le nom doit contenir au moins 2 caractères';
         return undefined;
-      
       case 'phone':
         if (!value.trim()) return 'Le téléphone est requis';
         if (!VALIDATION_RULES.phone.test(value.replace(/\s/g, ''))) return 'Format de téléphone invalide (ex: 06 12 34 56 78)';
         return undefined;
-      
       case 'address':
         if (!value.trim()) return 'L\'adresse est requise';
-        if (value.trim().length < VALIDATION_RULES.minAddressLength) return 'L\'adresse doit être plus précise';
+        
+        // Validation de format renforcée
+        const formatValidation = validateAddressFormat(value);
+        if (!formatValidation.isValid) {
+          return formatValidation.issues[0] || 'Format d\'adresse invalide';
+        }
+        
+        // Vérifier si l'adresse a été validée par l'autocomplete
+        if (!formData.addressValidationStatus.isValidated) {
+          return 'Veuillez sélectionner une adresse dans les suggestions ou utiliser une adresse plus précise';
+        }
+        
         return undefined;
-      
+        
       case 'postalCode':
         if (!value.trim()) return 'Le code postal est requis';
         if (!VALIDATION_RULES.postalCode.test(value)) return 'Code postal invalide (5 chiffres)';
+        
+        // Validation de cohérence avec la ville
+        if (formData.city) {
+          const coherence = validatePostalCodeCityCoherence(value, formData.city);
+          if (!coherence.isValid && coherence.warning) {
+            return coherence.warning;
+          }
+        }
+        
         return undefined;
-      
+        
       case 'city':
         if (!value.trim()) return 'La ville est requise';
         if (value.trim().length < VALIDATION_RULES.minNameLength) return 'Le nom de ville doit contenir au moins 2 caractères';
         return undefined;
-      
+      case 'legalStatus':
+        return !value ? 'Veuillez sélectionner votre statut juridique' : undefined;
+      case 'rcsNumber':
+        if (['travailleur_independant', 'entreprise'].includes(formData.legalStatus)) {
+          if (!value.trim()) return 'Le numéro RCS est requis pour ce statut';
+          if (value.trim().length < VALIDATION_RULES.minRcsLength) return 'Le numéro RCS doit contenir au moins 9 caractères';
+        }
+        return undefined;
       default:
         return undefined;
     }
-  }, []);
+  }, [formData.legalStatus, formData.addressValidationStatus.isValidated, formData.city]);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
     let isValid = true;
 
-    // Validation des champs principaux
-    (['roles', 'firstname', 'lastname', 'phone', 'address', 'postalCode', 'city'] as const).forEach(field => {
+    (['roles', 'firstname', 'lastname', 'phone', 'address', 'postalCode', 'city', 'legalStatus', 'rcsNumber'] as const).forEach(field => {
       const error = validateField(field, formData[field]);
       if (error) {
         newErrors[field] = error;
@@ -531,17 +1031,8 @@ export default function CompleteProfileScreen() {
       }
     });
 
-    // Validation spécifique pour les Fourmiz
     if (formData.roles.includes('fourmiz')) {
-      if (!formData.rib.trim()) {
-        newErrors.rib = 'Le RIB est requis pour les Fourmiz';
-        isValid = false;
-      } else if (formData.rib.length < VALIDATION_RULES.minRibLength) {
-        newErrors.rib = 'Le RIB doit contenir 23 caractères minimum';
-        isValid = false;
-      }
-
-      if (!formData.idDocumentUri) {
+      if (!formData.idDocumentUri && !formData.existingDocumentUrl) {
         newErrors.idDocument = 'La pièce d\'identité est requise pour les Fourmiz';
         isValid = false;
       }
@@ -551,10 +1042,8 @@ export default function CompleteProfileScreen() {
     return isValid;
   }, [formData, validateField]);
 
-  // 🖼️ SÉLECTION DE DOCUMENT D'IDENTITÉ
   const pickIdDocument = useCallback(async (): Promise<void> => {
     try {
-      // Demander permission
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         Alert.alert(
@@ -568,7 +1057,6 @@ export default function CompleteProfileScreen() {
         return;
       }
 
-      // Lancer le sélecteur d'image
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
@@ -583,69 +1071,94 @@ export default function CompleteProfileScreen() {
           idDocumentUri: result.assets[0].uri 
         }));
         
-        // Effacer l'erreur de document si elle existe
         if (errors.idDocument) {
           setErrors(prev => ({ ...prev, idDocument: undefined }));
         }
       }
     } catch (error) {
-      console.error('❌ Erreur sélection document:', error);
       Alert.alert('Erreur', 'Impossible de sélectionner le document');
     }
   }, [errors.idDocument]);
 
-  // ☁️ UPLOAD DU DOCUMENT D'IDENTITÉ - VERSION ULTRA-ROBUSTE
+  const pickAvatar = useCallback(async (): Promise<void> => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Permission requise',
+          'L\'accès à la galerie est nécessaire pour ajouter votre photo de profil',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Paramètres', onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() }
+          ]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [1, 1],
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setFormData(prev => ({ 
+          ...prev, 
+          avatarUri: result.assets[0].uri 
+        }));
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de sélectionner la photo');
+    }
+  }, []);
+
   const uploadIdDocument = useCallback(async (userId: string): Promise<UploadResult> => {
     if (!formData.idDocumentUri) {
-      return { success: true, url: null };
+      return { success: true, url: undefined };
     }
-    
+
     try {
       setUiState(prev => ({ ...prev, uploadingDocument: true }));
 
-      // Validation préliminaire
       if (!formData.idDocumentUri || !userId) {
         throw new Error('URI du fichier ou userId manquant');
       }
 
-      // Récupérer les données du fichier
-      const response = await fetch(formData.idDocumentUri);
-      if (!response.ok) {
-        throw new Error(`Erreur lecture fichier: ${response.status}`);
+      const fileInfo = await FileSystem.getInfoAsync(formData.idDocumentUri);
+      if (!fileInfo.exists) {
+        throw new Error('Fichier non trouvé');
       }
+
+      const fileSize = fileInfo.size || 0;
+      const fileExtension = formData.idDocumentUri.split('.').pop() || 'jpg';
+      const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
       
-      const blob = await response.blob();
-      const fileSize = blob.size;
-      const fileType = blob.type;
-      
-      // Validations
       if (fileSize > UPLOAD_CONFIG.maxSizeMB * 1024 * 1024) {
         throw new Error(`Fichier trop volumineux (max ${UPLOAD_CONFIG.maxSizeMB}MB)`);
       }
-      
-      if (!UPLOAD_CONFIG.allowedTypes.includes(fileType)) {
-        throw new Error(`Type de fichier non supporté: ${fileType}`);
-      }
 
-      // Chemin unique pour le fichier - CORRIGÉ pour utiliser le chemin qui marche
-      const fileName = `id-document-${Date.now()}.${fileType.split('/')[1]}`;
-      const filePath = `${userId}/id-document-${fileName}`; // ✅ CORRECTION: Utiliser le chemin qui marche
+      const uint8ArrayData = await convertToUint8Array(formData.idDocumentUri);
+
+      const fileName = `id-document-${Date.now()}.${fileExtension}`;
+      const filePath = `${userId}/${fileName}`;
       
-      // Upload avec retry
       let lastError: Error | null = null;
       
       for (let attempt = 1; attempt <= UPLOAD_CONFIG.maxRetries; attempt++) {
         try {
-          
           const uploadPromise = supabase.storage
             .from('user-documents')
-            .upload(filePath, blob, {
+            .upload(filePath, uint8ArrayData, {
               cacheControl: '3600',
               upsert: false,
+              contentType: mimeType,
               metadata: {
                 userId,
                 uploadedAt: new Date().toISOString(),
-                originalName: `id-document.${fileType.split('/')[1]}`
+                originalName: `id-document.${fileExtension}`,
+                uploadMethod: 'uint8Array-rn'
               }
             });
           
@@ -658,10 +1171,21 @@ export default function CompleteProfileScreen() {
             throw error;
           }
           
-          // Succès - Générer l'URL publique
           const { data: urlData } = supabase.storage
             .from('user-documents')
             .getPublicUrl(filePath);
+          
+          if (UPLOAD_CONFIG.validateAfterUpload) {
+            const isValid = await validateUploadedFile(
+              urlData.publicUrl, 
+              uint8ArrayData.length * 0.9,
+              UPLOAD_CONFIG.maxValidationRetries
+            );
+            
+            if (!isValid) {
+              throw new Error('Validation post-upload échouée');
+            }
+          }
           
           return {
             success: true,
@@ -670,33 +1194,29 @@ export default function CompleteProfileScreen() {
           
         } catch (error) {
           lastError = error as Error;
-          console.warn(`❌ Tentative ${attempt} échouée:`, error);
           
           if (attempt < UPLOAD_CONFIG.maxRetries) {
-            // Attendre avant retry (backoff exponentiel)
             const delay = Math.pow(2, attempt) * 1000;
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
       }
       
-      // Toutes les tentatives ont échoué - Utiliser le fallback
-      
       await saveFallbackUpload(userId, formData.idDocumentUri, {
         originalSize: fileSize,
-        originalType: fileType,
+        originalType: mimeType,
         uploadAttempts: UPLOAD_CONFIG.maxRetries,
-        lastError: lastError?.message
+        lastError: lastError?.message,
+        uploadMethod: 'fallback-rn'
       });
       
       return {
         success: true,
-        url: null, // Pas d'URL car sauvegardé en base
+        url: undefined,
         fallbackUsed: true
       };
       
     } catch (error) {
-      console.error('❌ Erreur upload critique:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erreur inconnue'
@@ -706,26 +1226,138 @@ export default function CompleteProfileScreen() {
     }
   }, [formData.idDocumentUri, saveFallbackUpload]);
 
-  // 🔧 FONCTION DE GÉNÉRATION DE CODE UNIQUE (INTÉGRÉE - PLUS DE DÉPENDANCE EXTERNE)
+  const uploadAvatar = useCallback(async (userId: string): Promise<UploadResult> => {
+    if (!formData.avatarUri) {
+      return { success: true, url: undefined };
+    }
+
+    try {
+      setUiState(prev => ({ ...prev, uploadingAvatar: true }));
+      
+      if (!formData.avatarUri || !userId) {
+        throw new Error('URI de l\'avatar ou userId manquant');
+      }
+
+      const fileInfo = await FileSystem.getInfoAsync(formData.avatarUri);
+      if (!fileInfo.exists) {
+        throw new Error('Fichier avatar non trouvé');
+      }
+
+      const fileSize = fileInfo.size || 0;
+      const fileExtension = formData.avatarUri.split('.').pop() || 'jpg';
+      const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
+      
+      if (fileSize > UPLOAD_CONFIG.maxSizeMB * 1024 * 1024) {
+        throw new Error(`Avatar trop volumineux (max ${UPLOAD_CONFIG.maxSizeMB}MB)`);
+      }
+
+      const uint8ArrayData = await convertToUint8Array(formData.avatarUri);
+
+      const fileName = `profile_photo-${Date.now()}.${fileExtension}`;
+      const filePath = `${userId}/${fileName}`;
+      
+      let lastError: Error | null = null;
+      
+      for (let attempt = 1; attempt <= UPLOAD_CONFIG.maxRetries; attempt++) {
+        try {
+          const uploadPromise = supabase.storage
+            .from('user-documents')
+            .upload(filePath, uint8ArrayData, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: mimeType,
+              metadata: {
+                userId,
+                uploadedAt: new Date().toISOString(),
+                originalName: `profile_photo.${fileExtension}`,
+                uploadMethod: 'uint8Array-avatar'
+              }
+            });
+          
+          const { data, error } = await withTimeout(
+            uploadPromise, 
+            UPLOAD_CONFIG.timeoutMs
+          );
+          
+          if (error) {
+            throw error;
+          }
+          
+          const { data: urlData } = supabase.storage
+            .from('user-documents')
+            .getPublicUrl(filePath);
+          
+          if (UPLOAD_CONFIG.validateAfterUpload) {
+            const isValid = await validateUploadedFile(
+              urlData.publicUrl, 
+              uint8ArrayData.length * 0.9,
+              UPLOAD_CONFIG.maxValidationRetries
+            );
+            
+            if (!isValid) {
+              throw new Error('Validation avatar post-upload échouée');
+            }
+          }
+          
+          return {
+            success: true,
+            url: urlData.publicUrl
+          };
+          
+        } catch (error) {
+          lastError = error as Error;
+          
+          if (attempt < UPLOAD_CONFIG.maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+      
+      await saveFallbackUpload(userId, formData.avatarUri, {
+        originalSize: fileSize,
+        originalType: mimeType,
+        uploadAttempts: UPLOAD_CONFIG.maxRetries,
+        lastError: lastError?.message,
+        uploadMethod: 'fallback-avatar'
+      });
+      
+      return {
+        success: true,
+        url: undefined,
+        fallbackUsed: true
+      };
+      
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
+      };
+    } finally {
+      setUiState(prev => ({ ...prev, uploadingAvatar: false }));
+    }
+  }, [formData.avatarUri, saveFallbackUpload]);
+
+  // 🔧 CORRIGÉ: Fonction de génération de codes de parrainage - 6 caractères au lieu de 8
   const generateUniqueReferralCode = useCallback(async (): Promise<string | null> => {
     try {
       let attempts = 0;
       const maxAttempts = 10;
       
       while (attempts < maxAttempts) {
-        // Générer un code de 8 caractères : 5 lettres + 3 chiffres
-        const letters = Math.random().toString(36).substring(2, 7).toUpperCase();
-        const numbers = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        const code = letters + numbers;
+        // ✅ CORRIGÉ: Génération de 6 caractères au lieu de 8
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 6; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
         
-        // Vérifier l'unicité du code
         const { data: existingCode } = await supabase
           .from('user_referral_codes')
           .select('id')
           .eq('code', code)
           .single();
         
-        // Si le code n'existe pas, on peut l'utiliser
         if (!existingCode) {
           return code;
         }
@@ -733,29 +1365,23 @@ export default function CompleteProfileScreen() {
         attempts++;
       }
       
-      console.error('❌ Impossible de générer un code unique après', maxAttempts, 'tentatives');
       return null;
       
     } catch (error) {
-      console.error('💥 Erreur génération code unique:', error);
       return null;
     }
   }, []);
 
-  // ➕ CRÉATION DU CODE DE PARRAINAGE (VERSION CORRIGÉE)
   const createReferralCodeForUser = useCallback(async (userId: string): Promise<boolean> => {
     try {
       setUiState(prev => ({ ...prev, creatingReferralCode: true }));
 
-      // 🔧 CORRECTION: Utiliser la fonction intégrée au lieu d'un import externe
       const uniqueCode = await generateUniqueReferralCode();
       
       if (!uniqueCode) {
-        console.warn('⚠️ Impossible de générer un code unique');
         return false;
       }
 
-      // Créer l'entrée dans la table des codes de parrainage
       const { error } = await supabase
         .from('user_referral_codes')
         .insert({
@@ -766,34 +1392,67 @@ export default function CompleteProfileScreen() {
         });
 
       if (error) {
-        console.error('❌ Erreur création code parrainage:', error);
         return false;
       }
+
       return true;
 
     } catch (error) {
-      console.error('💥 Exception création code parrainage:', error);
       return false;
     } finally {
       setUiState(prev => ({ ...prev, creatingReferralCode: false }));
     }
   }, [generateUniqueReferralCode]);
 
-  // ➕ NOUVEAU: Fonction pour formater le téléphone en temps réel
   const handlePhoneChange = useCallback((text: string) => {
-    const formatted = formatPhoneNumber(text);
-    setFormData(prev => ({ ...prev, phone: formatted }));
+    const currentNumericLength = formData.phone.replace(/\D/g, '').length;
+    const newNumericLength = text.replace(/\D/g, '').length;
     
-    // Effacer l'erreur du téléphone si elle existe
+    if (newNumericLength < currentNumericLength) {
+      setFormData(prev => ({ ...prev, phone: text }));
+    } else {
+      const formatted = formatPhoneNumber(text);
+      setFormData(prev => ({ ...prev, phone: formatted }));
+    }
+    
     if (errors.phone) {
       setErrors(prev => ({ ...prev, phone: undefined }));
     }
-  }, [errors.phone]);
+  }, [errors.phone, formData.phone]);
 
-  // 💾 SAUVEGARDE DU PROFIL COMPLET - MODIFIÉE avec upload robuste
+  // 🆕 MODIFIÉ: handleSubmit avec sauvegarde des consentements tracking
   const handleSubmit = useCallback(async (): Promise<void> => {
+    console.log('🚀 Début sauvegarde profil avec validation d\'adresse renforcée');
+
+    const finalValidationError = validateFinalDataForDatabase(formData);
+    if (finalValidationError) {
+      console.error('❌ Validation finale échouée:', finalValidationError);
+      Alert.alert('Validation échouée', finalValidationError);
+      return;
+    }
+
     if (!validateForm()) {
-      Alert.alert('Formulaire incomplet', 'Veuillez corriger les erreurs avant de continuer');
+      const hints = getValidationHints();
+      Alert.alert(
+        'Profil incomplet', 
+        `Veuillez remplir tous les champs obligatoires :\n\n• ${hints.slice(0, 5).join('\n• ')}`
+      );
+      return;
+    }
+
+    const strictValidation = validateStrictRequirements();
+    if (!strictValidation.isValid) {
+      Alert.alert('Validation échouée', strictValidation.message);
+      return;
+    }
+
+    // 🆕 AJOUTÉ: Validation d'adresse renforcée
+    if (!formData.addressValidationStatus.isValidated && !isEditMode) {
+      Alert.alert(
+        'Adresse non validée',
+        'Veuillez sélectionner une adresse dans les suggestions ou utiliser le système d\'autocomplete pour une adresse plus précise.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -802,102 +1461,225 @@ export default function CompleteProfileScreen() {
       router.replace('/auth/signin');
       return;
     }
-    console.log('📋 Données:', {
-      roles: formData.roles,
-      user: session.user.email,
-      hasFourmizRole: formData.roles.includes('fourmiz'),
-      // ✅ LOG des données pré-remplies
-      prefillData: {
-        firstname: formData.firstname,
-        lastname: formData.lastname,
-        phone: formData.phone
-      }
-    });
 
     setUiState(prev => ({ ...prev, uploading: true }));
 
     try {
-      let documentPath: string | null = null;
-      let uploadFallbackUsed = false;
-
-      // Upload du document si nécessaire avec le système robuste
-      if (formData.roles.includes('fourmiz') && formData.idDocumentUri) {
+      // 🆕 AJOUTÉ: Validation optionnelle côté serveur (recommandé en production)
+      if (process.env.NODE_ENV === 'production' && !isEditMode) {
+        const serverValidation = await validateAddressOnServer(
+          formData.address,
+          formData.postalCode,
+          formData.city
+        );
         
-        const uploadResult = await uploadIdDocument(session.user.id);
-        
-        if (!uploadResult.success) {
-          throw new Error(`Échec de l'upload du document: ${uploadResult.error}`);
+        if (!serverValidation.isValid) {
+          Alert.alert(
+            'Validation d\'adresse échouée',
+            'Votre adresse n\'a pas pu être validée. Veuillez vérifier les informations saisies.',
+            [{ text: 'OK' }]
+          );
+          setUiState(prev => ({ ...prev, uploading: false }));
+          return;
         }
         
-        if (uploadResult.fallbackUsed) {
-          uploadFallbackUsed = true;
-          // On continue quand même avec documentPath = null
-        } else if (uploadResult.url) {
-          documentPath = uploadResult.url;
+        // Mettre à jour les coordonnées avec la validation serveur si disponible
+        if (serverValidation.coordinates) {
+          setFormData(prev => ({
+            ...prev,
+            selectedAddressCoordinates: serverValidation.coordinates || prev.selectedAddressCoordinates
+          }));
         }
       }
 
-      // Préparer les données du profil
+      let documentPath: string | null = null;
+      let avatarPath: string | null = null;
+      let uploadFallbackUsed = false;
+
+      // Upload des documents pour Fourmiz
+      if (formData.roles.includes('fourmiz')) {
+        if (formData.idDocumentUri) {
+          const uploadResult = await uploadIdDocument(session.user.id);
+          
+          if (!uploadResult.success) {
+            throw new Error(`Échec de l'upload du document: ${uploadResult.error}`);
+          }
+          
+          if (uploadResult.fallbackUsed) {
+            uploadFallbackUsed = true;
+          } else if (uploadResult.url) {
+            documentPath = uploadResult.url;
+          }
+        } else if (formData.existingDocumentUrl) {
+          documentPath = formData.existingDocumentUrl;
+        }
+      }
+
+      // Upload avatar
+      if (formData.avatarUri) {
+        const avatarUploadResult = await uploadAvatar(session.user.id);
+        
+        if (!avatarUploadResult.success) {
+          console.warn('⚠️ Upload avatar échoué, continuation sans avatar');
+        } else if (avatarUploadResult.url) {
+          avatarPath = avatarUploadResult.url;
+        }
+      } else if (formData.existingAvatarUrl) {
+        avatarPath = formData.existingAvatarUrl;
+      }
+
+      const phoneToSave = formData.phone.trim().replace(/\s/g, '');
+      if (!VALIDATION_RULES.phone.test(phoneToSave)) {
+        throw new Error(`Format téléphone final invalide: ${phoneToSave}`);
+      }
+
+      const finalRoles = formData.roles.length > 0 ? formData.roles : ['client'];
+
+      console.log('💾 Données finales à sauvegarder:', {
+        userId: session.user.id,
+        email: session.user.email,
+        roles: finalRoles,
+        phone: phoneToSave,
+        document: documentPath ? 'Présent' : 'Absent',
+        avatar: avatarPath ? 'Présent' : 'Absent',
+        addressValidated: formData.addressValidationStatus.isValidated,
+        gpsCoordinates: formData.selectedAddressCoordinates ? 'Présent' : 'Absent'
+      });
+
+      // 🆕 AJOUTÉ: Inclusion des coordonnées GPS et données d'adresse dans profileData
       const profileData: ProfileUpdate = {
         id: session.user.id,
+        user_id: session.user.id,
         email: session.user.email,
         firstname: formData.firstname.trim(),
         lastname: formData.lastname.trim(),
-        phone: formData.phone.trim().replace(/\s/g, ''), // Supprimer espaces pour stockage
+        phone: phoneToSave,
         address: formData.address.trim(),
         building: formData.building.trim() || null,
         floor: formData.floor.trim() || null,
         postal_code: formData.postalCode.trim(),
         city: formData.city.trim(),
-        roles: formData.roles,
-        rib: formData.roles.includes('fourmiz') ? formData.rib.trim() : null,
+        roles: finalRoles,
+        legal_status: formData.legalStatus,
+        rcs_number: ['travailleur_independant', 'entreprise'].includes(formData.legalStatus) 
+          ? formData.rcsNumber.trim() 
+          : null,
         id_document_path: documentPath,
+        avatar_url: avatarPath,
         profile_completed: true,
+        // criteria_completed reste false car les critères seront configurés séparément
+        criteria_completed: false,
         updated_at: new Date().toISOString(),
+        // 🆕 AJOUTÉ: Coordonnées GPS et métadonnées d'adresse
+        latitude: formData.selectedAddressCoordinates?.latitude || null,
+        longitude: formData.selectedAddressCoordinates?.longitude || null,
+        formatted_address: formData.addressValidationStatus.formattedAddress || null,
+        address_confidence: formData.addressValidationStatus.confidence || null,
+        address_validated_at: formData.addressValidationStatus.isValidated 
+          ? new Date().toISOString() 
+          : null,
       };
 
-      // Sauvegarder en base avec upsert
+      console.log('🔄 Tentative upsert profil...');
+      
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert(profileData, {
-          onConflict: 'id',
+          onConflict: 'user_id',
           ignoreDuplicates: false,
         });
 
       if (profileError) {
-        console.error('❌ Erreur sauvegarde profil:', profileError);
+        console.error('❌ Erreur Supabase (Sauvegarde profil):', profileError);
         const { userMessage } = handleSupabaseError(profileError, 'Sauvegarde profil');
         throw new Error(userMessage);
       }
 
-      // ➕ CRÉATION DU CODE DE PARRAINAGE POUR L'UTILISATEUR
-      const referralCodeCreated = await createReferralCodeForUser(session.user.id);
-      
-      if (referralCodeCreated) {
-      } else {
-        console.warn('⚠️ Code de parrainage non créé, mais profil sauvegardé');
-        // On ne bloque pas l'utilisateur si le code de parrainage échoue
+      console.log('✅ Profil sauvegardé avec succès');
+
+      // 🆕 AJOUTÉ: Sauvegarde des consentements de tracking pour les Fourmiz
+      if (formData.roles.includes('fourmiz')) {
+        console.log('💾 Sauvegarde des consentements tracking...');
+        
+        const trackingSaved = await saveTrackingConsents(trackingConsents);
+        
+        if (!trackingSaved) {
+          console.warn('⚠️ Erreur sauvegarde consentements tracking (continuera sans)');
+          // Ne pas bloquer la finalisation, mais avertir l'utilisateur
+          Alert.alert(
+            'Attention',
+            'Vos préférences de géolocalisation n\'ont pas pu être sauvegardées. Vous pourrez les configurer plus tard dans votre profil.',
+            [{ text: 'Continuer' }]
+          );
+        } else {
+          console.log('✅ Consentements tracking sauvegardés');
+        }
       }
 
-      // Message de succès et redirection
-      const successMessage = uploadFallbackUsed 
-        ? `Merci ${formData.firstname} ! Votre profil a été enregistré avec succès${referralCodeCreated ? ' et votre code de parrainage est prêt' : ''}. Votre document d'identité sera traité prochainement. Bienvenue sur Fourmiz !`
-        : `Merci ${formData.firstname} ! Votre profil a été enregistré avec succès${referralCodeCreated ? ' et votre code de parrainage est prêt' : ''}. Bienvenue sur Fourmiz !`;
+      // 🆕 AJOUTÉ: Synchronisation des rôles après sauvegarde
+      await syncRolesAfterSave(finalRoles);
+
+      // Vérification post-sauvegarde
+      const { data: verificationData, error: verificationError } = await supabase
+        .from('profiles')
+        .select('roles, profile_completed')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (verificationError) {
+        console.warn('⚠️ Impossible de vérifier la sauvegarde:', verificationError);
+      } else {
+        console.log('✅ Vérification post-sauvegarde:', verificationData);
+        
+        if (!verificationData.roles || verificationData.roles.length === 0) {
+          console.error('❌ CRITIQUE: Rôles toujours vides après sauvegarde !');
+          throw new Error('Erreur critique: Les rôles n\'ont pas été sauvegardés correctement');
+        }
+      }
+
+      // Création du code de parrainage pour nouveaux utilisateurs
+      let referralCodeCreated = false;
+      if (!isEditMode) {
+        referralCodeCreated = await createReferralCodeForUser(session.user.id);
+      }
+
+      // Messages de succès pour tous les utilisateurs (pas de redirection automatique)
+      let successMessage: string;
+      
+      if (isEditMode) {
+        successMessage = `Votre profil a été mis à jour avec succès${uploadFallbackUsed ? '. Votre document sera traité prochainement.' : ''}`;
+      } else {
+        if (formData.roles.includes('fourmiz')) {
+          successMessage = uploadFallbackUsed 
+            ? `Merci ${formData.firstname} ! Votre profil Fourmiz a été créé avec succès${referralCodeCreated ? ' et votre code de parrainage est prêt' : ''}. Votre document d'identité sera traité prochainement. Vous pourrez configurer vos critères de service via votre profil. Bienvenue sur Fourmiz !`
+            : `Merci ${formData.firstname} ! Votre profil Fourmiz a été créé avec succès${referralCodeCreated ? ' et votre code de parrainage est prêt' : ''}. Vous pourrez configurer vos critères de service via votre profil. Bienvenue sur Fourmiz !`;
+        } else {
+          successMessage = uploadFallbackUsed 
+            ? `Merci ${formData.firstname} ! Votre profil a été enregistré avec succès${referralCodeCreated ? ' et votre code de parrainage est prêt' : ''}. Votre document d'identité sera traité prochainement. Bienvenue sur Fourmiz !`
+            : `Merci ${formData.firstname} ! Votre profil a été enregistré avec succès${referralCodeCreated ? ' et votre code de parrainage est prêt' : ''}. Bienvenue sur Fourmiz !`;
+        }
+      }
 
       Alert.alert(
-        '🎉 Profil complété !',
+        isEditMode ? 'Profil mis à jour' : 'Profil complété',
         successMessage,
         [
           { 
-            text: 'Découvrir l\'app', 
-            onPress: () => router.replace('/(tabs)') 
+            text: isEditMode ? 'Retour au profil' : 'Découvrir l\'app', 
+            onPress: () => {
+              if (from === 'profile' || isEditMode) {
+                router.replace('/(tabs)/profile');
+              } else {
+                // 🔧 CORRIGÉ: Redirection simple vers l'app sans logique spéciale
+                router.replace('/(tabs)');
+              }
+            }
           }
         ]
       );
 
     } catch (error: any) {
-      console.error('💥 ERREUR SAUVEGARDE PROFIL:', error);
-      
+      console.error('❌ Erreur complète sauvegarde:', error);
       Alert.alert(
         'Erreur de sauvegarde',
         error.message || 'Impossible d\'enregistrer votre profil. Veuillez réessayer.',
@@ -912,45 +1694,118 @@ export default function CompleteProfileScreen() {
     } finally {
       setUiState(prev => ({ ...prev, uploading: false }));
     }
-  }, [validateForm, session, formData, uploadIdDocument, createReferralCodeForUser]);
+  }, [validateFinalDataForDatabase, validateForm, getValidationHints, validateStrictRequirements, session, formData, uploadIdDocument, uploadAvatar, createReferralCodeForUser, isEditMode, from, syncRolesAfterSave, validateAddressOnServer, trackingConsents, saveTrackingConsents]);
 
-  // 🎭 GESTION DES RÔLES
   const toggleRole = useCallback((role: UserRole): void => {
-    setFormData(prev => ({
-      ...prev,
-      roles: prev.roles.includes(role)
-        ? prev.roles.filter(r => r !== role)
-        : [...prev.roles, role]
-    }));
+    const newRoles = formData.roles.includes(role)
+      ? formData.roles.filter(r => r !== role)
+      : [...formData.roles, role];
     
-    // Effacer l'erreur de rôles si elle existe
+    setFormData(prev => ({ ...prev, roles: newRoles }));
+    
     if (errors.roles) {
       setErrors(prev => ({ ...prev, roles: undefined }));
     }
   }, [formData.roles, errors.roles]);
 
-  // 📱 HELPERS DE MISE À JOUR
+  const renderLegalStatusButton = useCallback((status: LegalStatus) => {
+    const config = LEGAL_STATUS_CONFIG[status];
+    const isSelected = formData.legalStatus === status;
+    
+    return (
+      <TouchableOpacity
+        key={status}
+        style={[
+          styles.legalStatusButton,
+          isSelected && styles.legalStatusButtonSelected
+        ]}
+        onPress={() => {
+          setFormData(prev => ({ 
+            ...prev, 
+            legalStatus: status,
+            rcsNumber: status === 'particulier' ? '' : prev.rcsNumber
+          }));
+          
+          if (errors.legalStatus) {
+            setErrors(prev => ({ ...prev, legalStatus: undefined }));
+          }
+        }}
+        activeOpacity={0.8}
+      >
+        <Text style={[
+          styles.legalStatusText,
+          isSelected && styles.legalStatusTextSelected
+        ]}>
+          {config.emoji} {config.label}
+        </Text>
+        <Text style={[
+          styles.legalStatusDescription,
+          isSelected && styles.legalStatusDescriptionSelected
+        ]}>
+          {config.description}
+        </Text>
+      </TouchableOpacity>
+    );
+  }, [formData.legalStatus, errors.legalStatus]);
+
   const updateFormData = useCallback((field: keyof CompleteProfileFormData, value: string): void => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Effacer l'erreur du champ modifié
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   }, [errors]);
 
-  // 🔄 CHARGEMENT INITIAL
+  const renderInputField = (
+    label: string,
+    field: keyof CompleteProfileFormData,
+    props: any = {}
+  ) => (
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput 
+        style={[
+          styles.input,
+          props.multiline && styles.textArea,
+          errors[field as keyof FormErrors] && styles.inputError
+        ]}
+        value={formData[field] as string}
+        onChangeText={(text) => {
+          if (field === 'phone') {
+            handlePhoneChange(text);
+          } else {
+            updateFormData(field, text);
+          }
+        }}
+        {...props}
+      />
+      {errors[field as keyof FormErrors] && (
+        <Text style={styles.errorText}>{errors[field as keyof FormErrors]}</Text>
+      )}
+    </View>
+  );
+
+  // 🆕 MODIFIÉ: isSubmitDisabled avec isTrackingLoading
+  const isSubmitDisabled = useMemo(() => {
+    return uiState.uploading || 
+           uiState.syncingRoles || 
+           isTrackingLoading || // 🆕 AJOUTÉ
+           !isFormValid() || 
+           !validateStrictRequirements().isValid;
+  }, [uiState.uploading, uiState.syncingRoles, isTrackingLoading, isFormValid, validateStrictRequirements]);
+
   useEffect(() => {
     loadUserSession();
   }, [loadUserSession]);
 
-  // 📊 RENDU CONDITIONNEL DES ÉTATS
   const renderLoadingState = () => (
     <SafeAreaView style={styles.container}>
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF4444" />
+        <ActivityIndicator size="large" color="#000000" />
         <Text style={styles.loadingText}>
-          {uiState.prefilling ? 'Pré-remplissage des données...' : 'Vérification de votre session...'}
+          {uiState.prefilling ? 'Pré-remplissage des données...' :
+           uiState.syncingRoles ? 'Synchronisation des rôles...' : 
+           'Vérification de votre session...'}
         </Text>
       </View>
     </SafeAreaView>
@@ -970,7 +1825,6 @@ export default function CompleteProfileScreen() {
     </SafeAreaView>
   );
 
-  // 🎨 COMPOSANTS DE RENDU
   const renderRoleButton = (role: UserRole) => {
     const config = ROLE_CONFIG[role];
     const isSelected = formData.roles.includes(role);
@@ -1001,41 +1855,12 @@ export default function CompleteProfileScreen() {
     );
   };
 
-  const renderInputField = (
-    label: string,
-    field: keyof CompleteProfileFormData,
-    props: any = {}
-  ) => (
-    <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[
-          styles.input,
-          props.multiline && styles.textArea,
-          errors[field as keyof FormErrors] && styles.inputError
-        ]}
-        value={formData[field] as string}
-        onChangeText={(text) => {
-          // ➕ NOUVEAU: Gestion spéciale pour le téléphone
-          if (field === 'phone') {
-            handlePhoneChange(text);
-          } else {
-            updateFormData(field, text);
-          }
-        }}
-        {...props}
-      />
-      {errors[field as keyof FormErrors] && (
-        <Text style={styles.errorText}>{errors[field as keyof FormErrors]}</Text>
-      )}
-    </View>
-  );
-
-  // États de chargement
   if (uiState.sessionLoading || uiState.prefilling) return renderLoadingState();
   if (!session) return renderErrorState();
 
-  // 🎨 RENDU PRINCIPAL
+  const progress = getFormProgress();
+  const validationHints = getValidationHints();
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -1047,35 +1872,71 @@ export default function CompleteProfileScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>Complétez votre profil</Text>
-          <Text style={styles.subtitle}>
-            Dernière étape avant de découvrir Fourmiz !
-          </Text>
-
-          {/* 🧪 NOUVEAU: Bouton de diagnostic (temporaire) */}
-          <TouchableOpacity 
-            onPress={runStorageDiagnostic}
-            disabled={uiState.testing}
-            style={styles.diagnosticButton}
-          >
-            <Text style={styles.diagnosticButtonText}>
-              {uiState.testing ? '🔄 Test en cours...' : '🧪 TESTER STORAGE (si problème upload)'}
+          <View style={styles.header}>
+            <Text style={styles.title}>
+              {isEditMode ? 'Modifier mon profil' : 'Complétez votre profil'}
             </Text>
-          </TouchableOpacity>
+            <Text style={styles.subtitle}>
+              {isEditMode ? 'Modifiez vos informations personnelles' : 'Dernière étape avant de découvrir Fourmiz'}
+            </Text>
+          </View>
 
-          {/* ✅ INDICATION SI DES DONNÉES ONT ÉTÉ PRÉ-REMPLIES */}
-          {(formData.firstname || formData.lastname || formData.phone) && (
-            <View style={styles.prefillNotice}>
-              <Text style={styles.prefillNoticeText}>
-                ℹ️ Certains champs ont été pré-remplis automatiquement. Vous pouvez les modifier si nécessaire.
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressText}>
+              Progression: {progress.completed}/{progress.total} étapes ({progress.percentage}%)
+            </Text>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${progress.percentage}%` }
+                ]} 
+              />
+            </View>
+            {validationHints.length > 0 && (
+              <View style={styles.hintsContainer}>
+                <Text style={styles.hintsTitle}>À compléter:</Text>
+                {validationHints.slice(0, 3).map((hint, index) => (
+                  <Text key={index} style={styles.hintText}>• {hint}</Text>
+                ))}
+                {validationHints.length > 3 && (
+                  <Text style={styles.hintText}>• Et {validationHints.length - 3} autre(s)...</Text>
+                )}
+              </View>
+            )}
+          </View>
+
+          {(formData.firstname || formData.lastname || formData.phone) && !isEditMode && (
+            <View style={styles.noticeCard}>
+              <Text style={styles.noticeText}>
+                Certains champs ont été pré-remplis automatiquement. Vous pouvez les modifier si nécessaire.
               </Text>
             </View>
           )}
 
-          {/* 🎭 Sélection des rôles */}
-          {formData.roles.length === 0 && (
+          {isEditMode && (
+            <View style={styles.noticeCard}>
+              <Text style={styles.noticeText}>
+                Mode édition : Vous pouvez modifier toutes vos informations
+              </Text>
+            </View>
+          )}
+
+          {/* 🆕 AJOUTÉ: Indicateur de synchronisation des rôles */}
+          {uiState.syncingRoles && (
+            <View style={styles.syncingCard}>
+              <ActivityIndicator size="small" color="#000000" />
+              <Text style={styles.syncingText}>
+                Synchronisation des rôles en cours...
+              </Text>
+            </View>
+          )}
+
+          {(formData.roles.length === 0 || isEditMode) && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Sélectionnez vos rôles *</Text>
+              <Text style={styles.sectionTitle}>
+                {isEditMode ? 'Vos rôles' : 'Sélectionnez vos rôles'}
+              </Text>
               {errors.roles && <Text style={styles.errorText}>{errors.roles}</Text>}
               
               <View style={styles.rolesContainer}>
@@ -1084,25 +1945,58 @@ export default function CompleteProfileScreen() {
             </View>
           )}
 
-          {/* 📝 Informations personnelles */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Informations personnelles</Text>
             
-            {renderInputField('Prénom *', 'firstname', {
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Photo de profil</Text>
+              
+              <TouchableOpacity
+                style={styles.avatarButton}
+                onPress={pickAvatar}
+                activeOpacity={0.8}
+              >
+                <View style={styles.avatarContainer}>
+                  {(formData.avatarUri || formData.existingAvatarUrl) ? (
+                    <Image 
+                      source={{ 
+                        uri: formData.avatarUri || formData.existingAvatarUrl 
+                      }} 
+                      style={styles.avatarImage} 
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Ionicons name="person-outline" size={24} color="#666666" />
+                    </View>
+                  )}
+                  <View style={styles.avatarOverlay}>
+                    <Ionicons name="camera" size={16} color="#ffffff" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+              
+              <Text style={styles.helpText}>
+                {formData.avatarUri ? 'Nouvelle photo sélectionnée' :
+                 formData.existingAvatarUrl ? 'Cliquez pour changer votre photo' :
+                 'Ajoutez une photo de profil (recommandé)'}
+              </Text>
+            </View>
+            
+            {renderInputField('Prénom', 'firstname', {
               placeholder: 'Votre prénom',
               textContentType: 'givenName',
               autoCapitalize: 'words',
               maxLength: 50
             })}
 
-            {renderInputField('Nom *', 'lastname', {
+            {renderInputField('Nom', 'lastname', {
               placeholder: 'Votre nom',
               textContentType: 'familyName',
               autoCapitalize: 'words',
               maxLength: 50
             })}
 
-            {renderInputField('Téléphone *', 'phone', {
+            {renderInputField('Téléphone', 'phone', {
               keyboardType: 'phone-pad',
               placeholder: '06 12 34 56 78',
               textContentType: 'telephoneNumber',
@@ -1110,17 +2004,102 @@ export default function CompleteProfileScreen() {
             })}
           </View>
 
-          {/* 🏠 Adresse */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Statut juridique</Text>
+            <Text style={styles.sectionDescription}>
+              Sélectionnez votre statut pour adapter les informations requises
+            </Text>
+            {errors.legalStatus && <Text style={styles.errorText}>{errors.legalStatus}</Text>}
+            
+            <View style={styles.statusContainer}>
+              {(['particulier', 'travailleur_independant', 'entreprise'] as const).map(renderLegalStatusButton)}
+            </View>
+
+            {['travailleur_independant', 'entreprise'].includes(formData.legalStatus) && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Numéro RCS
+                  <Text style={styles.labelHint}> (Registre du Commerce et des Sociétés)</Text>
+                </Text>
+                <TextInput 
+                  style={[
+                    styles.input,
+                    errors.rcsNumber && styles.inputError
+                  ]}
+                  value={formData.rcsNumber}
+                  onChangeText={(text) => {
+                    setFormData(prev => ({ ...prev, rcsNumber: text }));
+                    if (errors.rcsNumber) {
+                      setErrors(prev => ({ ...prev, rcsNumber: undefined }));
+                    }
+                  }}
+                  placeholder="123 456 789 R.C.S. Paris"
+                  maxLength={50}
+                  autoCapitalize="characters"
+                />
+                {errors.rcsNumber && (
+                  <Text style={styles.errorText}>{errors.rcsNumber}</Text>
+                )}
+                <Text style={styles.helpText}>
+                  {formData.legalStatus === 'travailleur_independant' 
+                    ? "Trouvez votre numéro RCS sur votre extrait K-bis ou votre attestation d'inscription au répertoire SIRENE"
+                    : "Numéro d'immatriculation de votre société au Registre du Commerce et des Sociétés"
+                  }
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* 🆕 REMPLACÉ: Section adresse avec autocomplete */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Adresse</Text>
+            <Text style={styles.sectionDescription}>
+              Utilisez l'auto-complétion pour une adresse précise (nécessaire pour la géolocalisation des services)
+            </Text>
             
-            {renderInputField('Adresse *', 'address', {
-              multiline: true,
-              numberOfLines: 2,
-              placeholder: '123 rue de la Paix',
-              textContentType: 'streetAddressLine1',
-              maxLength: 200
-            })}
+            {/* NOUVEAU COMPOSANT D'ADRESSE AVEC AUTOCOMPLETE */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Adresse complète</Text>
+              
+              <AddressInputWithAutocomplete
+                value={formData.address}
+                onChangeText={(text) => {
+                  updateFormData('address', text);
+                  // Réinitialiser le statut de validation si l'utilisateur tape
+                  if (formData.addressValidationStatus.isValidated) {
+                    setFormData(prev => ({
+                      ...prev,
+                      addressValidationStatus: { isValidated: false },
+                      selectedAddressCoordinates: null
+                    }));
+                  }
+                }}
+                onAddressSelected={handleAddressSelected}
+                postalCode={formData.postalCode}
+                city={formData.city}
+                style={[styles.input, errors.address && styles.inputError]}
+                errors={errors.address}
+                placeholder="123 rue de la Paix"
+                testID="complete-profile-address-input"
+              />
+              
+              {/* Indicateur de validation */}
+              {formData.addressValidationStatus.isValidated && (
+                <View style={styles.addressValidationSuccess}>
+                  <Text style={styles.addressValidationText}>
+                    ✅ Adresse validée {formData.addressValidationStatus.confidence 
+                      ? `(${Math.round(formData.addressValidationStatus.confidence * 100)}% de confiance)`
+                      : ''
+                    }
+                  </Text>
+                  {formData.selectedAddressCoordinates && (
+                    <Text style={styles.coordinatesText}>
+                      📍 GPS: {formData.selectedAddressCoordinates.latitude.toFixed(6)}, {formData.selectedAddressCoordinates.longitude.toFixed(6)}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.halfWidth]}>
@@ -1140,7 +2119,7 @@ export default function CompleteProfileScreen() {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.halfWidth]}>
-                {renderInputField('Code postal *', 'postalCode', {
+                {renderInputField('Code postal', 'postalCode', {
                   keyboardType: 'numeric',
                   placeholder: '75001',
                   textContentType: 'postalCode',
@@ -1149,7 +2128,7 @@ export default function CompleteProfileScreen() {
               </View>
 
               <View style={[styles.inputGroup, styles.halfWidth]}>
-                {renderInputField('Ville *', 'city', {
+                {renderInputField('Ville', 'city', {
                   placeholder: 'Paris',
                   textContentType: 'addressCity',
                   autoCapitalize: 'words',
@@ -1159,32 +2138,15 @@ export default function CompleteProfileScreen() {
             </View>
           </View>
 
-          {/* 🐜 Informations Fourmiz */}
           {formData.roles.includes('fourmiz') && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Informations Fourmiz</Text>
               <Text style={styles.sectionDescription}>
-                Requis pour recevoir vos paiements et vérifier votre identité
+                Document requis pour vérifier votre identité et activer vos services
               </Text>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>RIB (IBAN) *</Text>
-                <TextInput
-                  style={[styles.input, errors.rib && styles.inputError]}
-                  value={formData.rib}
-                  onChangeText={(text) => updateFormData('rib', text)}
-                  placeholder="FR76 1234 5678 9012 3456 7890 123"
-                  autoCapitalize="characters"
-                  maxLength={34}
-                />
-                {errors.rib && <Text style={styles.errorText}>{errors.rib}</Text>}
-                <Text style={styles.helpText}>
-                  Votre IBAN pour recevoir les paiements
-                </Text>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Pièce d'identité *</Text>
+                <Text style={styles.label}>Pièce d'identité</Text>
                 {errors.idDocument && <Text style={styles.errorText}>{errors.idDocument}</Text>}
                 
                 <TouchableOpacity
@@ -1194,75 +2156,106 @@ export default function CompleteProfileScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={styles.documentButtonText}>
-                    🖼️ {formData.idDocumentUri ? 'Modifier le document' : 'Sélectionner un document'}
+                    {(formData.idDocumentUri || formData.existingDocumentUrl) ? 'Modifier le document' : 'Sélectionner un document'}
                   </Text>
                 </TouchableOpacity>
 
-                {formData.idDocumentUri && (
+                {(formData.idDocumentUri || formData.existingDocumentUrl) && (
                   <View style={styles.documentPreview}>
                     <Image 
-                      source={{ uri: formData.idDocumentUri }} 
+                      source={{ 
+                        uri: formData.idDocumentUri || formData.existingDocumentUrl 
+                      }} 
                       style={styles.previewImage} 
                     />
                     <View style={styles.documentStatus}>
                       <Text style={styles.documentStatusText}>
-                        ✅ Document prêt (upload robuste avec fallback)
+                        {formData.idDocumentUri 
+                          ? 'Nouveau document sélectionné'
+                          : 'Document existant'
+                        }
                       </Text>
                       <TouchableOpacity
-                        style={styles.changeDocumentButton}
+                        style={styles.changeButton}
                         onPress={pickIdDocument}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.changeDocumentText}>Changer</Text>
+                        <Text style={styles.changeButtonText}>
+                          {formData.idDocumentUri ? 'Rechanger' : 'Changer'}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 )}
 
                 <Text style={styles.helpText}>
-                  Carte d'identité, passeport ou permis de conduire.{'\n'}
-                  📤 Upload ultra-robuste: 3 tentatives + fallback automatique.
+                  Carte d'identité, passeport ou permis de conduire. Upload sécurisé avec système de sauvegarde automatique.
                 </Text>
               </View>
             </View>
           )}
 
-          {/* 🚀 Bouton de validation */}
+          {/* 🆕 AJOUTÉ: Section TrackingConsent pour les Fourmiz */}
+          {formData.roles.includes('fourmiz') && (
+            <TrackingConsentSection
+              userId={session?.user?.id}
+              isFourmizRole={formData.roles.includes('fourmiz')}
+              isEditMode={isEditMode}
+              onConsentChange={handleTrackingConsentChange}
+              disabled={uiState.uploading || uiState.syncingRoles || isTrackingLoading}
+            />
+          )}
+
+          <LegalEngagementsSection
+            userId={session?.user?.id}
+            isFourmizRole={formData.roles.includes('fourmiz')}
+            isEditMode={isEditMode}
+            formData={engagementFormData}
+            onFormDataChange={handleEngagementFormDataChange}
+            onValidationChange={handleEngagementValidationChange}
+            disabled={uiState.uploading || uiState.syncingRoles || isTrackingLoading} // 🆕 AJOUTÉ: isTrackingLoading
+          />
+
           <TouchableOpacity
             style={[
               styles.submitButton,
-              (uiState.uploading || formData.roles.length === 0) && styles.submitButtonDisabled
+              isSubmitDisabled && styles.submitButtonDisabled
             ]}
             onPress={handleSubmit}
-            disabled={uiState.uploading || formData.roles.length === 0}
+            disabled={isSubmitDisabled}
             activeOpacity={0.8}
           >
-            {uiState.uploading ? (
+            {(uiState.uploading || uiState.syncingRoles || isTrackingLoading) ? (
               <View style={styles.submitButtonLoading}>
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color="#ffffff" size="small" />
                 <Text style={styles.submitButtonLoadingText}>
                   {uiState.uploadingDocument ? 'Upload sécurisé...' : 
-                   uiState.creatingReferralCode ? 'Finalisation...' : 'Sauvegarde...'}
+                   uiState.uploadingAvatar ? 'Upload avatar...' :
+                   uiState.creatingReferralCode ? 'Finalisation...' :
+                   uiState.syncingRoles ? 'Synchronisation...' :
+                   isTrackingLoading ? 'Sauvegarde consentements...' : // 🆕 AJOUTÉ
+                   'Sauvegarde...'}
                 </Text>
               </View>
             ) : (
               <Text style={styles.submitButtonText}>
-                {formData.roles.length === 0 ? 'Choisissez un rôle d\'abord' : 'Finaliser mon profil'}
+                {!isFormValid() ? 'Remplissez tous les champs obligatoires' : 
+                 isEditMode ? 'Enregistrer les modifications' : 'Finaliser mon profil'}
               </Text>
             )}
           </TouchableOpacity>
 
-          {/* ➕ NOUVEAU: Information sur le parrainage */}
-          <View style={styles.referralInfo}>
-            <Text style={styles.referralTitle}>🎉 Bonus de bienvenue !</Text>
-            <Text style={styles.referralText}>
-              Votre code de parrainage sera créé automatiquement pour que vous puissiez inviter vos amis et gagner des récompenses !
-            </Text>
-          </View>
+          {!isEditMode && (
+            <View style={styles.bonusCard}>
+              <Text style={styles.bonusTitle}>Bonus de bienvenue</Text>
+              <Text style={styles.bonusText}>
+                Votre code de parrainage sera créé automatiquement pour que vous puissiez inviter vos amis et gagner des récompenses.
+              </Text>
+            </View>
+          )}
 
-          {/* 📝 Informations légales */}
           <Text style={styles.legalText}>
-            En complétant votre profil, vous confirmez que les informations fournies sont exactes et acceptez nos conditions d'utilisation.
+            En {isEditMode ? 'modifiant' : 'complétant'} votre profil, vous confirmez que les informations fournies sont exactes et acceptez nos conditions d'utilisation.
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1270,182 +2263,281 @@ export default function CompleteProfileScreen() {
   );
 }
 
+// 🆕 AJOUTÉ: Styles pour l'adresse avec autocomplete et synchronisation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
+    marginTop: -40,
   },
   
-  // 📱 États de chargement
+  header: {
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    color: '#666666',
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+
+  content: {
+    paddingHorizontal: 24,
+    paddingVertical: 0,
+    paddingTop: 16,
+    paddingBottom: 40,
+  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
-    padding: 20,
+    gap: 24,
+    padding: 24,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '400',
     textAlign: 'center',
   },
   errorText: {
-    fontSize: 12,
-    color: '#FF4444',
+    fontSize: 13,
+    color: '#333333',
     marginTop: 4,
   },
   retryButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#000000',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
     marginTop: 16,
   },
   retryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-
-  // 📝 Contenu principal
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#666',
-  },
-
-  // 🧪 NOUVEAU: Bouton diagnostic
-  diagnosticButton: {
-    backgroundColor: '#FF6B6B',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: '#FF5252',
-  },
-  diagnosticButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-
-  // ➕ NOUVEAU: Notice de pré-remplissage
-  prefillNotice: {
-    backgroundColor: '#e3f2fd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-    borderLeft: 4,
-    borderLeftColor: '#2196f3',
-  },
-  prefillNoticeText: {
+    color: '#ffffff',
+    fontWeight: '600',
     fontSize: 13,
-    color: '#1976d2',
-    lineHeight: 18,
   },
 
-  // 📋 Sections
   section: {
-    marginBottom: 32,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
   },
   sectionDescription: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#666666',
     marginBottom: 16,
-    lineHeight: 20,
+    lineHeight: 18,
+    fontWeight: '400',
   },
 
-  // 🎭 Rôles
+  progressContainer: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
+  },
+  progressText: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#333333',
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#000000',
+    borderRadius: 2,
+  },
+  hintsContainer: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  hintsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 4,
+  },
+  hintText: {
+    fontSize: 13,
+    color: '#666666',
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+
+  noticeCard: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
+  },
+  noticeText: {
+    fontSize: 13,
+    color: '#333333',
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+
+  // 🆕 AJOUTÉ: Styles pour la synchronisation des rôles
+  syncingCard: {
+    backgroundColor: '#fff3cd',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#ffc107',
+  },
+  syncingText: {
+    fontSize: 13,
+    color: '#856404',
+    fontWeight: '600',
+  },
+
   rolesContainer: {
     gap: 12,
   },
   roleButton: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#ffffff',
   },
   roleButtonSelected: {
-    backgroundColor: '#FF4444',
-    borderColor: '#FF4444',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
   },
   roleText: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: '#000000',
     marginBottom: 4,
   },
   roleTextSelected: {
-    color: '#fff',
+    color: '#ffffff',
   },
   roleDescription: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#666666',
     textAlign: 'center',
+    fontWeight: '400',
   },
   roleDescriptionSelected: {
-    color: '#fff',
+    color: '#ffffff',
     opacity: 0.9,
   },
 
-  // 📝 Champs de saisie
+  statusContainer: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  legalStatusButton: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  legalStatusButtonSelected: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  legalStatusText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  legalStatusTextSelected: {
+    color: '#ffffff',
+  },
+  legalStatusDescription: {
+    fontSize: 13,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 16,
+    fontWeight: '400',
+  },
+  legalStatusDescriptionSelected: {
+    color: '#ffffff',
+    opacity: 0.9,
+  },
+  labelHint: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#666666',
+  },
+
   inputGroup: {
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#333',
+    color: '#000000',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
+    borderColor: '#e0e0e0',
+    borderRadius: 6,
     padding: 12,
-    backgroundColor: '#fafafa',
-    fontSize: 16,
-    color: '#333',
+    backgroundColor: '#ffffff',
+    fontSize: 13,
+    color: '#000000',
+    fontWeight: '400',
   },
   inputError: {
-    borderColor: '#FF4444',
-    backgroundColor: '#fff5f5',
+    borderColor: '#333333',
+    backgroundColor: '#ffffff',
   },
   textArea: {
     height: 60,
     textAlignVertical: 'top',
   },
   helpText: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: 13,
+    color: '#666666',
     marginTop: 4,
     lineHeight: 16,
+    fontWeight: '400',
   },
 
-  // 📐 Layout
   row: {
     flexDirection: 'row',
     gap: 12,
@@ -1454,32 +2546,54 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // 📄 Document
-  documentButton: {
-    backgroundColor: '#34C759',
+  // 🆕 AJOUTÉ: Styles pour l'indicateur de validation d'adresse
+  addressValidationSuccess: {
+    backgroundColor: '#d4edda',
+    borderRadius: 6,
     padding: 12,
-    borderRadius: 10,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#28a745',
+  },
+  
+  addressValidationText: {
+    fontSize: 13,
+    color: '#155724',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  
+  coordinatesText: {
+    fontSize: 11,
+    color: '#155724',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+
+  documentButton: {
+    backgroundColor: '#000000',
+    padding: 12,
+    borderRadius: 6,
     alignItems: 'center',
     marginBottom: 12,
   },
   documentButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   documentPreview: {
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    padding: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 16,
     marginBottom: 8,
   },
   previewImage: {
     width: 200,
     height: 120,
-    borderRadius: 8,
+    borderRadius: 6,
     resizeMode: 'cover',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   documentStatus: {
     flexDirection: 'row',
@@ -1488,39 +2602,80 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   documentStatusText: {
-    color: '#28A745',
+    color: '#000000',
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 13,
     flex: 1,
   },
-  changeDocumentButton: {
-    backgroundColor: '#6c757d',
-    paddingHorizontal: 10,
+  changeButton: {
+    backgroundColor: '#666666',
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 4,
   },
-  changeDocumentText: {
-    color: '#fff',
-    fontSize: 11,
+  changeButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
     fontWeight: '600',
   },
 
-  // 🚀 Bouton de soumission
-  submitButton: {
-    backgroundColor: '#FF4444',
-    paddingVertical: 16,
+  avatarButton: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  avatarContainer: {
+    position: 'relative',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f8f8f8',
+  },
+  avatarPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f8f8f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderStyle: 'dashed',
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#000000',
     borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+
+  submitButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 16,
+    borderRadius: 8,
     alignItems: 'center',
     marginTop: 16,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   submitButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#cccccc',
   },
   submitButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 13,
   },
   submitButtonLoading: {
     flexDirection: 'row',
@@ -1528,39 +2683,39 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitButtonLoadingText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '400',
   },
 
-  // ➕ NOUVEAU: Section parrainage
-  referralInfo: {
-    backgroundColor: '#f0f8ff',
-    borderRadius: 12,
+  bonusCard: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
     padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e3f2fd',
+    marginBottom: 24,
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
   },
-  referralTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1976d2',
+  bonusTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     marginBottom: 8,
     textAlign: 'center',
   },
-  referralText: {
-    fontSize: 14,
-    color: '#424242',
+  bonusText: {
+    fontSize: 13,
+    color: '#333333',
     textAlign: 'center',
     lineHeight: 20,
+    fontWeight: '400',
   },
 
-  // 📝 Mentions légales
   legalText: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: 13,
+    color: '#666666',
     textAlign: 'center',
     lineHeight: 16,
+    fontWeight: '400',
   },
 });

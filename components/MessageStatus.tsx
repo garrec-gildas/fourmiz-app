@@ -1,4 +1,4 @@
-// components/MessageStatus.tsx - Statut d'un message (envoyé/lu)
+﻿// components/MessageStatus.tsx - Statut d'un message (envoyé/lu)
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ export const MessageStatus: React.FC<MessageStatusProps> = ({
   isRead, 
   timestamp 
 }) => {
+  // Ne pas afficher le statut pour les messages des autres
   if (!isMyMessage) return null;
 
   return (

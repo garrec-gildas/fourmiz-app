@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth state change:', event, session?.user?.id);
+        console.log('🔄 Auth state change:', event, session?.user?.id);
         if (session?.user) {
           setUser(session.user);
           await fetchProfile(session.user.id);
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        console.log('👤 Utilisateur trouvé:', session.user.id);
+        console.log('✅ Utilisateur trouvé:', session.user.id);
         setUser(session.user);
         await fetchProfile(session.user.id);
       } else {
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
-        console.error('🚨 Erreur profil:', error);
+        console.error('❌ Erreur profil:', error);
         return;
       }
 
@@ -86,12 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Calculer isAdmin depuis les rôles du profil
   const isAdmin = React.useMemo(() => {
     if (!profile?.roles || !Array.isArray(profile.roles)) {
-      console.log('❓ Pas de rôles dans le profil:', profile);
+      console.log('❌ Pas de rôles dans le profil:', profile);
       return false;
     }
     
     const adminStatus = profile.roles.includes('admin');
-    console.log('👑 Statut admin calculé:', adminStatus, 'depuis rôles:', profile.roles);
+    console.log('🔐 Statut admin calculé:', adminStatus, 'depuis rôles:', profile.roles);
     return adminStatus;
   }, [profile]);
 
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
   };
 
-  console.log('🔄 AuthContext value:', { 
+  console.log('📋 AuthContext value:', { 
     hasUser: !!user, 
     hasProfile: !!profile, 
     roles: profile?.roles,

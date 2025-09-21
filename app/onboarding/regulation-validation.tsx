@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function RegulationValidationScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>⚖️ Validation réglementaire</Text>
-      <Text style={styles.subtitle}>Engagements légaux...</Text>
+      <Text style={styles.title}>?? Validation r�glementaire</Text>
+      <Text style={styles.subtitle}>Engagements l�gaux...</Text>
     </SafeAreaView>
   );
 }

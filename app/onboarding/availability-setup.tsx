@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function AvailabilitySetupScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>‚è∞ Configuration disponibilit√©s</Text>
-      <Text style={styles.subtitle}>D√©finissez vos cr√©neaux...</Text>
+      <Text style={styles.title}>?? Configuration disponibilitÈs</Text>
+      <Text style={styles.subtitle}>DÈfinissez vos crÈneaux...</Text>
     </SafeAreaView>
   );
 }

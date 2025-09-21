@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ServicesSelectionScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>🛠️ Sélection des services</Text>
+      <Text style={styles.title}>??? S�lection des services</Text>
       <Text style={styles.subtitle}>Choisissez vos services...</Text>
     </SafeAreaView>
   );

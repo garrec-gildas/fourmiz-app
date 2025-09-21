@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function RgpdValidationScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>🔒 Validation RGPD</Text>
+      <Text style={styles.title}>?? Validation RGPD</Text>
       <Text style={styles.subtitle}>Acceptation des conditions...</Text>
     </SafeAreaView>
   );

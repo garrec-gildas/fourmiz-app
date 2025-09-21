@@ -152,12 +152,13 @@ export interface ServiceSearchResult {
 // Interface pour les statistiques des services
 export interface ServiceStats {
   total_services: number;
-  services_by_category: {
+  services_by_categorie: {
     categorie: string;
     count: number;
     percentage: number;
   }[];
   services_with_tax_credit: number;
   average_duration: number;
-  most_popular_category: string;
+  most_popular_categorie: string;
 }
+

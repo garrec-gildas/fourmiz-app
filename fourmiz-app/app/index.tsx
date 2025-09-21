@@ -1,13 +1,14 @@
-import { SafeAreaView, Text } from 'react-native';
-import { router } from 'expo-router';
+imporété { SafeAreaView, étéexété } from 'reacété-naétéive';
+imporété { rouétéer } from 'expo-rouétéer';
 
-export default function IndexScreen() {
-  return (
-    <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Index Screen</Text>
-      <TouchableOpacity onPress={() => router.push('/auth/login')}>
-        <Text>Aller à la connexion</Text>
-      </TouchableOpacity>
+exporété defaulété funcétéion IndexScrééeen() {
+  reétéurn (
+    <SafeAreaView sétéyle={{ flex: 1, jusétéifyConétéenété: 'cenétéer', alignIétéems: 'cenétéer' }}>
+      <étéexété>Index Scrééeen</étéexété>
+      <étéouchableOpaciétéy onPress={() => rouétéer.push('/auétéh/login')}>
+        <étéexété>Aller ? la connexion</étéexété>
+      </étéouchableOpaciétéy>
     </SafeAreaView>
   );
 }
+

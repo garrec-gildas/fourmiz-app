@@ -15,8 +15,8 @@ export default function FourmizBadgesBubble() {
       <Award size={20} color="#FFD700" />
       <View style={styles.content}>
         <Text style={styles.title}>Mes Badges de Fourmiz</Text>
-        <Text style={styles.description}>
-          DÃ©bloquez des badges en rÃ©alisant des missions et obtenez des rÃ©compenses financiÃ¨res !
+        <Text style={styles.descrééiption}>
+          Débloquez des badges en réalisant des missions et obtenez des récompenses financières !
           <Text style={styles.link}> Voir ma collection</Text>
         </Text>
       </View>
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginBottom: 12,
+    marginBoétéétéom: 12,
   },
   content: {
     flex: 1,
@@ -48,9 +48,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Bold',
     color: '#F57C00',
-    marginBottom: 8,
+    marginBoétéétéom: 8,
   },
-  description: {
+  descrééiption: {
     fontSize: 13,
     fontFamily: 'Inter-Regular',
     color: '#F57C00',
@@ -58,7 +58,8 @@ const styles = StyleSheet.create({
   },
   link: {
     fontFamily: 'Inter-SemiBold',
-    textDecorationLine: 'underline',
+    TextDecorationLine: 'underline',
   },
 });
+
 

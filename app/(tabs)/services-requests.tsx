@@ -1,770 +1,1574 @@
-﻿// app/(tabs)/services-requests.tsx - MES MISSIONS ACCEPTÉES (FOURMIZ) - SÉCURISÉ
-// 🔒 VERSION MISE À JOUR : Intégration avec roleManager.ts
-// ✅ ACCÈS RESTREINT : Fourmiz uniquement
+﻿// app/(tabs)/services-requests.tsx - VERSION STYLE ÉPURÉ HARMONISÉ
+// 🎨 STYLE MINIMALISTE ET COHÉRENT POUR TOUTES LES SECTIONS
+// ✅ CONSERVATION DE TOUTES LES FONCTIONNALITÉS EXISTANTES
+// ✅ HARMONISATION VISUELLE COMPLETE
+// 🔧 CORRECTION CLAVIER MODAL NOTATION
+// ✅ HEADER IDENTIQUE À PROFILE
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
+  FlatList,
   Alert,
-  Image
+  RefreshControl,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { useRoleAccessWithComponents } from '@/hooks/useRoleAccessComponents'; // 🆕 NOUVEAU IMPORT
+import { router, useFocusEffect, usePathname } from 'expo-router';
+import { supabase } from '../../lib/supabase';
+import { useRoleManagerAdapter } from '../../hooks/useRoleManagerAdapter';
 
+// 🔒 HELPERS SÉCURISÉS pour éviter les erreurs .includes()
+const safeString = (value: any): string => {
+  if (value === null || value === undefined) return '';
+  return String(value);
+};
+
+// 🔒 HELPER SÉCURISÉ pour vérifier les rôles
+const hasRole = (profile: any, role: string): boolean => {
+  if (!profile?.roles) return false;
+  const roles = Array.isArray(profile.roles) ? profile.roles : [profile.roles];
+  return roles.includes(role);
+};
+
+// 📊 TYPES TYPESCRIPT STRICTS - STRUCTURE RÉELLE
 interface Mission {
   id: number;
-  service_id: number;
-  client_id: string;
   description: string;
-  address: string;
-  postal_code: string;
-  city: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  phone: string;
-  urgent: boolean;
-  urgency_level: string;
-  proposed_amount: number;
   status: string;
   created_at: string;
-  updated_at: string;
-  accepted_at: string;
-  fourmiz_id: string;
-  // Relations
-  services: {
+  proposed_amount: number;
+  client_id?: string;
+  service_id?: number;
+  service_title?: string;
+  addresses?: any;
+  address?: string;
+  postal_code?: string;
+  city?: string;
+  date?: string;
+  start_time?: string;
+  duration?: string;
+  phone?: string;
+  urgent?: boolean;
+  urgency_level?: string;
+  client_profile?: any;
+  fourmiz_profile?: any;
+  services?: {
     title: string;
+    description: string;
     categorie: string;
-  };
-  client_profile: {
-    firstname: string;
-    lastname: string;
-    avatar_url: string;
-    phone: string;
-    email: string;
   };
 }
 
-const STATUS_CONFIG = {
-  'acceptee': {
-    label: '✅ Acceptée',
-    color: '#10b981',
-    bgColor: '#d1fae5',
-    description: 'Mission acceptée'
-  },
-  'en_cours': {
-    label: '🔄 En cours',
-    color: '#3b82f6',
-    bgColor: '#dbeafe',
-    description: 'Prestation en cours'
+// 🔧 TYPE POUR LES FILTRES
+type FilterType = 'all' | 'en_attente' | 'acceptee' | 'confirmed' | 'en_cours' | 'terminee' | 'annulee';
+
+// 🔧 INTERFACE POUR PARAMÈTRES ADMIN
+interface AdminSettings {
+  fourmiz_earning_percentage: number;
+}
+
+// 🔧 COMPOSANT MODAL DE NOTATION - Style épuré minimaliste + CORRECTION CLAVIER
+const RatingModal = ({ 
+  visible, 
+  onClose, 
+  onSubmit, 
+  title, 
+  targetName,
+  loading 
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSubmit: (rating: number, comment: string) => void;
+  title: string;
+  targetName: string;
+  loading: boolean;
+}) => {
+  const [rating, setRating] = useState<number>(5);
+  const [comment, setComment] = useState<string>('');
+
+  const handleSubmit = () => {
+    if (rating < 1 || rating > 5) {
+      Alert.alert('Erreur', 'Veuillez sélectionner une note entre 1 et 5 étoiles');
+      return;
+    }
+    // 🔧 CORRECTION CLAVIER : Fermer le clavier avant validation
+    Keyboard.dismiss();
+    onSubmit(rating, comment.trim());
+  };
+
+  const resetForm = () => {
+    setRating(5);
+    setComment('');
+  };
+
+  useEffect(() => {
+    if (visible) {
+      resetForm();
+    }
+  }, [visible]);
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      {/* 🔧 CORRECTION CLAVIER : KeyboardAvoidingView */}
+      <KeyboardAvoidingView 
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+              <Ionicons name="close" size={18} color="#666666" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modalSubtitle}>Évaluer : {targetName}</Text>
+
+          {/* Système d'étoiles épuré */}
+          <View style={styles.ratingSection}>
+            <Text style={styles.sectionLabel}>Note</Text>
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                  key={star}
+                  onPress={() => setRating(star)}
+                  style={styles.starButton}
+                >
+                  <Ionicons
+                    name={star <= rating ? "star" : "star-outline"}
+                    size={24}
+                    color={star <= rating ? "#000000" : "#cccccc"}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.ratingValue}>{rating}/5</Text>
+          </View>
+
+          {/* Commentaire épuré */}
+          <View style={styles.commentSection}>
+            <Text style={styles.sectionLabel}>Commentaire (optionnel)</Text>
+            <TextInput
+              style={styles.commentInput}
+              value={comment}
+              onChangeText={setComment}
+              placeholder="Votre avis..."
+              placeholderTextColor="#999999"
+              multiline={true}
+              numberOfLines={3}
+              maxLength={500}
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
+            />
+            <Text style={styles.characterCount}>{comment.length}/500</Text>
+          </View>
+
+          {/* Actions épurées */}
+          <View style={styles.modalActions}>
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={onClose}
+              disabled={loading}
+            >
+              <Text style={styles.cancelButtonText}>Annuler</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.submitButtonText}>Valider</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+// 🎯 FONCTION : Récupérer la catégorie
+const getCategoryForOrder = (order: Mission): string => {
+  // Service standard avec service_id
+  if (order.service_id && order.services?.categorie) {
+    return order.services.categorie;
   }
+  
+  // Commande personnalisée avec addresses.categorie
+  if (!order.service_id && order.addresses?.categorie) {
+    return order.addresses.categorie;
+  }
+  
+  // Fallback
+  return order.services?.categorie || 'Non définie';
 };
 
 export default function ServicesRequestsScreen() {
-  // 🆕 NOUVEAU : Hook avec composants intégrés
-  const { hasAccess, authLoading, AccessDeniedScreen, LoadingScreen, user } = useRoleAccessWithComponents('fourmiz');
+  const pathname = usePathname();
   
-  if (authLoading) return <LoadingScreen />;
-  if (!hasAccess) return <AccessDeniedScreen />;
-
-  // ✅ ÉTAT LOCAL - Logique existante maintenue
+  // 🔍 DEBUG COMPLET : Logs au démarrage
+  console.log('=== 🚀 SERVICES-REQUESTS DEBUG START ===');
+  console.log('🎯 Composant services-requests chargé');
+  console.log('📍 Pathname actuel:', pathname);
+  console.log('⏰ Timestamp:', new Date().toISOString());
+  console.log('🔍 Stack trace:', new Error().stack);
+  
+  // 🔧 ÉTATS
+  const [profile, setProfile] = useState(null);
+  const [user, setUser] = useState(null);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterType>('all');
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollViewRef = useRef<FlatList>(null);
 
-  // ✅ LOGIQUE MÉTIER IDENTIQUE - Pas de changement fonctionnel
+  // 🔧 NOUVEAU : États pour dropdown de filtre (adapté de orders.tsx)
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  // 🔧 ÉTATS POUR VALIDATION AVEC NOTATION - SIMPLIFIÉS
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedMissionForRating, setSelectedMissionForRating] = useState<Mission | null>(null);
+  const [ratingModalTitle, setRatingModalTitle] = useState('');
+  const [ratingTargetName, setRatingTargetName] = useState('');
+  const [validatingWithRating, setValidatingWithRating] = useState(false);
+
+  // 🔧 ÉTAT POUR PARAMÈTRES ADMIN
+  const [adminSettings, setAdminSettings] = useState<AdminSettings>({ 
+    fourmiz_earning_percentage: 0
+  });
+
+  // 🔍 DEBUG : Surveiller les changements d'état importants
   useEffect(() => {
-    if (user) {
-      fetchMissions();
-    }
+    console.log('🔄 État loading changé:', loading);
+  }, [loading]);
+
+  useEffect(() => {
+    console.log('🔄 État profile changé:', !!profile);
+  }, [profile]);
+
+  useEffect(() => {
+    console.log('🔄 État user changé:', !!user);
   }, [user]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (user) {
-        fetchMissions();
-      }
-    }, [user])
-  );
+  // 🔧 CHARGEMENT INITIAL
+  useEffect(() => {
+    console.log('🔄 [services-requests] useEffect CHARGEMENT INITIAL déclenché');
+    console.log('📍 Pathname dans useEffect initial:', pathname);
+    
+    const loadProfile = async () => {
+      try {
+        console.log('⏳ [services-requests] Début chargement profil...');
+        setLoading(true);
+        
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        console.log('✅ [services-requests] User récupéré:', !!user);
+        setUser(user);
+        
+        if (user?.id) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+            
+          console.log('✅ [services-requests] Profile récupéré:', !!profileData);
+          setProfile(profileData);
+        }
 
-  const fetchMissions = async () => {
-    if (!user) return;
+        await loadAdminSettings();
+        
+      } catch (error) {
+        console.error('❌ [services-requests] Erreur critique initialisation:', error);
+        setError('Impossible de charger votre profil');
+      } finally {
+        console.log('✅ [services-requests] Fin chargement initial, setLoading(false)');
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  // 🔧 FONCTION POUR CHARGER PARAMÈTRES ADMIN
+  const loadAdminSettings = async () => {
+    try {
+      console.log('⏳ [services-requests] Chargement admin settings...');
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('setting_value')
+        .eq('setting_key', 'fourmiz_earning_percentage')
+        .single();
+
+      if (error) {
+        console.warn('❌ [services-requests] Erreur chargement admin_settings:', error.message);
+        return;
+      }
+
+      if (data?.setting_value && data.setting_value.trim() !== '') {
+        const percentage = parseFloat(data.setting_value);
+        
+        if (!isNaN(percentage) && percentage >= 0 && percentage <= 100) {
+          setAdminSettings({ fourmiz_earning_percentage: percentage });
+          console.log('✅ [services-requests] Admin settings chargés:', percentage + '%');
+        }
+      }
+    } catch (error) {
+      console.error('❌ [services-requests] Erreur critique admin_settings:', error);
+    }
+  };
+
+  // ✅ FONCTIONS DE GESTION DES BOUTONS (identiques à orders.tsx)
+  const handleChatOrder = useCallback((orderId: number) => {
+    console.log('🔍 [services-requests] handleChatOrder appelé, orderId:', orderId);
+    router.push(`/chat/${orderId}`);
+  }, []);
+
+  const handleCancelOrder = useCallback(async (orderId: number) => {
+    console.log('🔍 [services-requests] handleCancelOrder appelé, orderId:', orderId);
+    Alert.alert(
+      'Annuler la commande',
+      'Êtes-vous sûr de vouloir annuler cette commande ?',
+      [
+        { text: 'Non', style: 'cancel' },
+        {
+          text: 'Oui, annuler',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('orders')
+                .update({
+                  status: 'annulee',
+                  updated_at: new Date().toISOString(),
+                  cancelled_at: new Date().toISOString(),
+                  cancelled_by: user?.id
+                })
+                .eq('id', orderId)
+                .eq('client_id', user?.id);
+
+              if (error) throw error;
+              
+              Alert.alert('✅ Commande annulée', 'Votre commande a été annulée avec succès.');
+              if (user) {
+                await fetchMissionsForUser(user);
+              }
+              
+            } catch (error: any) {
+              console.error('❌ [services-requests] Erreur annulation:', error);
+              Alert.alert('Erreur', 'Impossible d\'annuler la commande.');
+            }
+          },
+        },
+      ]
+    );
+  }, [user]);
+
+  // ✅ NOUVELLE FONCTION SIMPLIFIÉE : Ouvrir directement le modal de notation
+  const handleOpenValidation = useCallback((mission: Mission) => {
+    console.log('🔍 [services-requests] handleOpenValidation appelé, missionId:', mission.id);
+    const clientName = mission.client_profile 
+      ? `${mission.client_profile.firstname} ${mission.client_profile.lastname}`
+      : 'Client';
+
+    setSelectedMissionForRating(mission);
+    setRatingModalTitle('Valider la Mission');
+    setRatingTargetName(clientName);
+    setShowRatingModal(true);
+  }, []);
+
+  // ✅ FONCTION : Validation finale avec notation (côté Fourmiz) - SIMPLIFIÉE
+  const handleSubmitMissionRating = useCallback(async (rating: number, comment: string) => {
+    console.log('🔍 [services-requests] handleSubmitMissionRating appelé');
+    if (!selectedMissionForRating) return;
 
     try {
+      setValidatingWithRating(true);
+
+      // 1. Valider la mission
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          status: 'terminee',
+          validated_at: new Date().toISOString(),
+          validated_by: user?.id,
+          validation_method: 'fourmiz_validation',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedMissionForRating.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Traitement du parrainage fourmiz
+      try {
+        await supabase.rpc('process_referral_for_mission', { 
+          mission_id_input: selectedMissionForRating.id,
+          fourmiz_id_input: user?.id 
+        });
+        console.log('✅ [services-requests] Parrainage fourmiz traité pour mission:', selectedMissionForRating.id);
+      } catch (referralError) {
+        console.error('❌ [services-requests] Erreur traitement parrainage fourmiz:', referralError);
+        // Ne pas bloquer la validation pour une erreur de parrainage
+      }
+
+      // 2. ✅ AJOUTER LA NOTATION via la fonction SQL existante - PARAMÈTRES CORRECTS
+      const { error: ratingError } = await supabase.rpc('add_rating', {
+        p_order_id: selectedMissionForRating.id,
+        p_rating: rating,
+        p_comment: comment || null
+      });
+
+      if (ratingError) {
+        console.error('❌ [services-requests] Erreur ajout rating:', ratingError);
+        throw new Error('Impossible d\'enregistrer votre note');
+      }
+
+      Alert.alert(
+        '✅ Mission validée et notée',
+        `Mission terminée avec succès ! Votre note de ${rating}/5 a été enregistrée.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowRatingModal(false);
+              setSelectedMissionForRating(null);
+              if (user) {
+                fetchMissionsForUser(user);
+              }
+            }
+          }
+        ]
+      );
+
+    } catch (error: any) {
+      console.error('❌ [services-requests] Erreur validation mission avec notation:', error);
+      Alert.alert('Erreur', error.message || 'Impossible de valider la mission.');
+    } finally {
+      setValidatingWithRating(false);
+    }
+  }, [selectedMissionForRating, user]);
+
+  // ✅ ROLE MANAGER - SIMPLIFIÉ (on garde juste userProfile)
+  const roleManager = useRoleManagerAdapter(profile);
+  const { userProfile } = roleManager || {};
+
+  // 🔍 DEBUG : Surveiller le roleManager
+  useEffect(() => {
+    console.log('🔍 [services-requests] RoleManager changé:', {
+      hasRoleManager: !!roleManager,
+      hasUserProfile: !!userProfile,
+      roleManagerKeys: roleManager ? Object.keys(roleManager) : []
+    });
+  }, [roleManager, userProfile]);
+
+  // ✅ VUE FOURMIZ UNIQUEMENT (pas de switch)
+  const isViewingAsFourmiz = true;
+
+  // 🔧 CHARGEMENT DES MISSIONS FOURMIZ UNIQUEMENT
+  const fetchMissionsForUser = useCallback(async (currentUser: any) => {
+    try {
+      console.log('⏳ [services-requests] fetchMissionsForUser appelé');
+      console.log('🔍 [services-requests] User ID:', currentUser?.id);
       setError(null);
-      setLoading(true);
-      console.log('🔍 Chargement des missions actives pour fourmiz:', user.id);
+
+      // 🐜 VUE FOURMIZ UNIQUEMENT : Missions où l'utilisateur est assigné comme Fourmiz
+      console.log('🐜 [services-requests] Chargement missions fourmiz...');
       
-      // 📝 REQUÊTE CORRIGÉE SANS estimated_duration et rating
       const { data, error } = await supabase
         .from('orders')
         .select(`
           *,
-          services (
-            title,
-            categorie
+          client_profile:profiles!orders_client_id_fkey(
+            id, firstname, lastname, avatar_url
           ),
-          client_profile:profiles!client_id (
-            firstname,
-            lastname,
-            avatar_url,
-            phone,
-            email
-          )
+          services(title, description, categorie)
         `)
-        .eq('fourmiz_id', user.id)
-        .in('status', ['acceptee', 'en_cours'])
+        .eq('fourmiz_id', currentUser.id)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Erreur lors de la récupération des missions:', error);
+        console.error('❌ [services-requests] Erreur SQL:', error);
         throw error;
       }
-
-      console.log('✅ Missions actives récupérées:', data?.length || 0);
+      
+      console.log('✅ [services-requests] Missions fourmiz chargées:', data?.length || 0);
       setMissions(data || []);
+
     } catch (error: any) {
-      console.error('💥 Erreur lors de la récupération des missions:', error);
-      setError(`Impossible de charger les missions: ${error.message}`);
-    } finally {
-      setLoading(false);
+      console.error('❌ [services-requests] Erreur lors de la récupération des missions fourmiz:', error);
+      setError(`Impossible de charger les données: ${error.message}`);
     }
-  };
+  }, []);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchMissions();
-    setRefreshing(false);
-  };
-
-  const updateMissionStatus = async (missionId: number, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', missionId)
-        .eq('fourmiz_id', user?.id);
-
-      if (error) throw error;
-      
-      await fetchMissions();
-      
-      const statusMessages = {
-        'en_cours': 'Mission marquée comme en cours',
-        'terminee': 'Mission terminée avec succès',
-        'annulee': 'Mission annulée'
-      };
-      
-      Alert.alert('Succès', statusMessages[newStatus as keyof typeof statusMessages] || 'Statut mis à jour');
-    } catch (error: any) {
-      console.error('❌ Erreur lors de la mise à jour:', error);
-      Alert.alert('Erreur', `Impossible de mettre à jour le statut: ${error.message}`);
-    }
-  };
-
-  const filteredMissions = filterStatus === 'all' 
-    ? missions 
-    : missions.filter(mission => mission.status === filterStatus);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+  // ⚡ CHARGEMENT INITIAL
+  useEffect(() => {
+    console.log('🔄 [services-requests] useEffect FETCH MISSIONS déclenché');
+    console.log('🔍 État:', { 
+      hasUser: !!user, 
+      hasUserProfile: !!userProfile, 
+      hasProfile: !!profile 
     });
-  };
+    
+    if (user && (userProfile || profile)) {
+      console.log('✅ [services-requests] Conditions remplies, appel fetchMissionsForUser');
+      fetchMissionsForUser(user);
+    } else {
+      console.log('❌ [services-requests] Conditions non remplies pour fetchMissionsForUser');
+    }
+  }, [user, userProfile, profile, fetchMissionsForUser]);
 
-  const formatTime = (timeString: string) => {
-    if (!timeString) return '';
-    return timeString.slice(0, 5);
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF4444" />
-          <Text style={styles.loadingText}>Chargement de vos missions...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="warning" size={48} color="#FF4444" />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-            <Text style={styles.retryButtonText}>Réessayer</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const renderFilterButtons = () => (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      style={styles.filterContainer}
-      contentContainerStyle={styles.filterContent}
-    >
-      <TouchableOpacity
-        style={[
-          styles.filterButton,
-          filterStatus === 'all' && styles.filterButtonActive
-        ]}
-        onPress={() => setFilterStatus('all')}
-      >
-        <Text style={[
-          styles.filterButtonText,
-          filterStatus === 'all' && styles.filterButtonTextActive
-        ]}>
-          📋 Toutes ({missions.length})
-        </Text>
-      </TouchableOpacity>
-
-      {Object.entries(STATUS_CONFIG).map(([status, config]) => {
-        const count = missions.filter(mission => mission.status === status).length;
-        if (count === 0) return null;
-        
-        return (
-          <TouchableOpacity
-            key={status}
-            style={[
-              styles.filterButton,
-              filterStatus === status && styles.filterButtonActive
-            ]}
-            onPress={() => setFilterStatus(status)}
-          >
-            <Text style={[
-              styles.filterButtonText,
-              filterStatus === status && styles.filterButtonTextActive
-            ]}>
-              {config.label} ({count})
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+  // 🔍 === DEBUG useFocusEffect ===
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🎯 [services-requests] FOCUS EFFECT déclenché');
+      console.log('📍 Pathname au focus:', pathname);
+      console.log('⏰ Focus timestamp:', new Date().toISOString());
+      console.log('🔍 État au focus:', {
+        loading,
+        hasProfile: !!profile,
+        hasUser: !!user,
+        missionsCount: missions.length
+      });
+      
+      // ATTENTION : Vérifier s'il y a des redirections ici
+      if (pathname !== '/services-requests' && pathname !== '/(tabs)/services-requests') {
+        console.log('⚠️  [services-requests] PATHNAME INATTENDU AU FOCUS:', pathname);
+      }
+      
+      return () => {
+        console.log('🎯 [services-requests] FOCUS EFFECT - CLEANUP');
+        console.log('📍 Pathname au cleanup:', pathname);
+      };
+    }, [pathname, loading, profile, user, missions.length])
   );
 
+  // 🔄 RAFRAICHIR LES DONNÉES - AVEC DEBUG
+  const handleRefresh = useCallback(async () => {
+    console.log('🔄 [services-requests] Pull-to-refresh déclenché');
+    
+    if (!user) {
+      console.log('❌ [services-requests] Pas d\'utilisateur pour le refresh');
+      return;
+    }
+    
+    try {
+      setRefreshing(true);
+      console.log('⏳ [services-requests] Début du refresh...');
+      await fetchMissionsForUser(user);
+      console.log('✅ [services-requests] Refresh terminé avec succès');
+    } catch (error) {
+      console.error('❌ [services-requests] Erreur pendant le refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchMissionsForUser, user]);
+
+  // Normaliser les statuts pour le filtrage
+  const normalizeStatus = (status: any): FilterType => {
+    const safeStatus = safeString(status).toLowerCase();
+    
+    if (['en_attente', 'pending', 'created'].includes(safeStatus)) {
+      return 'en_attente';
+    }
+    if (['acceptee', 'accepted'].includes(safeStatus)) {
+      return 'acceptee';
+    }
+    if (['confirmed'].includes(safeStatus)) {
+      return 'confirmed';
+    }
+    if (['en_cours', 'in_progress'].includes(safeStatus)) {
+      return 'en_cours';
+    }
+    if (['terminee', 'completed', 'finished'].includes(safeStatus)) {
+      return 'terminee';
+    }
+    if (['annulee', 'cancelled', 'canceled'].includes(safeStatus)) {
+      return 'annulee';
+    }
+    
+    return safeStatus as FilterType || 'en_attente';
+  };
+
+  // Calculer les statistiques pour les filtres
+  const missionStats = useMemo(() => {
+    const pending = missions.filter(mission => normalizeStatus(mission.status) === 'en_attente');
+    const accepted = missions.filter(mission => normalizeStatus(mission.status) === 'acceptee');
+    const confirmed = missions.filter(mission => normalizeStatus(mission.status) === 'confirmed');
+    const inProgress = missions.filter(mission => normalizeStatus(mission.status) === 'en_cours');
+    const completed = missions.filter(mission => normalizeStatus(mission.status) === 'terminee');
+    const cancelled = missions.filter(mission => normalizeStatus(mission.status) === 'annulee');
+
+    return {
+      total: missions.length,
+      pending: pending.length,
+      accepted: accepted.length, 
+      confirmed: confirmed.length,
+      inProgress: inProgress.length,
+      completed: completed.length,
+      cancelled: cancelled.length
+    };
+  }, [missions]);
+
+  // Options de filtre avec compteurs
+  const filterOptions = useMemo(() => [
+    { id: 'all', label: `Toutes (${missionStats.total})`, icon: 'apps' as const },
+    { id: 'en_attente', label: `En attente (${missionStats.pending})`, icon: 'time' as const },
+    { id: 'acceptee', label: `Acceptées (${missionStats.accepted})`, icon: 'checkmark-circle' as const },
+    { id: 'confirmed', label: `Confirmées (${missionStats.confirmed})`, icon: 'shield-checkmark' as const },
+    { id: 'en_cours', label: `En cours (${missionStats.inProgress})`, icon: 'play-circle' as const },
+    { id: 'terminee', label: `Terminées (${missionStats.completed})`, icon: 'checkmark-done-circle' as const },
+    { id: 'annulee', label: `Annulées (${missionStats.cancelled})`, icon: 'close-circle' as const }
+  ], [missionStats]);
+
+  // ✅ NOUVEAU : Obtenir le nom du filtre actuel (adapté de orders.tsx)
+  const getCurrentFilterName = () => {
+    const currentFilter = filterOptions.find(option => option.id === filterStatus);
+    return currentFilter?.label || 'toutes';
+  };
+
+  // ✅ NOUVEAU : Sélectionner un filtre (adapté de orders.tsx)
+  const selectFilter = (filterId: FilterType) => {
+    console.log('🔍 [services-requests] Changement de filtre vers:', filterId);
+    setFilterStatus(filterId);
+    setShowFilterDropdown(false);
+  };
+
+  // 📱 FILTRER LES MISSIONS
+  const filteredMissions = useMemo(() => {
+    if (filterStatus === 'all') {
+      return missions;
+    }
+    
+    const filtered = missions.filter(mission => {
+      const normalized = normalizeStatus(mission.status);
+      return normalized === filterStatus;
+    });
+    
+    console.log('🔍 [services-requests] Missions filtrées:', filtered.length, 'pour le filtre:', filterStatus);
+    return filtered;
+  }, [missions, filterStatus]);
+
+  // 🔝 GESTION DU SCROLL TO TOP
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowScrollTop(offsetY > 300);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    scrollViewRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+
+  // ✅ RENDER ITEM POUR FLATLIST
+  const renderMissionItem = ({ item: mission }: { item: Mission }) => (
+    <CleanMissionCard 
+      mission={mission}
+      isViewingAsFourmiz={isViewingAsFourmiz}
+      adminSettings={adminSettings}
+      onChatPress={handleChatOrder}
+      onCancelPress={handleCancelOrder}
+      onValidatePress={handleOpenValidation}
+    />
+  );
+
+  // 🔍 DEBUG : Log avant les renders conditionnels
+  console.log('🔍 [services-requests] État avant render:', {
+    loading,
+    error: !!error,
+    hasProfile: !!profile,
+    hasUserProfile: !!userProfile,
+    missionsCount: missions.length,
+    pathname
+  });
+
+  // ⏳ ÉTAT DE CHARGEMENT
+  if (loading) {
+    console.log('⏳ [services-requests] Render LOADING');
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#000000" />
+          <Text style={styles.centerText}>Chargement...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ❌ ÉTAT D'ERREUR
+  if (error) {
+    console.log('❌ [services-requests] Render ERROR:', error);
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Ionicons name="warning" size={32} color="#666666" />
+          <Text style={styles.centerTitle}>Erreur de chargement</Text>
+          <Text style={styles.centerText}>{error}</Text>
+          <TouchableOpacity style={styles.actionButton} onPress={handleRefresh}>
+            <Text style={styles.actionButtonText}>Réessayer</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ❓ PROFIL NON TROUVÉ
+  if (!profile && !userProfile) {
+    console.log('❓ [services-requests] Render NO PROFILE');
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Ionicons name="person-circle-outline" size={48} color="#cccccc" />
+          <Text style={styles.centerTitle}>Profil non trouvé</Text>
+          <Text style={styles.centerText}>
+            Votre profil n'a pas pu être chargé. Veuillez compléter votre inscription.
+          </Text>
+          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/auth/complete-profile')}>
+            <Text style={styles.actionButtonText}>Compléter mon profil</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // 🎨 RENDU PRINCIPAL ÉPURÉ
+  console.log('✅ [services-requests] Render PRINCIPAL avec', filteredMissions.length, 'missions');
+  
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* 📊 Statistiques en haut */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {missions.filter(m => m.status === 'acceptee').length}
+      {/* En-tête épuré identique à profile */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Mes Prestations</Text>
+      </View>
+
+      {/* Filtre épuré */}
+      <View style={styles.filterContainer}>
+        <Text style={styles.filterLabel}>Affichage</Text>
+        <View style={styles.dropdownContainer}>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setShowFilterDropdown(!showFilterDropdown)}
+          >
+            <Text style={styles.dropdownButtonText}>
+              {getCurrentFilterName()}
             </Text>
-            <Text style={styles.statLabel}>Acceptées</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {missions.filter(m => m.status === 'en_cours').length}
-            </Text>
-            <Text style={styles.statLabel}>En cours</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{missions.length}</Text>
-            <Text style={styles.statLabel}>Total actives</Text>
-          </View>
+            <Ionicons 
+              name={showFilterDropdown ? "chevron-up" : "chevron-down"} 
+              size={16} 
+              color="#666666" 
+            />
+          </TouchableOpacity>
+
+          {showFilterDropdown && (
+            <>
+              <TouchableOpacity 
+                style={styles.dropdownOverlay} 
+                onPress={() => setShowFilterDropdown(false)}
+                activeOpacity={1}
+              />
+              <View style={styles.dropdownMenu}>
+                {filterOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.dropdownOption,
+                      filterStatus === option.id && styles.dropdownOptionSelected
+                    ]}
+                    onPress={() => selectFilter(option.id as FilterType)}
+                  >
+                    <View style={styles.dropdownOptionContent}>
+                      <Ionicons name={option.icon} size={14} color="#666666" />
+                      <Text style={[
+                        styles.dropdownOptionText,
+                        filterStatus === option.id && styles.dropdownOptionTextSelected
+                      ]}>
+                        {option.label}
+                      </Text>
+                    </View>
+                    {filterStatus === option.id && (
+                      <Ionicons name="checkmark" size={14} color="#000000" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
         </View>
+      </View>
 
-        {/* 🔍 Filtres */}
-        {renderFilterButtons()}
-
-        <Text style={styles.sectionTitle}>🛠️ Mes missions actives</Text>
-
-        {/* 📋 Liste des missions ou état vide */}
-        {filteredMissions.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="construct-outline" size={64} color="#ccc" />
+      <FlatList 
+        ref={scrollViewRef}
+        data={filteredMissions}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderMissionItem}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#000000']}
+            tintColor="#000000"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyState}>
+            <Ionicons name="construct-outline" size={48} color="#cccccc" />
             <Text style={styles.emptyTitle}>
               {filterStatus === 'all' 
-                ? 'Aucune mission active'
-                : `Aucune mission ${STATUS_CONFIG[filterStatus as keyof typeof STATUS_CONFIG]?.description || filterStatus}`
+                ? 'Aucune mission' 
+                : `Aucune mission ${getStatusLabelForEmpty(filterStatus)}`
               }
             </Text>
-            <Text style={styles.emptySubtitle}>
-              {filterStatus === 'all'
-                ? 'Vous n\'avez pas de mission en cours'
-                : 'Changez de filtre pour voir vos autres missions actives'
+            <Text style={styles.emptyText}>
+              {filterStatus === 'all' 
+                ? 'Vous n\'avez pas encore de mission assignée'
+                : `Aucune mission avec le statut "${getStatusLabelForEmpty(filterStatus)}"`
               }
             </Text>
             {filterStatus === 'all' && (
               <TouchableOpacity
-                style={styles.findMissionsButton}
+                style={styles.actionButton}
                 onPress={() => router.push('/(tabs)/available-orders')}
               >
-                <Text style={styles.findMissionsButtonText}>Trouver des missions</Text>
+                <Text style={styles.actionButtonText}>
+                  Trouver des missions
+                </Text>
               </TouchableOpacity>
             )}
           </View>
-        ) : (
-          filteredMissions.map((mission) => (
-            <MissionCard 
-              key={mission.id} 
-              mission={mission}
-              onUpdateStatus={updateMissionStatus}
-              formatDate={formatDate}
-              formatTime={formatTime}
-            />
-          ))
         )}
-      </ScrollView>
+        contentContainerStyle={[
+          styles.listContent,
+          filteredMissions.length === 0 && styles.listContentEmpty
+        ]}
+      />
+
+      {/* Bouton scroll to top épuré */}
+      {showScrollTop && (
+        <TouchableOpacity
+          style={styles.scrollTopButton}
+          onPress={scrollToTop}
+        >
+          <Ionicons name="chevron-up" size={20} color="#ffffff" />
+        </TouchableOpacity>
+      )}
+
+      {/* Modal de notation épurée */}
+      <RatingModal
+        visible={showRatingModal}
+        onClose={() => {
+          setShowRatingModal(false);
+          setSelectedMissionForRating(null);
+        }}
+        onSubmit={handleSubmitMissionRating}
+        title={ratingModalTitle}
+        targetName={ratingTargetName}
+        loading={validatingWithRating}
+      />
     </SafeAreaView>
   );
 }
 
-// 🎨 COMPOSANT CARTE MISSION - Identique à l'original
-const MissionCard = ({ 
+// 📋 COMPOSANT CARTE MISSION ÉPURÉE
+const CleanMissionCard = ({ 
   mission, 
-  onUpdateStatus,
-  formatDate,
-  formatTime
+  isViewingAsFourmiz, 
+  adminSettings,
+  onChatPress,
+  onCancelPress,
+  onValidatePress
 }: { 
-  mission: Mission;
-  onUpdateStatus: (id: number, status: string) => void;
-  formatDate: (date: string) => string;
-  formatTime: (time: string) => string;
+  mission: Mission; 
+  isViewingAsFourmiz: boolean;
+  adminSettings: AdminSettings;
+  onChatPress: (orderId: number) => void;
+  onCancelPress: (orderId: number) => void;
+  onValidatePress: (mission: Mission) => void;
 }) => {
-  const statusConfig = STATUS_CONFIG[mission.status as keyof typeof STATUS_CONFIG];
+  const personProfile = isViewingAsFourmiz ? mission.client_profile : mission.fourmiz_profile;
+  const personRole = isViewingAsFourmiz ? 'Client' : 'Fourmiz';
+  
+  // 🔧 Gestion sécurisée des noms
+  const getPersonName = () => {
+    if (!personProfile) {
+      return isViewingAsFourmiz ? 'Client' : 'Non assigné';
+    }
+    
+    const firstName = personProfile.firstname || personProfile.first_name || '';
+    const lastName = personProfile.lastname || personProfile.last_name || '';
+    
+    return `${firstName} ${lastName}`.trim() || 'Utilisateur';
+  };
+
+  // ✅ FONCTION : Récupérer le titre
+  const getMissionTitle = () => {
+    if (mission.services?.title) {
+      return mission.services.title;
+    }
+    
+    if (mission.service_title) {
+      return mission.service_title;
+    }
+    
+    if (mission.service_id && !mission.services) {
+      return `Service #${mission.service_id}`;
+    }
+    
+    if (mission.description) {
+      const words = mission.description.trim().split(/\s+/).filter(word => word.length > 2);
+      const title = words.slice(0, 4).join(' ');
+      return title || 'Service personnalisé';
+    }
+    
+    return 'Service demandé';
+  };
+
+  // ✅ FONCTION DE NORMALISATION DU STATUT
+  const normalizeStatus = (status: any): string => {
+    const safeStatus = String(status || '').toLowerCase();
+    
+    if (['en_attente', 'pending', 'created'].includes(safeStatus)) {
+      return 'en_attente';
+    }
+    if (['acceptee', 'accepted', 'confirmed'].includes(safeStatus)) {
+      return 'acceptee';
+    }
+    if (['en_cours', 'in_progress'].includes(safeStatus)) {
+      return 'en_cours';
+    }
+    if (['terminee', 'completed', 'finished'].includes(safeStatus)) {
+      return 'terminee';
+    }
+    if (['annulee', 'cancelled', 'canceled'].includes(safeStatus)) {
+      return 'annulee';
+    }
+    return 'en_attente';
+  };
+
+  // 🔐 FONCTION : Vérifier si la mission peut être validée
+  const canValidateMission = () => {
+    const status = normalizeStatus(mission.status);
+    return isViewingAsFourmiz && 
+           (status === 'acceptee' || status === 'en_cours') && 
+           mission.date && 
+           new Date(mission.date) <= new Date();
+  };
+
+  const personName = getPersonName();
+  const category = getCategoryForOrder(mission);
+  const normalizedStatus = normalizeStatus(mission.status);
+
+  // 🔧 CALCUL MONTANT
+  const getMissionAmount = useCallback((): string => {
+    try {
+      const baseAmount = mission.proposed_amount || 0;
+      
+      if (baseAmount <= 0) {
+        return '0.00€';
+      }
+
+      if (isViewingAsFourmiz) {
+        const fourmizAmount = (baseAmount * adminSettings.fourmiz_earning_percentage) / 100;
+        return `${fourmizAmount.toFixed(2)}€`;
+      } else {
+        return `${baseAmount.toFixed(2)}€`;
+      }
+    } catch (error) {
+      console.error('❌ [services-requests] Erreur calcul montant mission:', error);
+      return '0.00€';
+    }
+  }, [mission.proposed_amount, isViewingAsFourmiz, adminSettings.fourmiz_earning_percentage]);
+
+  // 🎯 NAVIGATION VERS DÉTAILS
+  const handleCardPress = () => {
+    try {
+      console.log('🔍 [services-requests] Navigation vers détails mission:', mission.id);
+      router.push(`/orders/${mission.id}`);
+    } catch (error) {
+      console.error('❌ [services-requests] Erreur navigation vers détails:', error);
+      Alert.alert('Erreur', 'Impossible d\'accéder aux détails de cette commande');
+    }
+  };
 
   return (
-    <View style={styles.missionCard}>
-      <View style={styles.missionHeader}>
-        <View style={styles.missionInfo}>
-          <Text style={styles.missionTitle}>#{mission.id} • {mission.services?.title}</Text>
-          <Text style={styles.missionCategory}>{mission.services?.categorie}</Text>
+    <TouchableOpacity 
+      style={styles.missionCard}
+      onPress={handleCardPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.cardTitleContainer}>
+          <Text style={styles.cardTitle}>{getMissionTitle()}</Text>
+          <Text style={styles.cardCategory}>{category}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusConfig?.bgColor }]}>
-          <Text style={[styles.statusText, { color: statusConfig?.color }]}>
-            {statusConfig?.label}
+        <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(mission.status) }]}>
+          <Text style={styles.statusText}>{getStatusLabel(mission.status)}</Text>
+        </View>
+      </View>
+      
+      <Text style={styles.cardDescription} numberOfLines={2}>
+        {mission.description}
+      </Text>
+      
+      <View style={styles.cardMeta}>
+        <View style={styles.metaItem}>
+          <Ionicons name="cash-outline" size={14} color="#666666" />
+          <Text style={styles.metaText}>{getMissionAmount()}</Text>
+        </View>
+        <View style={styles.metaItem}>
+          <Ionicons name="time-outline" size={14} color="#666666" />
+          <Text style={styles.metaText}>
+            {new Date(mission.created_at).toLocaleDateString()}
           </Text>
         </View>
       </View>
 
-      {mission.urgent && (
-        <View style={styles.urgentBadge}>
-          <Ionicons name="alert-circle" size={16} color="#ef4444" />
-          <Text style={styles.urgentText}>URGENT - {mission.urgency_level}</Text>
+      {personProfile && (
+        <View style={styles.personContainer}>
+          <Text style={styles.personRole}>{personRole}</Text>
+          <Text style={styles.personName}>{personName}</Text>
         </View>
       )}
 
-      <View style={styles.missionDetails}>
-        <View style={styles.detailRow}>
-          <Ionicons name="calendar" size={16} color="#6b7280" />
-          <Text style={styles.detailText}>
-            {formatDate(mission.date)}
-            {mission.start_time && ` à ${formatTime(mission.start_time)}`}
-            {mission.end_time && ` - ${formatTime(mission.end_time)}`}
-          </Text>
-        </View>
-        
-        <View style={styles.detailRow}>
-          <Ionicons name="location" size={16} color="#6b7280" />
-          <Text style={styles.detailText} numberOfLines={2}>
-            {mission.address}
-            {mission.postal_code && mission.city && `, ${mission.postal_code} ${mission.city}`}
-          </Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Ionicons name="card" size={16} color="#6b7280" />
-          <Text style={styles.detailText}>
-            {typeof mission.proposed_amount === 'number' 
-              ? `${(mission.proposed_amount / 100).toFixed(2)}€`
-              : `${mission.proposed_amount}€`
-            }
-          </Text>
-        </View>
-      </View>
-
-      {mission.description && (
-        <Text style={styles.missionDescription}>{mission.description}</Text>
-      )}
-
-      <View style={styles.clientSection}>
-        <View style={styles.clientInfo}>
-          {mission.client_profile?.avatar_url ? (
-            <Image 
-              source={{ uri: mission.client_profile.avatar_url }}
-              style={styles.clientAvatar}
-            />
-          ) : (
-            <View style={styles.clientAvatarPlaceholder}>
-              <Ionicons name="person" size={20} color="#6b7280" />
-            </View>
-          )}
-          <View style={styles.clientDetails}>
-            <Text style={styles.clientName}>
-              {mission.client_profile?.firstname} {mission.client_profile?.lastname}
-            </Text>
-            <Text style={styles.clientRole}>Votre client</Text>
-          </View>
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.contactButton}
-          onPress={() => {
-            Alert.alert(
-              'Contacter le client',
-              `Téléphone: ${mission.client_profile?.phone || 'Non renseigné'}\nEmail: ${mission.client_profile?.email || 'Non renseigné'}`,
-              [
-                { text: 'Fermer' },
-                { text: 'Appeler', onPress: () => {} },
-                { text: 'Message', onPress: () => router.push(`/chat/${mission.id}`) }
-              ]
-            );
-          }}
-        >
-          <Ionicons name="chatbubble" size={16} color="#3b82f6" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.missionActions}>
-        {mission.status === 'acceptee' && (
+      {/* Actions épurées */}
+      <View style={styles.cardActions}>
+        {(normalizedStatus === 'acceptee' || normalizedStatus === 'en_cours') && (
           <TouchableOpacity 
-            style={[styles.actionButton, styles.startButton]}
-            onPress={() => onUpdateStatus(mission.id, 'en_cours')}
+            style={styles.actionButtonSecondary}
+            onPress={(e) => {
+              e.stopPropagation();
+              onChatPress(mission.id);
+            }}
           >
-            <Ionicons name="play" size={16} color="#fff" />
-            <Text style={styles.startButtonText}>Commencer</Text>
+            <Ionicons name="chatbubble-outline" size={14} color="#666666" />
+            <Text style={styles.actionButtonSecondaryText}>Discuter</Text>
           </TouchableOpacity>
         )}
-        
-        {mission.status === 'en_cours' && (
+
+        {canValidateMission() && (
           <TouchableOpacity 
-            style={[styles.actionButton, styles.completeButton]}
-            onPress={() => onUpdateStatus(mission.id, 'terminee')}
+            style={styles.actionButtonPrimary}
+            onPress={(e) => {
+              e.stopPropagation();
+              onValidatePress(mission);
+            }}
           >
-            <Ionicons name="checkmark-done" size={16} color="#fff" />
-            <Text style={styles.completeButtonText}>Terminer</Text>
+            <Ionicons name="checkmark-circle-outline" size={14} color="#ffffff" />
+            <Text style={styles.actionButtonPrimaryText}>Valider</Text>
+          </TouchableOpacity>
+        )}
+
+        {(normalizedStatus === 'en_attente' || normalizedStatus === 'acceptee') && (
+          <TouchableOpacity 
+            style={styles.actionButtonSecondary}
+            onPress={(e) => {
+              e.stopPropagation();
+              onCancelPress(mission.id);
+            }}
+          >
+            <Ionicons name="close-circle-outline" size={14} color="#666666" />
+            <Text style={styles.actionButtonSecondaryText}>Annuler</Text>
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
-// ✅ STYLES IDENTIQUES - Aucune modification
+// 🎨 FONCTIONS UTILITAIRES
+const getStatusColor = (status: string) => {
+  const colors = {
+    'en_attente': '#666666',
+    'acceptee': '#000000',
+    'confirmed': '#000000',
+    'en_cours': '#000000',
+    'terminee': '#000000',
+    'annulee': '#999999'
+  };
+  return colors[status as keyof typeof colors] || '#666666';
+};
+
+const getStatusLabel = (status: string) => {
+  const labels = {
+    'en_attente': 'En attente',
+    'acceptee': 'Acceptée',
+    'confirmed': 'Confirmée', 
+    'en_cours': 'En cours',
+    'terminee': 'Terminée',
+    'annulee': 'Annulée'
+  };
+  return labels[status as keyof typeof labels] || status;
+};
+
+const getStatusLabelForEmpty = (status: string) => {
+  const labels = {
+    'en_attente': 'en attente',
+    'acceptee': 'acceptées',
+    'confirmed': 'confirmées',
+    'en_cours': 'en cours',
+    'terminee': 'terminées',
+    'annulee': 'annulées'
+  };
+  return labels[status as keyof typeof labels] || status;
+};
+
+// 🎨 STYLES ÉPURÉS ET MINIMALISTES
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#f9fafb' 
+    backgroundColor: '#ffffff' 
   },
-  content: { 
-    padding: 20 
-  },
-  loadingContainer: {
+
+  // États centrés minimalistes
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
+    gap: 16,
   },
-  loadingText: {
-    marginTop: 16,
+  centerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  centerText: {
+    fontSize: 13,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  actionButton: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  actionButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+
+  // En-tête épuré identique à profile
+  header: {
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  headerTitle: {
     fontSize: 16,
-    color: '#666',
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center',
   },
-  errorContainer: {
+
+  // Filtre épuré
+  filterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  filterLabel: {
+    fontSize: 13,
+    color: '#666666',
+    minWidth: 60,
+  },
+  
+  // Dropdown épuré
+  dropdownContainer: {
     flex: 1,
+    position: 'relative',
+    zIndex: 9999,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 40,
+  },
+  dropdownButtonText: {
+    fontSize: 13,
+    color: '#000000',
+    flex: 1,
+  },
+  dropdownOverlay: {
+    position: 'absolute',
+    top: -1000,
+    left: -1000,
+    right: -1000,
+    bottom: -1000,
+    zIndex: 9998,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 42,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 9999,
+    maxHeight: 240,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f8f8f8',
+  },
+  dropdownOptionSelected: {
+    backgroundColor: '#f8f8f8',
+  },
+  dropdownOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  dropdownOptionText: {
+    fontSize: 13,
+    color: '#333333',
+  },
+  dropdownOptionTextSelected: {
+    color: '#000000',
+    fontWeight: '500',
+  },
+
+  // Liste épurée
+  listContent: {
+    paddingBottom: 80,
+  },
+  listContentEmpty: {
+    flex: 1,
+  },
+
+  // État vide épuré
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    gap: 16,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 13,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  // Cartes mission épurées
+  missionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  cardTitleContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  cardCategory: {
+    fontSize: 12,
+    color: '#666666',
+    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  statusIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  statusText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  cardDescription: {
+    fontSize: 13,
+    color: '#666666',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 12,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#666666',
+  },
+
+  // Section personne épurée
+  personContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 12,
+    marginBottom: 12,
+  },
+  personRole: {
+    fontSize: 11,
+    color: '#999999',
+    marginBottom: 2,
+  },
+  personName: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#333333',
+  },
+
+  // Actions épurées
+  cardActions: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  actionButtonPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 6,
+    flex: 1,
+    minWidth: 80,
+    justifyContent: 'center',
+  },
+  actionButtonPrimaryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  actionButtonSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 6,
+    flex: 1,
+    minWidth: 80,
+    justifyContent: 'center',
+  },
+  actionButtonSecondaryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666666',
+  },
+
+  // Bouton scroll to top épuré
+  scrollTopButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+
+  // Modal épurée
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  errorText: {
-    fontSize: 16,
-    color: '#FF4444',
-    textAlign: 'center',
-    marginVertical: 16,
-  },
-  retryButton: {
-    backgroundColor: '#FF4444',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+  modalContent: {
+    backgroundColor: '#ffffff',
     borderRadius: 8,
+    width: '100%',
+    maxWidth: 400,
+    padding: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  retryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  statsContainer: {
+  modalHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#666666',
+    textAlign: 'center',
     marginBottom: 24,
   },
-  statCard: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
+
+  // Section notation épurée
+  ratingSection: {
     alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  statNumber: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    color: '#FF4444' 
-  },
-  statLabel: { 
-    fontSize: 12, 
-    color: '#666', 
-    marginTop: 4, 
-    textAlign: 'center' 
-  },
-  filterContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  filterContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  filterButtonActive: {
-    backgroundColor: '#3b82f6',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  filterButtonTextActive: {
-    color: '#ffffff',
-  },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    marginBottom: 16 
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 40,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 8,
     marginBottom: 24,
   },
-  findMissionsButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  findMissionsButtonText: {
-    fontSize: 16,
+  sectionLabel: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#ffffff',
-  },
-  missionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    color: '#000000',
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
   },
-  missionHeader: {
+  starsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  missionInfo: {
-    flex: 1,
-  },
-  missionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  missionCategory: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  urgentBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    marginBottom: 12,
-  },
-  urgentText: {
-    marginLeft: 6,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#ef4444',
-  },
-  missionDetails: {
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    gap: 8,
     marginBottom: 8,
   },
-  detailText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#374151',
-    flex: 1,
+  starButton: {
+    padding: 4,
   },
-  missionDescription: { 
-    fontSize: 14, 
-    color: '#666', 
-    marginBottom: 12,
-    lineHeight: 20,
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 8,
-    fontStyle: 'italic',
+  ratingValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#333333',
   },
-  clientSection: {
+
+  // Section commentaire épurée
+  commentSection: {
+    marginBottom: 24,
+  },
+  commentInput: {
+    backgroundColor: '#f8f8f8',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 13,
+    color: '#000000',
+    textAlignVertical: 'top',
+    minHeight: 80,
+  },
+  characterCount: {
+    fontSize: 11,
+    color: '#999999',
+    textAlign: 'right',
+    marginTop: 4,
+  },
+
+  // Actions modal épurées
+  modalActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#e0f2fe',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    gap: 12,
   },
-  clientInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  cancelButton: {
     flex: 1,
-  },
-  clientAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  clientAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e5e7eb',
-    justifyContent: 'center',
+    backgroundColor: '#f8f8f8',
+    paddingVertical: 12,
+    borderRadius: 6,
     alignItems: 'center',
   },
-  clientDetails: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  clientName: {
-    fontSize: 14,
+  cancelButtonText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#111827',
+    color: '#666666',
   },
-  clientRole: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  contactButton: {
-    padding: 8,
-    backgroundColor: '#dbeafe',
-    borderRadius: 20,
-  },
-  missionActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
+  submitButton: {
+    flex: 2,
+    backgroundColor: '#000000',
+    paddingVertical: 12,
+    borderRadius: 6,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    flex: 1,
-    gap: 4,
   },
-  startButton: { 
-    backgroundColor: '#059669' 
+  submitButtonDisabled: {
+    backgroundColor: '#999999',
   },
-  startButtonText: { 
-    color: '#fff', 
-    fontWeight: '600' 
-  },
-  completeButton: { 
-    backgroundColor: '#3b82f6' 
-  },
-  completeButtonText: { 
-    color: '#fff', 
-    fontWeight: '600' 
+  submitButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });

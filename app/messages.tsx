@@ -46,14 +46,14 @@ interface FormData {
   wantsNewsletter: boolean;
 }
 
-// Mock API pour la recherche d'adresses (remplacer par une vraie API comme l'API Adresse du gouvernement franÃ§ais)
+// Mock API pour la recherche d'adresses (remplacer par une vraie API comme l'API Adresse du gouvernement français)
 const searchAddresses = async (query: string): Promise<AddressSuggestion[]> => {
   if (query.length < 3) return [];
   
   // Simulation d'un appel API
   await new Promise(resolve => setTimeout(resolve, 300));
   
-  // Mock data - en production, utiliser l'API Adresse du gouvernement franÃ§ais
+  // Mock data - en production, utiliser l'API Adresse du gouvernement français
   const mockAddresses: AddressSuggestion[] = [
     {
       id: '1',
@@ -65,8 +65,8 @@ const searchAddresses = async (query: string): Promise<AddressSuggestion[]> => {
     },
     {
       id: '2',
-      label: '42 avenue des Champs-Ã‰lysÃ©es, 75008 Paris',
-      address: '42 avenue des Champs-Ã‰lysÃ©es',
+      label: '42 avenue des Champs-Élysées, 75008 Paris',
+      address: '42 avenue des Champs-Élysées',
       city: 'Paris',
       postalCode: '75008',
       coordinates: { lat: 48.8698, lng: 2.3076 }
@@ -89,8 +89,8 @@ const searchAddresses = async (query: string): Promise<AddressSuggestion[]> => {
     },
     {
       id: '5',
-      label: '25 place VendÃ´me, 75001 Paris',
-      address: '25 place VendÃ´me',
+      label: '25 place Vendôme, 75001 Paris',
+      address: '25 place Vendôme',
       city: 'Paris',
       postalCode: '75001',
       coordinates: { lat: 48.8677, lng: 2.3281 }
@@ -178,7 +178,7 @@ export default function ClientRegisterScreen() {
 
     switch (step) {
       case 1:
-        if (!formData.firstName.trim()) newErrors.firstName = 'PrÃ©nom requis';
+        if (!formData.firstName.trim()) newErrors.firstName = 'Prénom requis';
         if (!formData.lastName.trim()) newErrors.lastName = 'Nom requis';
         if (!formData.email.trim()) {
           newErrors.email = 'Email requis';
@@ -186,9 +186,9 @@ export default function ClientRegisterScreen() {
           newErrors.email = 'Email invalide';
         }
         if (!formData.phone.trim()) {
-          newErrors.phone = 'TÃ©lÃ©phone requis';
+          newErrors.phone = 'Téléphone requis';
         } else if (!/^(\+33|0)[1-9](\d{8})$/.test(formData.phone.replace(/\s/g, ''))) {
-          newErrors.phone = 'NumÃ©ro de tÃ©lÃ©phone invalide';
+          newErrors.phone = 'Numéro de téléphone invalide';
         }
         break;
 
@@ -196,7 +196,7 @@ export default function ClientRegisterScreen() {
         if (!formData.password) {
           newErrors.password = 'Mot de passe requis';
         } else if (formData.password.length < 8) {
-          newErrors.password = 'Minimum 8 caractÃ¨res';
+          newErrors.password = 'Minimum 8 caractères';
         } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
           newErrors.password = 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre';
         }
@@ -220,7 +220,7 @@ export default function ClientRegisterScreen() {
           newErrors.acceptsTerms = 'Vous devez accepter les conditions';
         }
         if (!formData.acceptsDataProcessing) {
-          newErrors.acceptsDataProcessing = 'Vous devez accepter le traitement des donnÃ©es';
+          newErrors.acceptsDataProcessing = 'Vous devez accepter le traitement des données';
         }
         break;
     }
@@ -248,17 +248,17 @@ export default function ClientRegisterScreen() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       Alert.alert(
-        'Inscription rÃ©ussie !',
-        `Bienvenue ${formData.firstName} ! Votre compte client a Ã©tÃ© crÃ©Ã© avec succÃ¨s. ${formData.referralCode ? 'Votre code de parrainage a Ã©tÃ© pris en compte.' : ''} Vous pouvez maintenant commander des services.`,
+        'Inscription réussie !',
+        `Bienvenue ${formData.firstName} ! Votre compte client a été créé avec succès. ${formData.referralCode ? 'Votre code de parrainage a été pris en compte.' : ''} Vous pouvez maintenant commander des services.`,
         [
           {
             text: 'OK',
-            onPress: () => router.replace('/(tabs)'),
+            onPress: () => router.replace('/(Tabs)'),
           },
         ]
       );
     } catch (error) {
-      Alert.alert('Erreur', 'Une erreur est survenue. Veuillez rÃ©essayer.');
+      Alert.alert('Erreur', 'Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -299,18 +299,18 @@ export default function ClientRegisterScreen() {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Informations personnelles</Text>
       <Text style={styles.stepDescription}>
-        CrÃ©ez votre compte client pour accÃ©der Ã  tous nos services
+        Créez votre compte client pour accéder à tous nos services
       </Text>
       
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>PrÃ©nom *</Text>
+        <Text style={styles.label}>Prénom *</Text>
         <View style={styles.inputContainer}>
           <User size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
+          <TextInput 
             style={styles.input}
             value={formData.firstName}
             onChangeText={(text) => updateFormData('firstName', text)}
-            placeholder="Votre prÃ©nom"
+            placeholder="Votre prénom"
             placeholderTextColor="#999"
             autoComplete="given-name"
           />
@@ -322,7 +322,7 @@ export default function ClientRegisterScreen() {
         <Text style={styles.label}>Nom *</Text>
         <View style={styles.inputContainer}>
           <User size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
+          <TextInput 
             style={styles.input}
             value={formData.lastName}
             onChangeText={(text) => updateFormData('lastName', text)}
@@ -338,7 +338,7 @@ export default function ClientRegisterScreen() {
         <Text style={styles.label}>Email *</Text>
         <View style={styles.inputContainer}>
           <Mail size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
+          <TextInput 
             style={styles.input}
             value={formData.email}
             onChangeText={(text) => updateFormData('email', text)}
@@ -353,10 +353,10 @@ export default function ClientRegisterScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>TÃ©lÃ©phone mobile *</Text>
+        <Text style={styles.label}>Téléphone mobile *</Text>
         <View style={styles.inputContainer}>
           <Phone size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
+          <TextInput 
             style={styles.input}
             value={formData.phone}
             onChangeText={(text) => updateFormData('phone', text)}
@@ -368,7 +368,7 @@ export default function ClientRegisterScreen() {
         </View>
         {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
         <Text style={styles.helpText}>
-          Votre numÃ©ro sera utilisÃ© pour les notifications de commande
+          Votre numéro sera utilisé pour les notifications de commande
         </Text>
       </View>
     </View>
@@ -376,20 +376,20 @@ export default function ClientRegisterScreen() {
 
   const renderStep2 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>SÃ©curitÃ© du compte</Text>
+      <Text style={styles.stepTitle}>Sécurité du compte</Text>
       <Text style={styles.stepDescription}>
-        Choisissez un mot de passe sÃ©curisÃ© pour protÃ©ger votre compte
+        Choisissez un mot de passe sécurisé pour protéger votre compte
       </Text>
       
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Mot de passe *</Text>
         <View style={styles.inputContainer}>
           <Shield size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
+          <TextInput 
             style={styles.input}
             value={formData.password}
             onChangeText={(text) => updateFormData('password', text)}
-            placeholder="Minimum 8 caractÃ¨res"
+            placeholder="Minimum 8 caractères"
             placeholderTextColor="#999"
             secureTextEntry={!showPassword}
             autoComplete="new-password"
@@ -412,7 +412,7 @@ export default function ClientRegisterScreen() {
         <Text style={styles.label}>Confirmer le mot de passe *</Text>
         <View style={styles.inputContainer}>
           <Shield size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
+          <TextInput 
             style={styles.input}
             value={formData.confirmPassword}
             onChangeText={(text) => updateFormData('confirmPassword', text)}
@@ -441,7 +441,7 @@ export default function ClientRegisterScreen() {
           <View style={styles.requirement}>
             <View style={[styles.requirementDot, formData.password.length >= 8 && styles.requirementDotValid]} />
             <Text style={[styles.requirementText, formData.password.length >= 8 && styles.requirementTextValid]}>
-              Au moins 8 caractÃ¨res
+              Au moins 8 caractères
             </Text>
           </View>
           <View style={styles.requirement}>
@@ -479,7 +479,7 @@ export default function ClientRegisterScreen() {
         <View style={styles.addressSearchContainer}>
           <View style={styles.inputContainer}>
             <Search size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
+            <TextInput 
               style={styles.input}
               value={addressQuery}
               onChangeText={setAddressQuery}
@@ -519,7 +519,7 @@ export default function ClientRegisterScreen() {
         <View style={[styles.inputGroup, styles.flex2]}>
           <Text style={styles.label}>Ville *</Text>
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={styles.input}
               value={formData.city}
               onChangeText={(text) => updateFormData('city', text)}
@@ -534,7 +534,7 @@ export default function ClientRegisterScreen() {
         <View style={[styles.inputGroup, styles.flex1, styles.marginLeft]}>
           <Text style={styles.label}>Code postal *</Text>
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={styles.input}
               value={formData.postalCode}
               onChangeText={(text) => updateFormData('postalCode', text)}
@@ -550,14 +550,14 @@ export default function ClientRegisterScreen() {
       </View>
 
       <View style={styles.addressDetailsSection}>
-        <Text style={styles.sectionTitle}>DÃ©tails de l'adresse</Text>
+        <Text style={styles.sectionTitle}>Détails de l'adresse</Text>
         
         <View style={styles.row}>
           <View style={[styles.inputGroup, styles.flex1]}>
-            <Text style={styles.label}>BÃ¢timent</Text>
+            <Text style={styles.label}>Bâtiment</Text>
             <View style={styles.inputContainer}>
               <Building size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
+              <TextInput 
                 style={styles.input}
                 value={formData.building}
                 onChangeText={(text) => updateFormData('building', text)}
@@ -568,14 +568,14 @@ export default function ClientRegisterScreen() {
           </View>
 
           <View style={[styles.inputGroup, styles.flex1, styles.marginLeft]}>
-            <Text style={styles.label}>Ã‰tage</Text>
+            <Text style={styles.label}>Étage</Text>
             <View style={styles.inputContainer}>
               <Home size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
+              <TextInput 
                 style={styles.input}
                 value={formData.floor}
                 onChangeText={(text) => updateFormData('floor', text)}
-                placeholder="1er, 2Ã¨me..."
+                placeholder="1er, 2ème..."
                 placeholderTextColor="#999"
               />
             </View>
@@ -585,31 +585,31 @@ export default function ClientRegisterScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Code interphone</Text>
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={styles.input}
               value={formData.intercom}
               onChangeText={(text) => updateFormData('intercom', text)}
-              placeholder="Code d'accÃ¨s Ã  l'immeuble"
+              placeholder="Code d'accès à l'immeuble"
               placeholderTextColor="#999"
             />
           </View>
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Informations complÃ©mentaires</Text>
+          <Text style={styles.label}>Informations complémentaires</Text>
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={[styles.input, styles.textArea]}
               value={formData.additionalInfo}
               onChangeText={(text) => updateFormData('additionalInfo', text)}
-              placeholder="Porte Ã  gauche, sonnette rouge, digicode..."
+              placeholder="Porte à gauche, sonnette rouge, digicode..."
               placeholderTextColor="#999"
               multiline
               numberOfLines={3}
             />
           </View>
           <Text style={styles.helpText}>
-            Ces informations aideront les Fourmiz Ã  vous trouver plus facilement
+            Ces informations aideront les Fourmiz à vous trouver plus facilement 
           </Text>
         </View>
       </View>
@@ -620,7 +620,7 @@ export default function ClientRegisterScreen() {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Finalisation</Text>
       <Text style={styles.stepDescription}>
-        DerniÃ¨res Ã©tapes pour crÃ©er votre compte
+        Dernières étapes pour créer votre compte
       </Text>
 
       {/* Code de parrainage */}
@@ -630,7 +630,7 @@ export default function ClientRegisterScreen() {
           <Text style={styles.label}>Code de parrainage</Text>
           <View style={styles.inputContainer}>
             <Gift size={20} color="#FF4444" style={styles.inputIcon} />
-            <TextInput
+            <TextInput 
               style={styles.input}
               value={formData.referralCode}
               onChangeText={(text) => updateFormData('referralCode', text.toUpperCase())}
@@ -640,7 +640,7 @@ export default function ClientRegisterScreen() {
             />
           </View>
           <Text style={styles.helpText}>
-            Si un ami vous a recommandÃ© Fourmiz, saisissez son code de parrainage
+            Si un ami vous a recommandé Fourmiz, saisissez son code de parrainage
           </Text>
         </View>
       </View>
@@ -655,9 +655,9 @@ export default function ClientRegisterScreen() {
           </TouchableOpacity>
           <Text style={styles.checkboxText}>
             J'accepte les{' '}
-            <Text style={styles.link}>conditions gÃ©nÃ©rales d'utilisation</Text>
+            <Text style={styles.link}>conditions générales d'utilisation</Text>
             {' '}et la{' '}
-            <Text style={styles.link}>politique de confidentialitÃ©</Text> *
+            <Text style={styles.link}>politique de confidentialité</Text> *
           </Text>
         </View>
         {errors.acceptsTerms && <Text style={styles.errorText}>{errors.acceptsTerms}</Text>}
@@ -670,7 +670,7 @@ export default function ClientRegisterScreen() {
             {formData.acceptsDataProcessing && <CheckCircle size={16} color="#FFFFFF" />}
           </TouchableOpacity>
           <Text style={styles.checkboxText}>
-            J'accepte le traitement de mes donnÃ©es personnelles pour la fourniture des services Fourmiz *
+            J'accepte le traitement de mes données personnelles pour la fourniture des services Fourmiz *
           </Text>
         </View>
         {errors.acceptsDataProcessing && <Text style={styles.errorText}>{errors.acceptsDataProcessing}</Text>}
@@ -683,13 +683,13 @@ export default function ClientRegisterScreen() {
             {formData.wantsNewsletter && <CheckCircle size={16} color="#FFFFFF" />}
           </TouchableOpacity>
           <Text style={styles.checkboxText}>
-            Je souhaite recevoir les actualitÃ©s et offres Fourmiz par email
+            Je souhaite recevoir les actualités et offres Fourmiz par email
           </Text>
         </View>
       </View>
 
       <View style={styles.summarySection}>
-        <Text style={styles.sectionTitle}>RÃ©capitulatif</Text>
+        <Text style={styles.sectionTitle}>Récapitulatif</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Nom complet :</Text>
@@ -702,7 +702,7 @@ export default function ClientRegisterScreen() {
             <Text style={styles.summaryValue}>{formData.email}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>TÃ©lÃ©phone :</Text>
+            <Text style={styles.summaryLabel}>Téléphone :</Text>
             <Text style={styles.summaryValue}>{formData.phone}</Text>
           </View>
           <View style={styles.summaryRow}>
@@ -713,7 +713,7 @@ export default function ClientRegisterScreen() {
           </View>
           {(formData.building || formData.floor || formData.intercom) && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>DÃ©tails :</Text>
+              <Text style={styles.summaryLabel}>Détails :</Text>
               <Text style={styles.summaryValue}>
                 {[formData.building, formData.floor, formData.intercom].filter(Boolean).join(', ')}
               </Text>
@@ -768,7 +768,7 @@ export default function ClientRegisterScreen() {
             disabled={isLoading}
           >
             <Text style={styles.submitButtonText}>
-              {isLoading ? 'CrÃ©ation du compte...' : 'CrÃ©er mon compte'}
+              {isLoading ? 'Création du compte...' : 'Créer mon compte'}
             </Text>
           </TouchableOpacity>
         )}
@@ -1127,4 +1127,3 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
-

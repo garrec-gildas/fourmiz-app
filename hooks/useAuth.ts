@@ -1,5 +1,7 @@
-// hooks/useAuth.ts - HOOK D'AUTHENTIFICATION CORRIGÉ ET OPTIMISÉ
-// 🔧 Version complète avec réparation automatique des profils manquants
+﻿// hooks/useAuth.ts - HOOK D'AUTHENTIFICATION CORRIGÉ ET OPTIMISÉ
+// 🔧 Version complète avec réparation automatique des profils manquants + FIX SUBSCRIPTION + FIX USER_ID
+// 🆕 AJOUTÉ: Nettoyage automatique du cache lors des changements d'utilisateur
+// ✅ CORRECTIONS POUR CACHE CORROMPU ET OPTIMISATIONS
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert, Platform } from 'react-native';
@@ -14,7 +16,7 @@ import {
   Database
 } from '../lib/supabase';
 
-// ✅ TYPES TYPESCRIPT STRICTS
+// 📝 TYPES TYPESCRIPT STRICTS
 type UserRole = 'client' | 'fourmiz' | 'admin';
 
 interface UserProfile {
@@ -31,7 +33,6 @@ interface UserProfile {
   roles: UserRole[];
   profile_completed: boolean;
   avatar_url: string | null;
-  rib: string | null;
   id_document_path: string | null;
   created_at: string;
   updated_at: string;
@@ -106,6 +107,7 @@ interface UseAuthReturn extends AuthState {
   // Debug et utilitaires
   clearAuthData: () => Promise<void>;
   savePushTokenSafely: (token: string) => Promise<void>;
+  clearAllUserCaches: () => Promise<void>;
 }
 
 // 🔐 CONSTANTES
@@ -127,8 +129,8 @@ const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_BASE = 2000; // 2 secondes
 
 // 🚀 HOOK PRINCIPAL
-export const useAuth = (): UseAuthReturn => {
-  // ✅ ÉTAT LOCAL
+const useAuth = (): UseAuthReturn => {
+  // 📊 ÉTAT LOCAL
   const [state, setState] = useState<AuthState>({
     isAuthenticated: false,
     isLoading: true,
@@ -147,8 +149,9 @@ export const useAuth = (): UseAuthReturn => {
   // Références pour éviter les re-renders
   const authListenerRef = useRef<{ data: { subscription: any } } | null>(null);
   const isInitializingRef = useRef(false);
+  const currentUserIdRef = useRef<string | null>(null);
 
-  // 🛠️ HELPERS INTERNES
+  // 🔄 HELPERS INTERNES
   const updateState = useCallback((updates: Partial<AuthState>) => {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
@@ -168,6 +171,76 @@ export const useAuth = (): UseAuthReturn => {
     });
   }, [updateState]);
 
+  // ====== CORRECTION 1: NETTOYAGE ROBUSTE DES CACHES CORROMPUS ======
+  const clearCorruptedUserCaches = useCallback(async (currentUserId: string): Promise<void> => {
+    try {
+      console.log('🧹 Nettoyage des caches corrompus pour utilisateur:', currentUserId);
+      
+      const allKeys = await AsyncStorage.getAllKeys();
+      
+      // Identifier TOUS les types de cache utilisateur
+      const corruptedKeys = allKeys.filter(key => {
+        // Cache de profil d'autres utilisateurs
+        const isProfileCache = key.includes('fourmiz_profile_cache_') && !key.includes(currentUserId);
+        
+        // Cache de temps d'autres utilisateurs  
+        const isTimeCache = key.includes('fourmiz_cache_time_') && !key.includes(currentUserId);
+        
+        // Autres caches spécifiques (critères, préférences, etc.)
+        const isOtherUserCache = (
+          key.includes('_criteria_') || 
+          key.includes('_preferences_') ||
+          key.includes('user_cache_')
+        ) && !key.includes(currentUserId);
+        
+        return isProfileCache || isTimeCache || isOtherUserCache;
+      });
+      
+      if (corruptedKeys.length > 0) {
+        console.log('🚨 CACHES CORROMPUS DÉTECTÉS:', corruptedKeys);
+        await AsyncStorage.multiRemove(corruptedKeys);
+        console.log('✅ Caches corrompus nettoyés:', corruptedKeys.length, 'éléments');
+      } else {
+        console.log('✅ Aucun cache corrompu détecté');
+      }
+      
+    } catch (error) {
+      console.error('❌ Erreur nettoyage caches corrompus:', error);
+    }
+  }, []);
+
+  // ====== CORRECTION 4: NETTOYAGE COMPLET AMÉLIORÉ ======
+  const clearAllUserCaches = useCallback(async (): Promise<void> => {
+    try {
+      console.log('🧹 Nettoyage COMPLET des caches utilisateur...');
+      
+      const allKeys = await AsyncStorage.getAllKeys();
+      
+      // Identifier TOUS les types de caches à nettoyer
+      const cacheKeysToRemove = allKeys.filter(key => 
+        key.includes('fourmiz_profile_cache_') || 
+        key.includes('fourmiz_cache_time_') ||
+        key.includes('_criteria_') ||
+        key.includes('_preferences_') ||
+        key.includes('user_cache_') ||
+        key.includes('last_role_preference') ||
+        key.startsWith('criteria_cache_')
+      );
+      
+      if (cacheKeysToRemove.length > 0) {
+        await AsyncStorage.multiRemove(cacheKeysToRemove);
+        console.log('✅ Nettoyage complet terminé:', cacheKeysToRemove.length, 'éléments supprimés');
+        
+        // Log détaillé pour debug
+        if (__DEV__) {
+          console.log('🔍 Clés supprimées:', cacheKeysToRemove);
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Erreur nettoyage complet:', error);
+    }
+  }, []);
+
   // 🧹 NETTOYER LES TOKENS PUSH ORPHELINS
   const cleanupOrphanedPushTokens = useCallback(async (userId: string) => {
     try {
@@ -184,22 +257,22 @@ export const useAuth = (): UseAuthReturn => {
         console.log('✅ Tokens push nettoyés');
       }
     } catch (error) {
-      console.warn('⚠️ Erreur dans cleanupOrphanedPushTokens:', error);
+      console.warn('💥 Erreur dans cleanupOrphanedPushTokens:', error);
     }
   }, []);
 
-  // 🔍 FONCTION DE DIAGNOSTIC ET CRÉATION DE PROFIL
+  // 🔧 FONCTION DE DIAGNOSTIC ET CRÉATION DE PROFIL - VERSION CORRIGÉE
   const ensureProfileExists = useCallback(async (currentUser: AuthUser): Promise<UserProfile | null> => {
     if (!currentUser?.id) return null;
 
     try {
       console.log('🔍 Vérification du profil pour:', currentUser.email);
 
-      // 1. Vérifier si le profil existe
+      // 1. Vérifier si le profil existe - CORRECTION : utiliser user_id pour la recherche
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', currentUser.id)
+        .eq('user_id', currentUser.id)  // ← CORRECTION : utiliser user_id au lieu de id
         .single();
 
       // Si le profil existe, le retourner
@@ -214,11 +287,11 @@ export const useAuth = (): UseAuthReturn => {
         throw fetchError;
       }
 
-      // 2. Créer le profil s'il n'existe pas
-      console.log('🔧 Création du profil manquant pour:', currentUser.email);
+      // 2. Créer le profil s'il n'existe pas - CORRECTION PRINCIPALE
+      console.log('🔨 Création du profil manquant pour:', currentUser.email);
       
       const newProfile = {
-        id: currentUser.id,
+        user_id: currentUser.id,  // ← CORRECTION : utiliser user_id au lieu de id
         email: currentUser.email,
         firstname: extractFirstName(currentUser.email),
         lastname: extractLastName(currentUser.email),
@@ -231,7 +304,6 @@ export const useAuth = (): UseAuthReturn => {
         roles: ['client'] as UserRole[], // Rôle par défaut
         profile_completed: false,
         avatar_url: null,
-        rib: null,
         id_document_path: null,
         created_at: currentUser.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -263,10 +335,10 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [cleanupOrphanedPushTokens, setError]);
 
-  // 📋 CHARGEMENT DU PROFIL UTILISATEUR AMÉLIORÉ
+  // 📥 CHARGEMENT DU PROFIL UTILISATEUR AMÉLIORÉ
   const loadUserProfile = useCallback(async (userId: string, useCache = true): Promise<UserProfile | null> => {
     try {
-      console.log('📋 Chargement du profil utilisateur:', userId);
+      console.log('📥 Chargement du profil utilisateur:', userId);
 
       // Vérifier le cache si demandé
       if (useCache) {
@@ -276,7 +348,7 @@ export const useAuth = (): UseAuthReturn => {
           
           if (cachedProfile && cacheTime && 
               Date.now() - parseInt(cacheTime) < CACHE_DURATION) {
-            console.log('✅ Profil chargé depuis le cache');
+            console.log('⚡ Profil chargé depuis le cache');
             return JSON.parse(cachedProfile) as UserProfile;
           }
         } catch (cacheError) {
@@ -300,17 +372,16 @@ export const useAuth = (): UseAuthReturn => {
           roles,
           profile_completed,
           avatar_url,
-          rib,
           id_document_path,
           created_at,
           updated_at
         `)
-        .eq('id', userId)
+        .eq('user_id', userId)  // ← CORRECTION : utiliser user_id pour la recherche aussi
         .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
-          console.log('ℹ️ Aucun profil trouvé pour cet utilisateur');
+          console.log('🔍 Aucun profil trouvé pour cet utilisateur');
           return null;
         }
         
@@ -352,10 +423,10 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [state.retryCount, updateState]);
 
-  // 🔧 FONCTION DE RÉPARATION COMPLÈTE
+  // 🛠️ FONCTION DE RÉPARATION COMPLÈTE
   const repairUserProfile = useCallback(async (): Promise<void> => {
     try {
-      console.log('🔧 Début de la réparation du profil utilisateur');
+      console.log('🛠️ Début de la réparation du profil utilisateur');
       
       const session = await getCurrentSession();
       const user = await getCurrentUser();
@@ -398,13 +469,18 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [ensureProfileExists, updateState, setError]);
 
-  // 🔄 INITIALISATION DE L'AUTHENTIFICATION AMÉLIORÉE
+  // ====== CORRECTION 2: INITIALISATION PLUS ROBUSTE ======
   const initializeAuth = useCallback(async (): Promise<void> => {
-    if (isInitializingRef.current) return;
+    // Éviter les initialisations multiples
+    if (isInitializingRef.current) {
+      console.log('⏭️ Initialisation déjà en cours, abandon');
+      return;
+    }
+    
     isInitializingRef.current = true;
 
     try {
-      console.log('🔄 Initialisation de l\'authentification...');
+      console.log('🚀 Initialisation de l\'authentification...');
       
       clearError();
       updateState({ isLoading: true });
@@ -414,7 +490,7 @@ export const useAuth = (): UseAuthReturn => {
       const user = await getCurrentUser();
 
       if (!session || !user) {
-        console.log('ℹ️ Aucune session active');
+        console.log('🔍 Aucune session active');
         updateState({ 
           isAuthenticated: false, 
           user: null, 
@@ -427,6 +503,9 @@ export const useAuth = (): UseAuthReturn => {
 
       console.log('✅ Session active trouvée:', user.email);
 
+      // 🆕 CORRECTION: Nettoyer les caches corrompus AVANT de charger le profil
+      await clearCorruptedUserCaches(user.id);
+
       const authUser: AuthUser = {
         id: user.id,
         email: user.email,
@@ -434,14 +513,16 @@ export const useAuth = (): UseAuthReturn => {
         created_at: user.created_at,
       };
 
-      // Charger ou créer le profil utilisateur
-      let profile = await loadUserProfile(user.id);
+      // Charger le profil sans cache pour éviter les données corrompues
+      let profile = await loadUserProfile(user.id, false);
       
-      // Si pas de profil, essayer de le créer
       if (!profile) {
-        console.log('🔧 Aucun profil trouvé, création automatique...');
+        console.log('🔨 Aucun profil trouvé, création automatique...');
         profile = await ensureProfileExists(authUser);
       }
+
+      // Mettre à jour la référence utilisateur actuel
+      currentUserIdRef.current = user.id;
 
       // Mettre à jour l'état
       updateState({
@@ -473,9 +554,9 @@ export const useAuth = (): UseAuthReturn => {
     } finally {
       isInitializingRef.current = false;
     }
-  }, [loadUserProfile, ensureProfileExists, updateState, clearError, setError]);
+  }, [loadUserProfile, ensureProfileExists, updateState, clearError, setError, clearCorruptedUserCaches]);
 
-  // 💾 SAUVEGARDE SÉCURISÉE DES PUSH TOKENS
+  // 🔒 SAUVEGARDE SÉCURISÉE DES PUSH TOKENS
   const savePushTokenSafely = useCallback(async (token: string): Promise<void> => {
     try {
       if (!state.user?.id || !token) {
@@ -483,13 +564,13 @@ export const useAuth = (): UseAuthReturn => {
         return;
       }
 
-      console.log('💾 Sauvegarde sécurisée du push token...');
+      console.log('🔒 Sauvegarde sécurisée du push token...');
 
       // 1. Vérifier que le profil existe
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('id', state.user.id)
+        .eq('user_id', state.user.id)  // ← CORRECTION : utiliser user_id
         .single();
 
       if (profileError || !profile) {
@@ -531,7 +612,7 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [state.user, repairUserProfile]);
 
-  // 🔐 CONNEXION AMÉLIORÉE
+  // ====== CORRECTION 5: CONNEXION AVEC NETTOYAGE PRÉVENTIF ======
   const signIn = useCallback(async (data: SignInData): Promise<{ success: boolean; requiresProfile?: boolean }> => {
     try {
       console.log('🔐 === DÉBUT CONNEXION ===');
@@ -563,6 +644,9 @@ export const useAuth = (): UseAuthReturn => {
 
       console.log('✅ Connexion réussie');
 
+      // 🆕 CORRECTION: Nettoyer les caches corrompus IMMÉDIATEMENT après connexion
+      await clearCorruptedUserCaches(signInData.user.id);
+
       const authUser: AuthUser = {
         id: signInData.user.id,
         email: signInData.user.email,
@@ -570,11 +654,11 @@ export const useAuth = (): UseAuthReturn => {
         created_at: signInData.user.created_at,
       };
 
-      // Charger ou créer le profil
+      // Charger le profil SANS cache pour éviter les données corrompues
       let profile = await loadUserProfile(signInData.user.id, false);
       
       if (!profile) {
-        console.log('🔧 Profil manquant détecté, création...');
+        console.log('🔨 Profil manquant détecté, création...');
         profile = await ensureProfileExists(authUser);
       }
       
@@ -588,6 +672,9 @@ export const useAuth = (): UseAuthReturn => {
       if (profile?.roles && profile.roles.length > 0) {
         await AsyncStorage.setItem(AUTH_STORAGE_KEYS.USER_ROLE, profile.roles[0]);
       }
+
+      // Mettre à jour la référence utilisateur
+      currentUserIdRef.current = signInData.user.id;
 
       // Mettre à jour l'état
       updateState({
@@ -610,14 +697,14 @@ export const useAuth = (): UseAuthReturn => {
       updateState({ isSigningIn: false });
       return { success: false };
     }
-  }, [loadUserProfile, ensureProfileExists, updateState, clearError, setError]);
+  }, [loadUserProfile, ensureProfileExists, updateState, clearError, setError, clearCorruptedUserCaches]);
 
   // 📝 INSCRIPTION AMÉLIORÉE
   const signUp = useCallback(async (data: SignUpData): Promise<{ success: boolean; needsConfirmation?: boolean }> => {
     try {
       console.log('📝 === DÉBUT INSCRIPTION ===');
       console.log('📧 Email:', data.email);
-      console.log('🎭 Rôles:', data.roles);
+      console.log('👤 Rôles:', data.roles);
 
       clearError();
       updateState({ isSigningUp: true });
@@ -700,17 +787,14 @@ export const useAuth = (): UseAuthReturn => {
         // Ne pas bloquer la déconnexion pour une erreur Supabase
       }
 
+      // Utiliser clearAllUserCaches pour nettoyer tous les caches
+      await clearAllUserCaches();
+
       // Nettoyer les données locales (optionnel)
       try {
         const rememberMe = await AsyncStorage.getItem(AUTH_STORAGE_KEYS.REMEMBER_ME);
         if (rememberMe !== 'true') {
           await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.REMEMBER_EMAIL);
-        }
-        
-        // Nettoyer le cache
-        if (state.user?.id) {
-          await AsyncStorage.removeItem(`${AUTH_STORAGE_KEYS.PROFILE_CACHE}_${state.user.id}`);
-          await AsyncStorage.removeItem(`${AUTH_STORAGE_KEYS.CACHE_TIME}_${state.user.id}`);
         }
         
         await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.USER_ROLE);
@@ -728,6 +812,9 @@ export const useAuth = (): UseAuthReturn => {
         error: null,
       });
 
+      // Réinitialiser la référence utilisateur
+      currentUserIdRef.current = null;
+
       console.log('✅ Déconnexion réussie');
 
     } catch (error: any) {
@@ -741,8 +828,9 @@ export const useAuth = (): UseAuthReturn => {
         profile: null,
         isSigningOut: false,
       });
+      currentUserIdRef.current = null;
     }
-  }, [state.user, updateState, clearError, setError]);
+  }, [clearAllUserCaches, updateState, clearError, setError]);
 
   // 🔄 RAFRAÎCHIR LE PROFIL AMÉLIORÉ
   const refreshProfile = useCallback(async (): Promise<void> => {
@@ -771,12 +859,12 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [state.user, loadUserProfile, updateState, setError]);
 
-  // 📝 METTRE À JOUR LE PROFIL
+  // ✏️ METTRE À JOUR LE PROFIL
   const updateProfile = useCallback(async (updates: Partial<UserProfile>): Promise<boolean> => {
     if (!state.user?.id) return false;
 
     try {
-      console.log('📝 Mise à jour du profil...');
+      console.log('✏️ Mise à jour du profil...');
 
       const { error } = await supabase
         .from('profiles')
@@ -784,7 +872,7 @@ export const useAuth = (): UseAuthReturn => {
           ...updates,
           updated_at: new Date().toISOString()
         })
-        .eq('id', state.user.id);
+        .eq('user_id', state.user.id);  // ← CORRECTION : utiliser user_id
 
       if (error) {
         console.error('❌ Erreur mise à jour profil:', error);
@@ -805,10 +893,10 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [state.user, refreshProfile, setError]);
 
-  // 🔐 RÉCUPÉRATION MOT DE PASSE
+  // 🔑 RÉCUPÉRATION MOT DE PASSE
   const resetPassword = useCallback(async (email: string): Promise<boolean> => {
     try {
-      console.log('🔐 Récupération mot de passe pour:', email);
+      console.log('🔑 Récupération mot de passe pour:', email);
 
       const redirectUrl = `${process.env.EXPO_PUBLIC_APP_URL || 'exp://127.0.0.1:8081'}/auth/recovery-redirect`;
       
@@ -833,7 +921,7 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [setError]);
 
-  // 🛠️ MÉTHODES UTILITAIRES
+  // 🔍 MÉTHODES UTILITAIRES
   const hasRole = useCallback((role: UserRole): boolean => {
     return state.profile?.roles?.includes(role) || false;
   }, [state.profile]);
@@ -878,39 +966,74 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, [state.user]);
 
-  // 🔄 LISTENER D'AUTHENTIFICATION
+  // ====== CORRECTION 3: LISTENER AUTH OPTIMISÉ ======
   useEffect(() => {
-    console.log('🔄 Configuration du listener d\'authentification...');
-
-    // Nettoyer le listener précédent
+    // Éviter de reconfigurer le listener si déjà configuré
     if (authListenerRef.current) {
-      authListenerRef.current.data.subscription.unsubscribe();
+      console.log('👂 Listener déjà configuré, pas de reconfiguration');
+      return;
     }
 
-    // Configurer le nouveau listener
+    console.log('👂 Configuration du listener d\'authentification...');
+
     authListenerRef.current = onAuthStateChange(async (user) => {
-      console.log('🔄 État d\'authentification changé:', user?.email || 'Déconnecté');
+      const newUserId = user?.id || null;
+      const oldUserId = currentUserIdRef.current;
+
+      console.log('🔄 Auth state changed:', user ? `${user.email}` : 'SIGNED_OUT');
       
-      if (state.isInitialized && !isInitializingRef.current) {
-        // Si déjà initialisé, rafraîchir l'état
+      // Gestion des changements d'utilisateur
+      if (oldUserId && newUserId && oldUserId !== newUserId) {
+        console.log('🧹 Changement utilisateur détecté:', { oldUserId, newUserId });
+        
+        // Nettoyer complètement les caches de l'ancien utilisateur
+        await clearCorruptedUserCaches(newUserId);
+        
+        // Forcer rechargement complet
+        currentUserIdRef.current = null; // Reset pour forcer la réinitialisation
+        setTimeout(() => initializeAuth(), 100);
+        return;
+      }
+
+      // Gestion déconnexion
+      if (!user && state.isAuthenticated) {
+        console.log('🚪 Déconnexion détectée via listener');
+        updateState({
+          isAuthenticated: false,
+          user: null,
+          profile: null,
+        });
+        return;
+      }
+
+      // Initialisation uniquement si pas encore initialisé
+      if (!state.isInitialized && user) {
+        console.log('🔄 Initialisation via listener pour:', user.email);
         await initializeAuth();
       }
     });
 
+    console.log('✅ Auth listener configuré');
+
     // Cleanup
     return () => {
-      if (authListenerRef.current) {
-        authListenerRef.current.data.subscription.unsubscribe();
+      if (authListenerRef.current?.data?.subscription?.unsubscribe) {
+        try {
+          authListenerRef.current.data.subscription.unsubscribe();
+          authListenerRef.current = null;
+        } catch (error) {
+          console.warn('⚠️ Erreur cleanup listener auth:', error);
+        }
       }
     };
-  }, [state.isInitialized, initializeAuth]);
+  }, []); // Dépendances vides pour éviter les re-créations
 
   // 🚀 INITIALISATION AU MONTAGE
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
 
-  // 📊 RETURN COMPLET
+  // 📤 RETURN COMPLET
   return {
     // États
     ...state,
@@ -940,26 +1063,30 @@ export const useAuth = (): UseAuthReturn => {
     // Debug et utilitaires
     clearAuthData,
     savePushTokenSafely,
+    clearAllUserCaches,
   };
 };
 
-// 🛠️ FONCTIONS UTILITAIRES
+// 🔧 FONCTIONS UTILITAIRES - CORRIGÉES POUR CONTRAINTES DB
 const extractFirstName = (email: string): string => {
-  if (!email) return '';
+  if (!email) return 'Utilisateur';
   const parts = email.split('@')[0].split('.');
   const firstName = parts[0];
+  if (firstName.length < 2) return 'Utilisateur'; // Respect contrainte longueur minimale
   return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 };
 
 const extractLastName = (email: string): string => {
-  if (!email) return '';
+  if (!email) return 'Inconnu';
   const parts = email.split('@')[0].split('.');
-  if (parts.length > 1) {
+  if (parts.length > 1 && parts[1].length >= 2) {
     const lastName = parts[1];
     return lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
   }
-  return '';
+  // Valeur par défaut respectant la contrainte lastname_min_length (>= 2 caractères)
+  return 'Utilisateur';
 };
 
-// 🎯 EXPORT PAR DÉFAUT
+// 📤 EXPORTS MULTIPLES POUR COMPATIBILITÉ
+export { useAuth };
 export default useAuth;

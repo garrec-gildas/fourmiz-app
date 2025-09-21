@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -38,7 +38,7 @@ import { supabase } from '../../../lib/supabase'; // Ajustez le chemin selon vot
 
 const { width } = Dimensions.get('window');
 
-// ✅ INTERFACES TYPESCRIPT STRICTES (selon audit)
+// 📊 INTERFACES TYPESCRIPT STRICTES (selon audit)
 interface EarningsSummary {
   total_earnings: number;
   month_earnings: number;
@@ -81,7 +81,7 @@ interface EarningsData {
   monthlyStats: MonthlyStats[];
 }
 
-// ✅ CONFIGURATION DES TYPES ET STATUTS
+// 🔧 CONFIGURATION DES TYPES ET STATUTS
 const transactionTypeConfig = {
   commission: { label: 'Commission', color: '#4CAF50', icon: Euro },
   referral: { label: 'Filleul', color: '#2196F3', icon: TrendingUp },
@@ -97,7 +97,7 @@ const statusConfig = {
 };
 
 export default function EarningsScreen() {
-  // ✅ ÉTATS DE CHARGEMENT ET GESTION D'ERREUR (modèle ServicesScreen)
+  // 📋 ÉTATS DE CHARGEMENT ET GESTION D'ERREUR (modèle ServicesScreen)
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -113,7 +113,7 @@ export default function EarningsScreen() {
   const { mode } = useLocalSearchParams();
   const isFourmizMode = mode === 'fourmiz';
 
-  // ✅ CHARGEMENT DES DONNÉES SUPABASE (selon modèle excellence)
+  // 📊 CHARGEMENT DES DONNÉES SUPABASE (selon modèle excellence)
   const loadEarningsData = useCallback(async () => {
     try {
       setLoading(true);
@@ -151,7 +151,7 @@ export default function EarningsScreen() {
     }
   }, []);
 
-  // ✅ FONCTIONS DE CHARGEMENT MODULAIRES
+  // 🔧 FONCTIONS DE CHARGEMENT MODULAIRES
   const loadEarningsSummary = async (userId: string): Promise<EarningsSummary> => {
     const { data, error } = await supabase
       .from('earnings_summary')
@@ -187,7 +187,7 @@ export default function EarningsScreen() {
     return data || [];
   };
 
-  // ✅ CALCULS INTELLIGENTS
+  // 🧮 CALCULS INTELLIGENTS
   const calculateBreakdown = (transactions: Transaction[]): EarningsBreakdown => {
     const completed = transactions.filter(t => t.status === 'completed');
     
@@ -207,14 +207,14 @@ export default function EarningsScreen() {
     };
   };
 
-  // ✅ RAFRAÎCHISSEMENT DES DONNÉES
+  // 🔄 RAFRAÎCHISSEMENT DES DONNÉES
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadEarningsData();
     setRefreshing(false);
   };
 
-  // ✅ EXPORT DES DONNÉES (nouvelle fonctionnalité)
+  // 📥 EXPORT DES DONNÉES (nouvelle fonctionnalité)
   const exportEarningsData = async () => {
     try {
       setExporting(true);
@@ -224,7 +224,7 @@ export default function EarningsScreen() {
       const csvContent = generateCSVReport(earningsData);
       const pdfContent = generatePDFReport(earningsData);
       
-      // Proposer les options d'export
+      // Proposer les options d'export 
       Alert.alert(
         'Exporter les données',
         'Choisissez le format d\'export',
@@ -281,17 +281,17 @@ export default function EarningsScreen() {
     }
   };
 
-  // ✅ CHARGEMENT INITIAL
+  // ⚡ CHARGEMENT INITIAL
   useEffect(() => {
     loadEarningsData();
   }, [loadEarningsData]);
 
-  // ✅ FILTRAGE DES TRANSACTIONS
+  // 🔍 FILTRAGE DES TRANSACTIONS
   const filteredTransactions = earningsData?.transactions.filter(transaction => 
     filterType === 'all' || transaction.type === filterType
   ) || [];
 
-  // ✅ DONNÉES POUR GRAPHIQUES
+  // 📈 DONNÉES POUR GRAPHIQUES
   const chartData = earningsData?.monthlyStats.map(stat => ({
     name: stat.month,
     earnings: stat.earnings,
@@ -305,7 +305,7 @@ export default function EarningsScreen() {
     { name: 'Badges', value: earningsData.breakdown.badges_rewards, color: '#FFD700' },
   ] : [];
 
-  // ✅ COMPOSANTS DE RENDU
+  // 🎨 COMPOSANTS DE RENDU
   const renderTransaction = ({ item }: { item: Transaction }) => {
     const typeConfig = transactionTypeConfig[item.type];
     const statusInfo = statusConfig[item.status];
@@ -353,7 +353,7 @@ export default function EarningsScreen() {
     </View>
   );
 
-  // ✅ ÉCRAN DE CHARGEMENT
+  // ⏳ ÉCRAN DE CHARGEMENT 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -373,7 +373,7 @@ export default function EarningsScreen() {
     );
   }
 
-  // ✅ ÉCRAN D'ERREUR
+  // ❌ ÉCRAN D'ERREUR
   if (error || !earningsData) {
     return (
       <SafeAreaView style={styles.container}>
@@ -401,7 +401,7 @@ export default function EarningsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ✅ HEADER AMÉLIORÉ */}
+      {/* 🎯 HEADER AMÉLIORÉ */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#333" />
@@ -440,8 +440,8 @@ export default function EarningsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ✅ CARTE RÉSUMÉ AMÉLIORÉE */}
-        <LinearGradient
+        {/* 💰 CARTE RÉSUMÉ AMÉLIORÉE */}
+        <LinearGradient 
           colors={['#4CAF50', '#66BB6A']}
           style={styles.summaryCard}
         >
@@ -467,7 +467,7 @@ export default function EarningsScreen() {
           </View>
         </LinearGradient>
 
-        {/* ✅ GRAPHIQUES INTERACTIFS (nouvelle fonctionnalité) */}
+        {/* 📈 GRAPHIQUES INTERACTIFS (nouvelle fonctionnalité) */}
         {showCharts && (
           <View style={styles.chartsSection}>
             <Text style={styles.sectionTitle}>Analyse visuelle</Text>
@@ -475,7 +475,7 @@ export default function EarningsScreen() {
             {/* Graphique temporel */}
             <View style={styles.chartCard}>
               <Text style={styles.chartTitle}>Évolution mensuelle</Text>
-              <LineChart
+              <LineChart 
                 width={width - 80}
                 height={200}
                 data={chartData}
@@ -486,7 +486,7 @@ export default function EarningsScreen() {
             {/* Graphique en secteurs */}
             <View style={styles.chartCard}>
               <Text style={styles.chartTitle}>Répartition des revenus</Text>
-              <PieChart
+              <PieChart 
                 width={width - 80}
                 height={200}
                 data={pieData}
@@ -496,7 +496,7 @@ export default function EarningsScreen() {
           </View>
         )}
 
-        {/* ✅ RÉPARTITION DES GAINS */}
+        {/* 📊 RÉPARTITION DES GAINS */}
         <View style={styles.breakdownSection}>
           <Text style={styles.sectionTitle}>Répartition des gains</Text>
           
@@ -545,7 +545,7 @@ export default function EarningsScreen() {
           </View>
         </View>
 
-        {/* ✅ STATISTIQUES MENSUELLES */}
+        {/* 📅 STATISTIQUES MENSUELLES */}
         <View style={styles.monthlyStatsSection}>
           <Text style={styles.sectionTitle}>Évolution mensuelle</Text>
           <FlatList
@@ -558,7 +558,7 @@ export default function EarningsScreen() {
           />
         </View>
 
-        {/* ✅ INFORMATIONS DE VIREMENT */}
+        {/* 💳 INFORMATIONS DE VIREMENT */}
         <View style={styles.payoutSection}>
           <Text style={styles.sectionTitle}>Prochains virements</Text>
           
@@ -582,7 +582,7 @@ export default function EarningsScreen() {
           </Text>
         </View>
 
-        {/* ✅ TRANSACTIONS AVEC FILTRES AMÉLIORÉS */}
+        {/* 📝 TRANSACTIONS AVEC FILTRES AMÉLIORÉS */}
         <View style={styles.transactionsSection}>
           <View style={styles.transactionsHeader}>
             <Text style={styles.sectionTitle}>Historique des transactions</Text>
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // ✅ STYLES DE CHARGEMENT ET ERREUR
+  // 📋 STYLES DE CHARGEMENT ET ERREUR
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // ✅ STYLES GRAPHIQUES
+  // 📈 STYLES GRAPHIQUES
   chartsSection: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  // ✅ STYLES EXISTANTS (conservés)
+  // 🎨 STYLES EXISTANTS (conservés)
   summaryCard: {
     margin: 20,
     borderRadius: 16,

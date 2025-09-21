@@ -1,4 +1,4 @@
-// app/auth/login.tsx - VERSION FINALE QUI FONCTIONNE
+﻿// app/auth/login.tsx - VERSION FINALE CORRIGÉE PGRST116 + PLACEHOLDERS VISIBLES
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
-// ✅ CONSTANTES DE STOCKAGE SÉCURISÉ
+// 🔒 CONSTANTES DE STOCKAGE SÉCURISÉ
 const STORAGE_KEYS = {
   EMAIL: 'saved_email',
   REMEMBER_ME: 'remember_me',
@@ -34,14 +34,14 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [credentialsLoading, setCredentialsLoading] = useState(true);
 
-  // ✅ NAVIGATION RETOUR SÉCURISÉE
+  // 🔙 NAVIGATION RETOUR SÉCURISÉE
   const handleGoBack = useCallback(() => {
     try {
       if (router.canGoBack && router.canGoBack()) {
-        console.log('📱 Navigation retour - historique disponible');
+        console.log('🔙 Navigation retour - historique disponible');
         router.back();
       } else {
-        console.log('📱 Navigation retour - pas d\'historique, retour à l\'accueil');
+        console.log('🔙 Navigation retour - pas d\'historique, retour à l\'accueil');
         router.replace('/');
       }
     } catch (error) {
@@ -50,7 +50,7 @@ const LoginScreen = () => {
     }
   }, []);
 
-  // ✅ CHARGEMENT SÉCURISÉ (EMAIL SEULEMENT)
+  // 📥 CHARGEMENT SÉCURISÉ (EMAIL SEULEMENT)
   const loadSavedCredentials = useCallback(async () => {
     try {
       setCredentialsLoading(true);
@@ -63,7 +63,7 @@ const LoginScreen = () => {
         const savedEmail = await AsyncStorage.getItem(STORAGE_KEYS.EMAIL);
         if (savedEmail) {
           setEmail(savedEmail);
-          console.log('✅ Email restauré:', savedEmail);
+          console.log('📧 Email restauré:', savedEmail);
         }
       }
       
@@ -75,14 +75,14 @@ const LoginScreen = () => {
     }
   }, []);
 
-  // ✅ SAUVEGARDE SÉCURISÉE (EMAIL SEULEMENT)
+  // 💾 SAUVEGARDE SÉCURISÉE (EMAIL SEULEMENT)
   const saveCredentials = useCallback(async (email: string, remember: boolean) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.REMEMBER_ME, remember.toString());
 
       if (remember && email.trim()) {
         await AsyncStorage.setItem(STORAGE_KEYS.EMAIL, email.trim());
-        console.log('✅ Email sauvegardé');
+        console.log('💾 Email sauvegardé');
       } else {
         await clearSavedCredentials();
       }
@@ -91,11 +91,11 @@ const LoginScreen = () => {
     }
   }, []);
 
-  // ✅ EFFACEMENT SÉCURISÉ
+  // 🗑️ EFFACEMENT SÉCURISÉ
   const clearSavedCredentials = useCallback(async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEYS.EMAIL);
-      console.log('✅ Données effacées');
+      console.log('🗑️ Données effacées');
     } catch (error) {
       console.error('❌ Erreur suppression:', error);
     }
@@ -106,7 +106,7 @@ const LoginScreen = () => {
     loadSavedCredentials();
   }, [loadSavedCredentials]);
 
-  // ✅ FONCTION DE CONNEXION QUI FONCTIONNE VRAIMENT
+  // 🔑 FONCTION DE CONNEXION CORRIGÉE PGRST116
   const handleLogin = async () => {
     // Validation
     if (!email.trim()) {
@@ -122,10 +122,10 @@ const LoginScreen = () => {
     setLoading(true);
     
     try {
-      console.log('🔐 === DÉBUT CONNEXION UTILISATEUR ===');
+      console.log('🔑 === DÉBUT CONNEXION UTILISATEUR ===');
       console.log('📧 Email:', email.trim());
       
-      // ✅ VRAIE CONNEXION SUPABASE - PAS DE MESSAGE "À IMPLÉMENTER" !
+      // 🔑 VRAIE CONNEXION SUPABASE
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email: email.trim().toLowerCase(), 
         password: password 
@@ -142,7 +142,7 @@ const LoginScreen = () => {
 
       console.log('✅ Connexion réussie, vérification session...');
       
-      // ✅ VÉRIFICATION SESSION
+      // 🔍 VÉRIFICATION SESSION
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session?.user) {
@@ -152,27 +152,20 @@ const LoginScreen = () => {
 
       console.log('👤 Recherche profil utilisateur...');
       
-      // ✅ RÉCUPÉRATION PROFIL
+      // 📋 RÉCUPÉRATION PROFIL - ✅ CORRIGÉ PGRST116
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, roles, profile_completed, firstname')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle(); // ✅ CORRIGÉ: .single() → .maybeSingle()
 
       if (profileError) {
         console.error('❌ Erreur profil:', profileError);
-        
-        if (profileError.code === 'PGRST116') {
-          console.log('ℹ️ Aucun profil trouvé, redirection vers complétion...');
-          router.replace('/auth/complete-profile');
-          return;
-        }
-        
-        throw profileError;
+        throw profileError; // ✅ Plus besoin de vérifier PGRST116
       }
       
       if (!profileData) {
-        console.log('ℹ️ Pas de profil trouvé, redirection vers complete-profile');
+        console.log('📝 Aucun profil trouvé, redirection vers complétion...');
         router.replace('/auth/complete-profile');
         return;
       }
@@ -183,39 +176,30 @@ const LoginScreen = () => {
         completed: profileData.profile_completed
       });
       
-      // ✅ SAUVEGARDE RÔLE
+      // 💾 SAUVEGARDE RÔLE
       const defaultRole = profileData.roles?.[0];
       if (defaultRole) {
         console.log('💾 Sauvegarde statut par défaut:', defaultRole);
         await AsyncStorage.setItem('savedRole', defaultRole);
       }
 
-      // ✅ SAUVEGARDER PRÉFÉRENCES
+      // 💾 SAUVEGARDER PRÉFÉRENCES
       await saveCredentials(email.trim(), rememberMe);
 
-      // ✅ REDIRECTIONS QUI FONCTIONNENT VRAIMENT
+      // 🎯 REDIRECTIONS DIRECTES SANS POPUP
       if (profileData.profile_completed) {
-        console.log('🏠 Profil complet, redirection vers accueil');
-        
-        Alert.alert(
-          '🎉 Connexion réussie !',
-          `Bienvenue ${profileData.firstname || 'sur Fourmiz'} !`,
-          [{ text: 'Continuer', onPress: () => router.replace('/(tabs)') }]
-        );
+        console.log('🎯 Profil complet, redirection directe vers accueil');
+        console.log(`✅ Connexion réussie - Bienvenue ${profileData.firstname || 'sur Fourmiz'} !`);
+        router.replace('/(tabs)');
       } else {
         console.log('📝 Profil incomplet, redirection vers complete-profile');
-        
-        Alert.alert(
-          'Profil à compléter',
-          'Merci de compléter votre profil pour continuer',
-          [{ text: 'Compléter', onPress: () => router.replace('/auth/complete-profile') }]
-        );
+        router.replace('/auth/complete-profile');
       }
       
     } catch (err: any) {
-      console.error('💥 ERREUR CONNEXION COMPLÈTE:', err);
+      console.error('❌ ERREUR CONNEXION COMPLÈTE:', err);
       
-      // ✅ MESSAGES D'ERREUR PERSONNALISÉS
+      // 🎯 MESSAGES D'ERREUR PERSONNALISÉS
       let title = 'Erreur de connexion';
       let message = err.message || 'Impossible de se connecter';
 
@@ -225,7 +209,7 @@ const LoginScreen = () => {
       } else if (err.message?.includes('Email not confirmed')) {
         title = 'Email non confirmé';
         message = 'Veuillez confirmer votre email avant de vous connecter. Vérifiez votre boîte mail.';
-      } else if (err.message?.includes('Too many requests')) {
+      } else if (err.message?.includes('too many requests')) {
         title = 'Trop de tentatives';
         message = 'Trop de tentatives de connexion. Attendez quelques minutes avant de réessayer.';
       } else if (err.message?.includes('Network request failed')) {
@@ -259,21 +243,21 @@ const LoginScreen = () => {
     }
   };
 
-  // ✅ EFFACEMENT COMPLET
+  // 🗑️ EFFACEMENT COMPLET 
   const handleClearFields = async () => {
     setEmail('');
     setPassword('');
     setRememberMe(false);
     await clearSavedCredentials();
     await AsyncStorage.setItem(STORAGE_KEYS.REMEMBER_ME, 'false');
-    console.log('✅ Champs et données effacés');
+    console.log('🗑️ Champs et données effacés');
   };
 
   if (credentialsLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF3C38" />
+          <ActivityIndicator size="large" color="#333333" />
           <Text style={styles.loadingText}>Initialisation...</Text>
         </View>
       </SafeAreaView>
@@ -291,7 +275,7 @@ const LoginScreen = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ✅ BOUTON RETOUR SÉCURISÉ */}
+          {/* 🔙 BOUTON RETOUR SÉCURISÉ */}
           <View style={styles.header}>
             <TouchableOpacity 
               style={styles.backButton}
@@ -299,7 +283,7 @@ const LoginScreen = () => {
               disabled={loading}
               activeOpacity={0.7}
             >
-              <Ionicons name="arrow-back" size={24} color="#FF3C38" />
+              <Ionicons name="arrow-back" size={24} color="#333333" />
               <Text style={styles.backText}>Retour</Text>
             </TouchableOpacity>
           </View>
@@ -317,9 +301,10 @@ const LoginScreen = () => {
           
           {/* Champ Email */}
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={styles.input}
               placeholder="Email *"
+              placeholderTextColor="#999" // 🆕 AJOUTÉ
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -342,9 +327,10 @@ const LoginScreen = () => {
           
           {/* Champ Mot de passe */}
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={styles.input}
               placeholder="Mot de passe *"
+              placeholderTextColor="#999" // 🆕 AJOUTÉ
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
@@ -371,7 +357,7 @@ const LoginScreen = () => {
             <Switch
               value={rememberMe}
               onValueChange={setRememberMe}
-              trackColor={{ false: '#ccc', true: '#FF3C38' }}
+              trackColor={{ false: '#ccc', true: '#333333' }}
               thumbColor={rememberMe ? '#fff' : '#f4f3f4'}
               disabled={loading}
             />
@@ -467,7 +453,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: '#FF3C38',
+    color: '#333333',
     fontWeight: '500',
   },
 
@@ -503,6 +489,8 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
+
+
 
   // Champs de saisie
   inputContainer: {
@@ -546,7 +534,7 @@ const styles = StyleSheet.create({
 
   // Boutons
   button: {
-    backgroundColor: '#FF3C38', 
+    backgroundColor: '#333333', 
     padding: 16, 
     borderRadius: 12,
     alignItems: 'center', 

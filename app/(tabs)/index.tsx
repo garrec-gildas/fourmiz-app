@@ -1,7 +1,11 @@
-// app/(tabs)/index.tsx - VERSION FINALE AVEC LOGS DEBUG
-// 🚀 VERSION MISE À JOUR : Intégration complète avec roleManager.ts + DÉCONNEXION TEMPORAIRE
-// ✅ NOUVEAU : Complétion partielle pour devenir Fourmiz + Bouton déconnexion (DEV)
-// 🔧 CORRIGÉ : Accès admin sécurisé + Protection .includes() complète + ADAPTATEUR RÔLES + DEBUG
+﻿// app/(tabs)/index.tsx - VERSION CORRIGÉE PGRST116 SANS HEADER LOCAL
+// ✅ FONCTIONNALITÉS CONSERVÉES : switch rôles, modal upgrade, admin, etc.
+// 🎨 STYLE IDENTIQUE À services.tsx : couleurs noir/gris, textes épurés
+// 🔧 MODIFIÉ : Header local supprimé (utilise le header global du layout)
+// 🔧 MODIFIÉ : Suppression des références "Mon Portefeuille" (intégré dans Gains)
+// 🔧 AJOUTÉ : Bouton de déconnexion en haut de page
+// 🔧 MODIFIÉ : Suppression des textes de bienvenue
+// 🐛 CORRIGÉ : Erreur PGRST116 dans loadUserData
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
@@ -15,15 +19,26 @@ import {
   RefreshControl,
   Dimensions,
   Modal,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
 import { supabase } from '@/lib/supabase';
-import { useRoleManagerAdapter } from '@/lib/useRoleManagerAdapter'; // 🔧 CHANGÉ : Import adaptateur
-import { useSignOut } from '@/hooks/useSignOut'; // 🆕 NOUVEAU IMPORT - DÉCONNEXION
+import { useSharedRoleManager, emitRoleChange } from '@/app/(tabs)/_layout';
+import { useSignOut } from '@/hooks/useSignOut';
 
 const { width } = Dimensions.get('window');
+
+// 🔧 CONFIGURATION NOTIFICATIONS PROPRE
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 // 🛡️ HELPERS DE SÉCURITÉ POUR EMAIL ET STRINGS
 const safeString = (value: any): string => {
@@ -61,7 +76,7 @@ const extractNameFromEmail = (email: string | null | undefined): string => {
   return 'Utilisateur';
 };
 
-// Types - STRUCTURE RÉELLE
+// TYPES - STRUCTURE RÉELLE
 interface UserProfile {
   id: string;
   firstname?: string;
@@ -91,13 +106,13 @@ interface MainPage {
   roleRequired?: 'client' | 'fourmiz' | 'both';
 }
 
-// ✅ CONFIGURATION ADMIN SÉCURISÉE
+// 🔧 CONFIGURATION ADMIN SÉCURISÉE
 const AUTHORIZED_ADMIN_EMAILS = ['garrec.gildas@gmail.com'];
 
-// 🛠️ CONFIGURATION DÉVELOPPEMENT - Afficher le bouton de déconnexion
+// 🛡️ CONFIGURATION DÉVELOPPEMENT - Afficher le bouton de déconnexion
 const SHOW_SIGNOUT_BUTTON = __DEV__ || false; // true en dev, false en production
 
-// ✅ Hook sécurisé pour l'authentification - VERSION CORRIGÉE
+// 🔧 Hook sécurisé pour l'authentification - VERSION CORRIGÉE PGRST116
 const useSecureAuth = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -124,35 +139,32 @@ const useSecureAuth = () => {
       }
 
       if (!user) {
-        console.log('👤 Aucun utilisateur connecté');
         setError('Non connecté');
         return;
       }
 
       setUser(user);
-      console.log('✅ Utilisateur chargé:', user.email);
 
       // 🔧 VÉRIFICATION ADMIN SÉCURISÉE avec helper
       const hasAdminAccess = checkEmailInList(user.email, AUTHORIZED_ADMIN_EMAILS);
       setIsAdmin(hasAdminAccess);
-      
-      if (hasAdminAccess) {
-        console.log('👑 Accès admin autorisé pour:', user.email);
-      } else {
-        console.log('👤 Utilisateur standard:', user.email);
-      }
 
-      // Récupérer le profil avec les champs qui existent réellement
+      // 🐛 CORRIGÉ : Récupérer le profil SANS erreur PGRST116
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*') // Récupérer tous les champs disponibles
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // ✅ CORRIGÉ: .single() → .maybeSingle()
 
       if (profileError) {
         console.error('❌ Erreur récupération profil:', profileError);
-        
-        // 🛡️ CRÉATION SÉCURISÉE DU PROFIL MINIMAL
+        setError('Erreur de chargement du profil');
+        return;
+      }
+
+      if (!profileData) {
+        // 🛡️ CRÉATION SÉCURISÉE DU PROFIL MINIMAL quand aucun profil n'existe
+        console.log('📝 Aucun profil trouvé, création d\'un profil minimal');
         const firstName = extractNameFromEmail(user.email);
           
         const minimalProfile: UserProfile = {
@@ -162,25 +174,17 @@ const useSecureAuth = () => {
           roles: ['user']
         };
         setProfile(minimalProfile);
-        console.log('📝 Profil minimal créé:', minimalProfile);
       } else {
-        console.log('📋 Profil chargé avec succès pour:', profileData.email || user.email);
-        
         // Déterminer les rôles (gérer les différents formats)
         let userRoles: string[] = ['user'];
         
-        // Vérifier toutes les possibilités de rôles
+        // Vérifier TOUTES les possibilités de rôles
         if (profileData.roles && Array.isArray(profileData.roles)) {
           userRoles = profileData.roles;
-          console.log('🔑 Rôles depuis profileData.roles (array):', userRoles);
         } else if (profileData.roles && typeof profileData.roles === 'string') {
           userRoles = [profileData.roles];
-          console.log('🔑 Rôles depuis profileData.roles (string):', userRoles);
         } else if (profileData.role) {
           userRoles = [profileData.role];
-          console.log('🔑 Rôles depuis profileData.role:', userRoles);
-        } else {
-          console.log('🔑 Aucun rôle trouvé, utilisation par défaut:', userRoles);
         }
         
         const userProfile: UserProfile = {
@@ -203,7 +207,6 @@ const useSecureAuth = () => {
         };
         
         setProfile(userProfile);
-        console.log('✅ Profil utilisateur chargé avec rôles:', userRoles);
       }
 
     } catch (error) {
@@ -220,98 +223,131 @@ const useSecureAuth = () => {
 export default function HomeScreen() {
   const { user, profile, isAdmin, loading: authLoading, error: authError, refetch } = useSecureAuth();
   
-  // 🔧 NOUVEAU : Utilisation de l'adaptateur au lieu du gestionnaire direct
+  // 🔧 CHANGÉ : Utilisation du Context partagé au lieu du hook direct
   const {
     currentRole,
     availableRoles,
     switchingRole,
     canSwitchRole,
-    canRequestOtherRole,
+    hasClientRole,
+    hasFourmizRole,
     switchRole: handleRoleSwitch,
+    roleManagerAdapter
+  } = useSharedRoleManager();
+  
+  // 🔧 Accès aux méthodes du roleManagerAdapter (gardées intactes)
+  const {
+    canRequestOtherRole,
     requestRoleUpgrade,
     isProfileCompleteForRole,
     getMissingFieldsForRole,
-    // États supplémentaires du roleManager pour debug
-    hasClientRole,
-    hasFourmizRole,
     canBecomeClient,
     canBecomeFourmiz
-  } = useRoleManagerAdapter(profile);
+  } = roleManagerAdapter || {};
   
-  // 🆕 NOUVEAU : Hook de déconnexion
+  // 🔧 NOUVEAU : Hook de déconnexion
   const { signOut, isSigningOut } = useSignOut();
   
   const [refreshing, setRefreshing] = useState(false);
   const [showRoleUpgradeModal, setShowRoleUpgradeModal] = useState(false);
 
-  // 🚨 DEBUG TEMPORAIRE - Logs détaillés pour diagnostiquer
+  // 📢 CONFIGURATION NOTIFICATIONS PROPRE - SANS TESTS
   useEffect(() => {
-    console.log('🔍 DEBUG DÉTAILLÉ:', {
-      'profile.roles': profile?.roles,
-      'hasClientRole': hasClientRole,
-      'hasFourmizRole': hasFourmizRole,
-      'canBecomeClient': canBecomeClient,
-      'canBecomeFourmiz': canBecomeFourmiz,
-      'canSwitchRole': canSwitchRole,
-      'canRequestOtherRole': canRequestOtherRole,
-      'currentRole': currentRole,
-      'availableRoles': availableRoles
-    });
-  }, [profile?.roles, hasClientRole, hasFourmizRole, canBecomeClient, canBecomeFourmiz, canSwitchRole, canRequestOtherRole, currentRole, availableRoles]);
+    const setupNotifications = async () => {
+      try {
+        // Demander les permissions notifications
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('Permissions notifications non accordées');
+          return;
+        }
+        
+        console.log('✅ Notifications configurées');
+      } catch (error) {
+        console.error('❌ Erreur configuration notifications:', error);
+      }
+    };
 
-  // 🔍 DEBUG : Logs pour vérifier l'état des rôles
-  useEffect(() => {
-    console.log('🔍 ÉTAT ACTUEL DES RÔLES:', {
-      currentRole,
-      canSwitchRole,
-      canRequestOtherRole,
-      hasClientRole,
-      hasFourmizRole,
-      canBecomeClient,
-      canBecomeFourmiz,
-      availableRoles
-    });
-  }, [currentRole, canSwitchRole, canRequestOtherRole, hasClientRole, hasFourmizRole, canBecomeClient, canBecomeFourmiz, availableRoles]);
+    setupNotifications();
+  }, []);
 
-  // ✅ Changer de rôle - SIMPLIFIÉ avec le nouveau hook
+  // 🔧 Changer de rôle - MODIFIÉ : Feedback précis sans mention RIB
   const toggleRole = useCallback(async () => {
     if (switchingRole) return;
     
     const targetRole = currentRole === 'client' ? 'fourmiz' : 'client';
-    console.log('🎯 Toggle role demandé vers:', targetRole);
     
     const result = await handleRoleSwitch(targetRole);
-    console.log('📊 Résultat du switch:', result);
     
-    if (!result.success && result.needsCompletion) {
-      // Redirection déjà gérée dans l'adaptateur
-      console.log('🔄 Redirection vers complétion gérée par l\'adaptateur');
+    // 🌍 Émettre l'événement après un switch réussi
+    if (result.success) {
+      emitRoleChange(targetRole);
+    } else if (result.needsCompletion && targetRole === 'fourmiz') {
+      // 🔧 MODIFIÉ : Feedback précis selon les champs manquants
+      const missingFields = result.missingFields || [];
+      
+      if (missingFields.includes('has_identity_document')) {
+        Alert.alert(
+          '📝 Pièce d\'identité requise',
+          'Pour passer en mode Fourmiz, vous devez ajouter une pièce d\'identité à votre profil.\n\nCela ne prendra qu\'une minute !',
+          [
+            { text: 'Plus tard', style: 'cancel' },
+            { 
+              text: 'Ajouter maintenant', 
+              onPress: () => router.push('/auth/complete-profile-fourmiz?from=home'),
+              style: 'default'
+            }
+          ]
+        );
+      } else {
+        // Autres champs manquants (firstname, email, etc.)
+        Alert.alert(
+          '📝 Profil incomplet',
+          'Votre profil doit être complété pour passer en mode Fourmiz.',
+          [
+            { text: 'Plus tard', style: 'cancel' },
+            { 
+              text: 'Compléter', 
+              onPress: () => router.push('/auth/complete-profile-fourmiz?from=home'),
+              style: 'default'
+            }
+          ]
+        );
+      }
+    } else if (!result.success) {
+      // Autres erreurs
+      Alert.alert(
+        'Impossible de changer de rôle',
+        result.error || 'Une erreur est survenue. Veuillez réessayer.',
+        [{ text: 'OK' }]
+      );
     }
-  }, [currentRole, handleRoleSwitch, switchingRole]);
+  }, [currentRole, handleRoleSwitch, switchingRole, router]);
 
-  // 🆕 NOUVEAU : Demander l'autre rôle avec vérification automatique
+  // 🔧 MODIFIÉ : Demander l'autre rôle avec message corrigé
   const requestOtherRole = useCallback(async (targetRole: 'client' | 'fourmiz') => {
     try {
-      console.log('🎯 Demande de rôle:', targetRole);
+      // 🔧 Vérification sécurisée des méthodes
+      if (!isProfileCompleteForRole || !getMissingFieldsForRole || !requestRoleUpgrade) {
+        console.error('❌ Méthodes du roleManagerAdapter non disponibles');
+        return;
+      }
       
       // Vérifier si le profil est complet pour ce rôle
       const isComplete = isProfileCompleteForRole(targetRole);
       const missingFields = getMissingFieldsForRole(targetRole);
       
-      console.log('📋 Vérification profil:', { isComplete, missingFields });
-      
       if (!isComplete && targetRole === 'fourmiz') {
-        // Profil incomplet pour Fourmiz → Redirection vers complétion partielle
-        console.log('🔄 Profil Fourmiz incomplet, redirection vers complétion');
+        // Profil incomplet pour Fourmiz ? Redirection vers complétion partielle
         setShowRoleUpgradeModal(false);
         
         Alert.alert(
-          '📝 Complétion requise',
-          'Pour devenir Fourmiz, nous avons besoin de quelques informations supplémentaires (RIB et pièce d\'identité). Cela ne prendra que 2 minutes !',
+          '📝 Pièce d\'identité requise',
+          'Pour devenir Fourmiz, nous avons besoin d\'ajouter une pièce d\'identité à votre profil. Cela ne prendra qu\'une minute !',
           [
             { text: 'Plus tard', style: 'cancel' },
             { 
-              text: 'Compléter maintenant', 
+              text: 'Ajouter maintenant', 
               onPress: () => router.push('/auth/complete-profile-fourmiz?from=home')
             }
           ]
@@ -319,7 +355,7 @@ export default function HomeScreen() {
         return;
       }
       
-      // Profil complet ou demande de rôle client → Utiliser la demande standard
+      // Profil complet ou demande de rôle client ? Utiliser la demande standard
       await requestRoleUpgrade(targetRole);
       setShowRoleUpgradeModal(false);
       
@@ -335,10 +371,10 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  // ✅ Pages principales selon le statut - IDENTIQUE À VOTRE LOGIQUE
+  // 🔧 Pages principales selon le statut - COULEURS IDENTIQUES SERVICES - SANS PORTEFEUILLE
   const mainPages: MainPage[] = useMemo(() => {
     if (currentRole === 'client') {
-      // MENU CLIENT
+      // MENU CLIENT 
       return [
         {
           id: 'services',
@@ -346,7 +382,7 @@ export default function HomeScreen() {
           description: 'Créer une demande ou choisir un service',
           icon: 'construct-outline',
           route: '/(tabs)/services',
-          color: '#FF4444',
+          color: '#000000',
           roleRequired: 'client'
         },
         {
@@ -355,7 +391,7 @@ export default function HomeScreen() {
           description: 'Suivre mes commandes en cours et historique',
           icon: 'bag-outline',
           route: '/(tabs)/orders',
-          color: '#2196F3',
+          color: '#000000',
           roleRequired: 'client'
         },
         {
@@ -364,7 +400,7 @@ export default function HomeScreen() {
           description: 'Communiquer avec vos Fourmiz',
           icon: 'chatbubble-outline',
           route: '/(tabs)/messages',
-          color: '#FF9800',
+          color: '#000000',
           roleRequired: 'client'
         },
         {
@@ -373,16 +409,16 @@ export default function HomeScreen() {
           description: 'Parrainer et développer votre réseau',
           icon: 'people-outline',
           route: '/(tabs)/network',
-          color: '#607D8B',
+          color: '#000000',
           roleRequired: 'client'
         },
         {
           id: 'earnings',
-          title: 'Mes Revenus',
-          description: 'Gains du parrainage et cashback',
+          title: 'Mes Revenus & Portefeuille',
+          description: 'Gains du parrainage, cashback et retraits',
           icon: 'trending-up-outline',
           route: '/(tabs)/earnings',
-          color: '#4CAF50',
+          color: '#000000',
           roleRequired: 'client'
         },
         {
@@ -391,16 +427,7 @@ export default function HomeScreen() {
           description: 'Points fidélité et offres spéciales',
           icon: 'gift-outline',
           route: '/(tabs)/rewards',
-          color: '#9C27B0',
-          roleRequired: 'client'
-        },
-        {
-          id: 'wallet',
-          title: 'Mon Portefeuille',
-          description: 'Gérer mes gains',
-          icon: 'wallet-outline',
-          route: '/(tabs)/wallet',
-          color: '#795548',
+          color: '#000000',
           roleRequired: 'client'
         },
         {
@@ -409,7 +436,7 @@ export default function HomeScreen() {
           description: 'Gérer mes informations personnelles',
           icon: 'person-outline',
           route: '/(tabs)/profile',
-          color: '#546E7A',
+          color: '#000000',
           roleRequired: 'client'
         }
       ];
@@ -421,17 +448,17 @@ export default function HomeScreen() {
           title: 'Services en demande',
           description: 'Parcourir et accepter des missions',
           icon: 'search-outline',
-          route: '/(tabs)/services-demand',
-          color: '#FF4444',
+          route: '/(tabs)/available-orders',
+          color: '#000000',
           roleRequired: 'fourmiz'
         },
         {
-          id: 'services-progress',
+          id: 'services-requests',
           title: 'Mes Services en cours',
           description: 'Gérer mes missions acceptées',
           icon: 'build-outline',
-          route: '/(tabs)/services-progress',
-          color: '#2196F3',
+          route: '/(tabs)/services-requests',
+          color: '#000000',
           roleRequired: 'fourmiz'
         },
         {
@@ -440,7 +467,7 @@ export default function HomeScreen() {
           description: 'Communiquer avec vos Clients',
           icon: 'chatbubble-outline',
           route: '/(tabs)/messages',
-          color: '#FF9800',
+          color: '#000000',
           roleRequired: 'fourmiz'
         },
         {
@@ -449,7 +476,7 @@ export default function HomeScreen() {
           description: 'Voir votre calendrier',
           icon: 'calendar-outline',
           route: '/(tabs)/calendar',
-          color: '#673AB7',
+          color: '#000000',
           roleRequired: 'fourmiz'
         },
         {
@@ -458,16 +485,16 @@ export default function HomeScreen() {
           description: 'Parrainer des Clients et Fourmiz',
           icon: 'people-outline',
           route: '/(tabs)/network',
-          color: '#607D8B',
+          color: '#000000',
           roleRequired: 'fourmiz'
         },
         {
           id: 'earnings',
-          title: 'Mes Revenus',
-          description: 'Gains des missions et parrainage',
+          title: 'Mes Revenus & Portefeuille',
+          description: 'Gains des missions, parrainage et retraits',
           icon: 'cash-outline',
           route: '/(tabs)/earnings',
-          color: '#4CAF50',
+          color: '#000000',
           roleRequired: 'fourmiz'
         },
         {
@@ -476,16 +503,7 @@ export default function HomeScreen() {
           description: 'Bonus performance et fidélité',
           icon: 'trophy-outline',
           route: '/(tabs)/rewards',
-          color: '#9C27B0',
-          roleRequired: 'fourmiz'
-        },
-        {
-          id: 'wallet',
-          title: 'Mon Portefeuille',
-          description: 'Gérer mes gains',
-          icon: 'card-outline',
-          route: '/(tabs)/wallet',
-          color: '#795548',
+          color: '#000000',
           roleRequired: 'fourmiz'
         },
         {
@@ -494,7 +512,7 @@ export default function HomeScreen() {
           description: 'Définir mes compétences et disponibilités',
           icon: 'options-outline',
           route: '/(tabs)/criteria',
-          color: '#FF5722',
+          color: '#000000',
           roleRequired: 'fourmiz'
         },
         {
@@ -503,28 +521,41 @@ export default function HomeScreen() {
           description: 'Gérer mes informations professionnelles',
           icon: 'person-outline',
           route: '/(tabs)/profile',
-          color: '#546E7A',
+          color: '#000000',
           roleRequired: 'fourmiz'
         }
       ];
     }
   }, [currentRole]);
 
-  // Pages affichées (plus besoin de filtrage, elles sont déjà spécifiques)
-  const visiblePages = mainPages;
-
-  // ✅ RÉCUPÉRER LE PRÉNOM - VERSION SÉCURISÉE
-  const getDisplayName = () => {
-    console.log('🔍 Récupération du nom d\'affichage:', {
-      firstname: profile?.firstname,
-      lastname: profile?.lastname,
-      email: user?.email
-    });
+  // 🎯 NOUVEAU : Pages affichées avec carte role upgrade intégrée
+  const visiblePages = useMemo(() => {
+    const pages = [...mainPages];
     
+    // 🔧 AJOUT : Intégrer la carte "Devenir Client/Fourmiz" après "Mon Profil"
+    if (canRequestOtherRole) {
+      const roleUpgradePage: MainPage = {
+        id: 'role-upgrade',
+        title: canRequestOtherRole === 'fourmiz' ? 'Devenir Fourmiz' : 'Devenir Client',
+        description: canRequestOtherRole === 'fourmiz' 
+          ? 'Monétisez vos compétences et gagnez de l\'argent'
+          : 'Accédez à tous les services Fourmiz',
+        icon: canRequestOtherRole === 'fourmiz' ? 'construct' : 'storefront',
+        route: '', // Pas de route, on utilise la modal
+        color: '#000000',
+        roleRequired: 'both'
+      };
+      pages.push(roleUpgradePage);
+    }
+    
+    return pages;
+  }, [mainPages, canRequestOtherRole]);
+
+  // 🔧 RÉCUPÉRER LE PRÉNOM - VERSION SÉCURISÉE
+  const getDisplayName = () => {
     // 1. Essayer firstname (champ principal)
     const firstName = safeString(profile?.firstname).trim();
     if (firstName) {
-      console.log('✅ Nom trouvé (firstname):', firstName);
       return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
     }
     
@@ -534,29 +565,26 @@ export default function HomeScreen() {
     if (firstNamePart && lastNamePart) {
       const fullName = `${firstNamePart} ${lastNamePart}`.trim();
       const extractedFirstName = fullName.split(' ')[0];
-      console.log('✅ Nom construit (firstname + lastname):', extractedFirstName);
       return extractedFirstName.charAt(0).toUpperCase() + extractedFirstName.slice(1).toLowerCase();
     }
     
     // 3. Utiliser lastname si firstname manque
     const lastName = safeString(profile?.lastname).trim();
     if (lastName) {
-      console.log('✅ Nom trouvé (lastname en fallback):', lastName);
       return lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
     }
     
     // 4. 🛡️ EXTRACTION SÉCURISÉE DEPUIS L'EMAIL
     const extractedName = extractNameFromEmail(user?.email);
-    console.log('✅ Nom extrait de l\'email (sécurisé):', extractedName);
     return extractedName;
   };
 
-  // ✅ Gestion des erreurs - IDENTIQUE
+  // ❌ Gestion des erreurs
   if (authError) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#FF4444" />
+          <Ionicons name="alert-circle-outline" size={64} color="#333333" />
           <Text style={styles.errorTitle}>Erreur de connexion</Text>
           <Text style={styles.errorText}>{authError}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refetch}>
@@ -571,7 +599,7 @@ export default function HomeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF4444" />
+          <ActivityIndicator size="large" color="#000000" />
           <Text style={styles.loadingText}>Chargement de votre espace...</Text>
         </View>
       </SafeAreaView>
@@ -582,7 +610,7 @@ export default function HomeScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="person-outline" size={64} color="#FF4444" />
+          <Ionicons name="person-outline" size={64} color="#333333" />
           <Text style={styles.errorTitle}>Profil non trouvé</Text>
           <Text style={styles.errorText}>Impossible de charger votre profil</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refetch}>
@@ -593,7 +621,7 @@ export default function HomeScreen() {
     );
   }
 
-  // ✅ RENDU PRINCIPAL - MODIFIÉ AVEC BOUTON DÉCONNEXION CONDITIONNEL
+  // 🔧 RENDU PRINCIPAL - STYLE SERVICES.TSX SANS HEADER
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
@@ -603,34 +631,8 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header avec prénom + BOUTON DÉCONNEXION (DEV/ADMIN UNIQUEMENT) */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.welcomeText}>
-              Bonjour {getDisplayName()} 👋
-            </Text>
-            <Text style={styles.welcomeSubtext}>
-              Que souhaitez-vous faire aujourd'hui ?
-            </Text>
-          </View>
-          
-          {/* 🛠️ BOUTON DÉCONNEXION : Visible seulement en DEV ou pour les ADMINS */}
-          {(SHOW_SIGNOUT_BUTTON || isAdmin) && (
-            <TouchableOpacity 
-              style={styles.signOutButton}
-              onPress={signOut}
-              disabled={isSigningOut}
-            >
-              {isSigningOut ? (
-                <ActivityIndicator size="small" color="#FF4444" />
-              ) : (
-                <Ionicons name="log-out-outline" size={24} color="#FF4444" />
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
 
-        {/* Switch Client/Fourmiz - VERSION ÉPURÉE */}
+        {/* Switch Client/Fourmiz - STYLE SERVICES */}
         {canSwitchRole && (
           <View style={styles.roleSection}>
             <View style={styles.switchButtonContainer}>
@@ -647,13 +649,13 @@ export default function HomeScreen() {
                 <Ionicons 
                   name="person-outline" 
                   size={20} 
-                  color={currentRole === 'client' ? '#fff' : '#666'} 
+                  color={currentRole === 'client' ? '#fff' : '#333333'} 
                 />
                 <Text style={[
                   styles.switchButtonText,
                   currentRole === 'client' && styles.switchButtonTextActive
                 ]}>
-                  Client
+                  Client 
                 </Text>
               </TouchableOpacity>
 
@@ -670,7 +672,7 @@ export default function HomeScreen() {
                 <Ionicons 
                   name="construct-outline" 
                   size={20} 
-                  color={currentRole === 'fourmiz' ? '#fff' : '#666'} 
+                  color={currentRole === 'fourmiz' ? '#fff' : '#333333'} 
                 />
                 <Text style={[
                   styles.switchButtonText,
@@ -683,73 +685,17 @@ export default function HomeScreen() {
 
             {switchingRole && (
               <View style={styles.switchingIndicatorContainer}>
-                <ActivityIndicator size="small" color="#666" />
+                <ActivityIndicator size="small" color="#333333" />
                 <Text style={styles.switchingText}>Changement en cours...</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* Bouton Devenir Client/Fourmiz */}
-        {canRequestOtherRole && (
-          <View style={styles.roleUpgradeSection}>
-            <View style={styles.roleSectionHeader}>
-              <Text style={styles.roleSectionTitle}>
-                {canRequestOtherRole === 'fourmiz' ? '🚀 Devenir Fourmiz' : '🛍️ Devenir Client'}
-              </Text>
-              <Text style={styles.roleSectionSubtitle}>
-                {canRequestOtherRole === 'fourmiz' 
-                  ? 'Monétisez vos compétences et gagnez de l\'argent'
-                  : 'Accédez à tous les services Fourmiz'
-                }
-              </Text>
-            </View>
-            
-            <TouchableOpacity 
-              style={[
-                styles.roleUpgradeCard,
-                { borderLeftColor: canRequestOtherRole === 'fourmiz' ? '#4CAF50' : '#2196F3' }
-              ]}
-              onPress={() => setShowRoleUpgradeModal(true)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.roleUpgradeContent}>
-                <View style={[
-                  styles.roleUpgradeIcon,
-                  { backgroundColor: canRequestOtherRole === 'fourmiz' ? '#4CAF5020' : '#2196F320' }
-                ]}>
-                  <Ionicons 
-                    name={canRequestOtherRole === 'fourmiz' ? 'construct' : 'storefront'} 
-                    size={32} 
-                    color={canRequestOtherRole === 'fourmiz' ? '#4CAF50' : '#2196F3'} 
-                  />
-                </View>
-                <View style={styles.roleUpgradeInfo}>
-                  <Text style={styles.roleUpgradeTitle}>
-                    {canRequestOtherRole === 'fourmiz' 
-                      ? 'Proposer mes services' 
-                      : 'Commander des services'
-                    }
-                  </Text>
-                  <Text style={styles.roleUpgradeDescription}>
-                    {canRequestOtherRole === 'fourmiz'
-                      ? 'Transformez vos talents en revenus réguliers'
-                      : 'Accédez à des milliers de fourmiz qualifiés'
-                    }
-                  </Text>
-                </View>
-                <View style={styles.roleUpgradeArrow}>
-                  <Ionicons name="arrow-forward-circle" size={24} color="#666" />
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Section Admin - ACCÈS SÉCURISÉ */}
+        {/* Section Admin - STYLE SERVICES */}
         {isAdmin && (
           <View style={styles.adminSection}>
-            <Text style={styles.roleSectionTitle}>🔧 Administration</Text>
+            <Text style={styles.roleSectionTitle}>🛡️ Administration</Text>
             <TouchableOpacity
               style={styles.adminCard}
               onPress={() => router.push('/admin/dashboard')}
@@ -757,49 +703,82 @@ export default function HomeScreen() {
             >
               <View style={styles.adminCardContent}>
                 <View style={styles.adminIcon}>
-                  <Ionicons name="shield-checkmark" size={24} color="#FF4444" />
+                  <Ionicons name="shield-checkmark" size={20} color="#000000" />
                 </View>
                 <View style={styles.adminInfo}>
                   <Text style={styles.adminTitle}>Tableau de bord admin</Text>
                   <Text style={styles.adminDescription}>Gérer l'application et les utilisateurs</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
+                <Ionicons name="chevron-forward" size={20} color="#333333" />
               </View>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Pages principales */}
+        {/* Pages principales - STYLE SERVICES */}
         <View style={styles.pagesSection}>
           <View style={styles.pagesSectionHeader}>
             <Text style={styles.roleSectionTitle}>
               {currentRole === 'client' ? 'Menu Client' : 'Menu Fourmiz'}
             </Text>
-            <View style={styles.pagesCounter}>
-              <Text style={styles.pagesCounterText}>
-                {visiblePages.length} options
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={styles.signoutButton}
+              onPress={() => {
+                Alert.alert(
+                  'Déconnexion',
+                  'Êtes-vous sûr de vouloir vous déconnecter ?',
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    { 
+                      text: 'Se déconnecter', 
+                      style: 'destructive',
+                      onPress: signOut
+                    }
+                  ]
+                );
+              }}
+              disabled={isSigningOut}
+              activeOpacity={0.8}
+            >
+              {isSigningOut ? (
+                <ActivityIndicator size="small" color="#333333" />
+              ) : (
+                <Ionicons name="log-out-outline" size={20} color="#333333" />
+              )}
+            </TouchableOpacity>
           </View>
           
           <View style={styles.pagesGrid}>
             {visiblePages.map((page) => (
               <TouchableOpacity
                 key={page.id}
-                style={[styles.pageCard, { borderLeftColor: page.color }]}
-                onPress={() => router.push(page.route)}
+                style={styles.pageCard}
+                onPress={() => {
+                  // 🔧 GESTION SPÉCIALE : Carte role upgrade ouvre la modal
+                  if (page.id === 'role-upgrade') {
+                    setShowRoleUpgradeModal(true);
+                  } else {
+                    router.push(page.route);
+                  }
+                }}
                 activeOpacity={0.8}
               >
-                <View style={[styles.pageIcon, { backgroundColor: page.color + '20' }]}>
-                  <Ionicons name={page.icon} size={24} color={page.color} />
+                <View style={styles.pageIconContainer}>
+                  <View style={styles.pageIcon}>
+                    <Ionicons name={page.icon} size={20} color="#000000" />
+                  </View>
                 </View>
+                
                 <View style={styles.pageContent}>
                   <Text style={styles.pageTitle}>{page.title}</Text>
                   <Text style={styles.pageDescription} numberOfLines={2}>
                     {page.description}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
+
+                <View style={styles.pageArrow}>
+                  <Ionicons name="chevron-forward" size={20} color="#333333" />
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -808,7 +787,7 @@ export default function HomeScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Modal d'upgrade de rôle - IDENTIQUE */}
+      {/* Modal d'upgrade de rôle - STYLE SERVICES */}
       <Modal 
         visible={showRoleUpgradeModal} 
         animationType="slide" 
@@ -821,10 +800,10 @@ export default function HomeScreen() {
               onPress={() => setShowRoleUpgradeModal(false)}
               style={styles.upgradeCloseButton}
             >
-              <Ionicons name="close" size={24} color="#666" />
+              <Ionicons name="close" size={24} color="#333333" />
             </TouchableOpacity>
             <Text style={styles.upgradeTitle}>
-              {canRequestOtherRole === 'fourmiz' ? '🚀 Devenir Fourmiz' : '🛍️ Devenir Client'}
+              {canRequestOtherRole === 'fourmiz' ? 'Devenir Fourmiz' : 'Devenir Client'}
             </Text>
             <View style={styles.upgradeHeaderSpacer} />
           </View>
@@ -843,20 +822,20 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.upgradeAdvantages}>
-                  <Text style={styles.upgradeAdvantagesTitle}>🎯 Vos avantages en tant que Fourmiz :</Text>
+                  <Text style={styles.upgradeAdvantagesTitle}>✨ Vos avantages en tant que Fourmiz :</Text>
                   
                   {[
                     { icon: 'cash-outline', title: 'Revenus flexibles', desc: 'Gagnez selon votre disponibilité' },
                     { icon: 'time-outline', title: 'Liberté horaire', desc: 'Choisissez vos missions et horaires' },
                     { icon: 'trending-up-outline', title: 'Tarifs', desc: 'Choisissez les courses et les tarifs qui vous conviennent' },
-                    { icon: 'people-outline', title: 'Réseau professionnel', desc: 'Développez votre clientèle par le parrainnage' },
+                    { icon: 'people-outline', title: 'Réseau professionnel', desc: 'Développez votre clientèle par le parrainage' },
                     { icon: 'shield-checkmark-outline', title: 'Sécurité garantie', desc: 'Paiements sécurisés' },
                     { icon: 'star-outline', title: 'Réputation', desc: 'Construisez votre réputation' },
                     { icon: 'gift-outline', title: 'Récompenses', desc: 'Points fidélité et cashbacks' }
                   ].map((advantage, index) => (
                     <View key={index} style={styles.upgradeAdvantageItem}>
                       <View style={styles.upgradeAdvantageIcon}>
-                        <Ionicons name={advantage.icon as any} size={20} color="#4CAF50" />
+                        <Ionicons name={advantage.icon as any} size={20} color="#000000" />
                       </View>
                       <View style={styles.upgradeAdvantageContent}>
                         <Text style={styles.upgradeAdvantageTitle}>{advantage.title}</Text>
@@ -867,9 +846,8 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.upgradeProcess}>
-                  <Text style={styles.upgradeProcessTitle}>📋 Comment ça marche :</Text>
-                  <Text style={styles.upgradeProcessStep}>1. Complétez votre profil et ajoutez vos compétences
-                  </Text>
+                  <Text style={styles.upgradeProcessTitle}>🔄 Comment ça marche :</Text>
+                  <Text style={styles.upgradeProcessStep}>1. Complétez votre profil et ajoutez vos compétences</Text>
                   <Text style={styles.upgradeProcessStep}>2. Définissez vos critères et disponibilités</Text>
                   <Text style={styles.upgradeProcessStep}>3. Recevez des missions adaptées à votre profil</Text>
                   <Text style={styles.upgradeProcessStep}>4. Réalisez les missions et recevez vos paiements</Text>
@@ -880,7 +858,7 @@ export default function HomeScreen() {
               <>
                 <View style={styles.upgradeIntro}>
                   <Text style={styles.upgradeIntroTitle}>
-                    Accédez à tous nos services ! 🛍️
+                    Accédez à tous nos services ! 🛒
                   </Text>
                   <Text style={styles.upgradeIntroText}>
                     Devenez client et profitez de milliers de fourmiz qualifiés pour tous vos besoins.
@@ -888,7 +866,7 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.upgradeAdvantages}>
-                  <Text style={styles.upgradeAdvantagesTitle}>🎯 Vos avantages en tant que Client :</Text>
+                  <Text style={styles.upgradeAdvantagesTitle}>✨ Vos avantages en tant que Client :</Text>
                   
                   {[
                     { icon: 'construct-outline', title: 'Services variés', desc: 'Accès à tous les services' },
@@ -900,7 +878,7 @@ export default function HomeScreen() {
                   ].map((advantage, index) => (
                     <View key={index} style={styles.upgradeAdvantageItem}>
                       <View style={styles.upgradeAdvantageIcon}>
-                        <Ionicons name={advantage.icon as any} size={20} color="#2196F3" />
+                        <Ionicons name={advantage.icon as any} size={20} color="#000000" />
                       </View>
                       <View style={styles.upgradeAdvantageContent}>
                         <Text style={styles.upgradeAdvantageTitle}>{advantage.title}</Text>
@@ -911,7 +889,7 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.upgradeProcess}>
-                  <Text style={styles.upgradeProcessTitle}>📋 Comment ça marche :</Text>
+                  <Text style={styles.upgradeProcessTitle}>🔄 Comment ça marche :</Text>
                   <Text style={styles.upgradeProcessStep}>1. Décrivez votre besoin ou choisissez un service</Text>
                   <Text style={styles.upgradeProcessStep}>2. Recevez des propositions de fourmiz qualifiés</Text>
                   <Text style={styles.upgradeProcessStep}>3. Choisissez votre fourmiz et planifiez</Text>
@@ -930,10 +908,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[
-                styles.upgradeConfirmButton,
-                { backgroundColor: canRequestOtherRole === 'fourmiz' ? '#4CAF50' : '#2196F3' }
-              ]}
+              style={styles.upgradeConfirmButton}
               onPress={() => {
                 if (canRequestOtherRole) {
                   requestOtherRole(canRequestOtherRole);
@@ -941,7 +916,7 @@ export default function HomeScreen() {
               }}
             >
               <Text style={styles.upgradeConfirmText}>
-                {canRequestOtherRole === 'fourmiz' ? '🚀 Devenir Fourmiz' : '🛍️ Devenir Client'}
+                {canRequestOtherRole === 'fourmiz' ? 'Devenir Fourmiz' : 'Devenir Client'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -951,28 +926,27 @@ export default function HomeScreen() {
   );
 }
 
-// ✅ STYLES AVEC MODIFICATIONS POUR LE BOUTON DÉCONNEXION
+// 🎨 STYLES IDENTIQUES À SERVICES.TSX - HEADER SUPPRIMÉ - SIGNOUT SECTION AJUSTÉE
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#ffffff',
   },
   scrollView: {
     flex: 1,
   },
-  
-  // Loading & Error
+
+  // ⏳ Loading & Error - STYLE SERVICES
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
-    padding: 20,
+    gap: 24,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '400',
   },
   errorContainer: {
     flex: 1,
@@ -982,100 +956,67 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     textAlign: 'center',
   },
   errorText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 13,
+    color: '#333333',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
+    fontWeight: '400',
   },
   retryButton: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#000000',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 16,
   },
   retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
   },
 
-  // 🛠️ STYLES POUR LE HEADER ADAPTATIF
-  header: {
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-    flexDirection: 'row', // 🆕 Pour le bouton déconnexion
-    justifyContent: 'space-between', // 🆕 Espace entre nom et bouton
-  },
-  headerLeft: {
-    flex: 1, // 🆕 Prend l'espace disponible
-  },
-  welcomeText: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  welcomeSubtext: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-
-  // 🛠️ BOUTON DE DÉCONNEXION (MODE DEV UNIQUEMENT)
-  signOutButton: {
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#FFF5F5',
-    borderWidth: 1,
-    borderColor: '#FFE5E5',
-    opacity: 0.7, // Moins visible car c'est pour le dev
-  },
-
-  // Sections
+  // Sections - STYLE SERVICES
   roleSection: {
-    padding: 20,
-  },
-  roleUpgradeSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    marginBottom: 20,
   },
   adminSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    marginBottom: 20,
   },
   pagesSection: {
-    padding: 20,
-  },
-  roleSectionHeader: {
-    marginBottom: 16,
+    paddingHorizontal: 24,
+    marginBottom: 20,
   },
   roleSectionTitle: {
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: '#000000',
+    marginBottom: 0, // Supprimé marginBottom car maintenant dans un flex row
   },
-  roleSectionSubtitle: {
-    fontSize: 14,
-    color: '#666',
+  signoutButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#f8f8f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
 
-  // Switch épuré - NOUVEAU
+  // Switch - STYLE SERVICES
   switchButtonContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
     padding: 4,
   },
   switchButton: {
@@ -1085,7 +1026,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 6,
     gap: 8,
   },
   switchButtonLeft: {
@@ -1095,20 +1036,15 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   switchButtonActive: {
-    backgroundColor: '#FF4444',
-    shadowColor: '#FF4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#000000',
   },
   switchButtonText: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#666',
+    color: '#333333',
   },
   switchButtonTextActive: {
-    color: '#fff',
+    color: '#ffffff',
   },
   switchingIndicatorContainer: {
     flexDirection: 'row',
@@ -1118,174 +1054,123 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   switchingText: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '400',
   },
 
-  // Admin Card
+  // Admin Card - STYLE SERVICES
   adminCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF4444',
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
   },
   adminCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   adminIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FF444420',
+    width: 40,
+    height: 40,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8f8f8',
     marginRight: 16,
   },
   adminInfo: {
     flex: 1,
   },
   adminTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 6,
   },
   adminDescription: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#333333',
+    lineHeight: 20,
+    fontWeight: '400',
   },
 
-  // Pages Grid
+  // Pages Grid - STYLE SERVICES
   pagesGrid: {
-    gap: 12,
+    gap: 16,
   },
   pagesSectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
-  pagesCounter: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  pagesCounterText: {
-    fontSize: 12,
-    color: '#1976D2',
-    fontWeight: '600',
-  },
   pageCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  pageIconContainer: {
+    marginRight: 16,
   },
   pageIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    backgroundColor: '#f8f8f8',
   },
   pageContent: {
     flex: 1,
   },
   pageTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 6,
   },
   pageDescription: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#333333',
     lineHeight: 20,
+    fontWeight: '400',
+  },
+  pageArrow: {
+    marginLeft: 12,
   },
 
   bottomSpacer: {
     height: 32,
   },
 
-  // Role Upgrade Section
-  roleUpgradeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderLeftWidth: 4,
-  },
-  roleUpgradeContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  roleUpgradeIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  roleUpgradeInfo: {
-    flex: 1,
-  },
-  roleUpgradeTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  roleUpgradeDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  roleUpgradeArrow: {
-    marginLeft: 12,
-  },
-
-  // Upgrade Modal
+  // Upgrade Modal - STYLE SERVICES
   upgradeModal: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
   upgradeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#e0e0e0',
   },
   upgradeCloseButton: {
     padding: 4,
   },
   upgradeTitle: {
     flex: 1,
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     textAlign: 'center',
     marginHorizontal: 16,
   },
@@ -1301,25 +1186,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   upgradeIntroTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     textAlign: 'center',
     marginBottom: 12,
   },
   upgradeIntroText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 13,
+    color: '#333333',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
+    fontWeight: '400',
   },
   upgradeAdvantages: {
     marginBottom: 24,
   },
   upgradeAdvantagesTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     marginBottom: 16,
   },
   upgradeAdvantageItem: {
@@ -1330,8 +1216,8 @@ const styles = StyleSheet.create({
   upgradeAdvantageIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f8f9fa',
+    borderRadius: 6,
+    backgroundColor: '#f8f8f8',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1340,62 +1226,67 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   upgradeAdvantageTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: '#000000',
     marginBottom: 4,
   },
   upgradeAdvantageDesc: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#333333',
     lineHeight: 20,
+    fontWeight: '400',
   },
   upgradeProcess: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8f8f8',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 20,
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
   },
   upgradeProcessTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     marginBottom: 12,
   },
   upgradeProcessStep: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#333333',
     marginBottom: 8,
     lineHeight: 20,
+    fontWeight: '400',
   },
   upgradeActions: {
     flexDirection: 'row',
     padding: 20,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#e0e0e0',
   },
   upgradeCancelButton: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8f8f8',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   upgradeCancelText: {
-    color: '#666',
-    fontSize: 16,
+    color: '#333333',
+    fontSize: 13,
     fontWeight: '600',
   },
   upgradeConfirmButton: {
     flex: 2,
+    backgroundColor: '#000000',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   upgradeConfirmText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

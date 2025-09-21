@@ -234,3 +234,4 @@ export function searchServicesByCriteria(
     return matches.some(match => selectedCategories.includes(match));
   });
 }
+

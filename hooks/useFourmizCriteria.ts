@@ -1,5 +1,5 @@
-// hooks/useFourmizCriteria.ts
-import { useState, useEffect } from 'react';
+// hooks/useFourmizCriteria.ts - VERSION SIMPLIFIÉE SANS DEBOUNCING
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fourmizService, FourmizCriteriaAdapted, FourmizSearchParams, FourmizSearchResult } from '@/lib/fourmiz.service';
 
@@ -19,144 +19,309 @@ export interface UseFourmizCriteriaReturn {
   // Validation
   validateCriteria: (data: Partial<FourmizCriteriaAdapted>) => string[];
   isRGPDCompliant: boolean;
+  
+  // Contrôles
+  clearError: () => void;
+  refresh: () => Promise<void>;
 }
 
 export function useFourmizCriteria(userId?: string): UseFourmizCriteriaReturn {
+  // États principaux
   const [criteria, setCriteria] = useState<FourmizCriteriaAdapted | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completion, setCompletion] = useState(0);
 
-  // Charger les critères automatiquement si userId fourni
-  useEffect(() => {
-    if (userId) {
-      loadCriteria(userId);
-    }
-  }, [userId]);
+  // Ref pour gestion cycle de vie
+  const isMountedRef = useRef<boolean>(true);
 
-  // Calculer le pourcentage de completion quand les critères changent
+  const clearError = useCallback(() => {
+    if (isMountedRef.current) {
+      setError(null);
+    }
+  }, []);
+
+  // Calculer le pourcentage de completion
   useEffect(() => {
+    if (!isMountedRef.current) return;
+
     if (criteria) {
-      const percent = fourmizService.calculateCompletionPercent(criteria);
-      setCompletion(percent);
+      try {
+        const percent = fourmizService.calculateCompletionPercent(criteria);
+        if (isMountedRef.current) {
+          setCompletion(percent);
+        }
+      } catch (error) {
+        console.warn('⚠️ [FourmizCriteria] Erreur calcul completion:', error);
+        if (isMountedRef.current) {
+          setCompletion(0);
+        }
+      }
+    } else {
+      if (isMountedRef.current) {
+        setCompletion(0);
+      }
     }
   }, [criteria]);
 
   /**
-   * Charger les critères d'un utilisateur
+   * Charger les critères
    */
-  const loadCriteria = async (userIdParam: string) => {
-    setLoading(true);
-    setError(null);
+  const loadCriteria = useCallback(async (userIdParam: string) => {
+    if (!isMountedRef.current || !userIdParam) return;
+
+    console.log('🔧🔧 Chargement critères pour user:', userIdParam);
+    console.log('🔧🔧 [loadCriteria] === DÉBUT CHARGEMENT SÉCURISÉ ===');
+    
+    if (isMountedRef.current) {
+      setLoading(true);
+      setError(null);
+    }
     
     try {
+      // Vérifier que l'utilisateur est toujours authentifié
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
+      console.log('🔧🔧 [loadCriteria] Utilisateur authentifié:', {
+        currentUserEmail: user.email,
+        currentUserId: user.id,
+        userProfileEmail: user.email,
+        userProfileId: userIdParam
+      });
+
+      // Validation ID utilisateur
+      if (user.id !== userIdParam) {
+        throw new Error('ID utilisateur incohérent');
+      }
+
+      console.log('🔧🔧 [loadCriteria] ID utilisateur validé:', userIdParam);
+
       const data = await fourmizService.getCriteria(userIdParam);
-      setCriteria(data);
-    } catch (err) {
-      setError('Erreur lors du chargement des critères');
-      console.error('Erreur loadCriteria:', err);
+      
+      if (!data) {
+        console.log('🔧🔧 [loadCriteria] Aucun critère trouvé, création nouveaux critères pour:', user.email);
+        
+        // Créer des critères par défaut
+        console.log('🔧🔧 [createDefaultCriteria] Création critères minimaux pour user:', userIdParam);
+        const defaultData = await fourmizService.createDefaultCriteria(userIdParam);
+        console.log('✅ [createDefaultCriteria] Critères minimaux créés - utilisateur doit tout configurer');
+        
+        if (isMountedRef.current) {
+          setCriteria(defaultData);
+        }
+      } else {
+        if (isMountedRef.current) {
+          setCriteria(data);
+        }
+      }
+
+      console.log('🔧🔧 [loadCriteria] === FIN CHARGEMENT SÉCURISÉ ===');
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        const errorMessage = err.message || 'Erreur lors du chargement des critères';
+        setError(errorMessage);
+        console.error('[FourmizCriteria] Erreur loadCriteria:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   /**
-   * Sauvegarder les critères
+   * 🔧 CORRECTION : Sauvegarder SANS debouncing
    */
-  const saveCriteria = async (data: Partial<FourmizCriteriaAdapted>): Promise<boolean> => {
+  const saveCriteria = useCallback(async (data: Partial<FourmizCriteriaAdapted>): Promise<boolean> => {
+    if (!isMountedRef.current) return false;
+
+    console.log('🚀 [FourmizCriteria] === DÉBUT SAUVEGARDE ===');
+    console.log('📊 Données reçues:', data);
+
     setLoading(true);
     setError(null);
 
     try {
-      // Validation avant sauvegarde
-      const validationErrors = fourmizService.validateCriteria(data);
+      // 🔧 CORRECTION : Utiliser la validation pour sauvegarde (moins stricte)
+      const validationErrors = fourmizService.validateCriteriaForSave(data);
       if (validationErrors.length > 0) {
-        setError(validationErrors.join('\n'));
+        console.error('❌ [FourmizCriteria] Erreurs validation sauvegarde:', validationErrors);
+        if (isMountedRef.current) {
+          setError(validationErrors.join('\n'));
+        }
         return false;
       }
 
-      // Sauvegarde
       const success = await fourmizService.saveCriteria(data);
       
       if (success) {
+        console.log('✅ [FourmizCriteria] Sauvegarde réussie');
+        
         // Recharger les critères pour avoir les données à jour
-        if (data.user_id) {
+        if (data.user_id && isMountedRef.current) {
           await loadCriteria(data.user_id);
         }
         return true;
       } else {
-        setError('Erreur lors de la sauvegarde');
+        console.error('❌ [FourmizCriteria] Sauvegarde échouée');
+        if (isMountedRef.current) {
+          setError('Erreur lors de la sauvegarde');
+        }
         return false;
       }
-    } catch (err) {
-      setError('Erreur lors de la sauvegarde des critères');
-      console.error('Erreur saveCriteria:', err);
+    } catch (err: any) {
+      console.error('❌ [FourmizCriteria] Exception sauvegarde:', err);
+      if (isMountedRef.current) {
+        setError('Erreur lors de la sauvegarde des critères');
+      }
       return false;
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      console.log('🏁 [FourmizCriteria] === FIN SAUVEGARDE ===');
     }
-  };
+  }, [loadCriteria]);
 
   /**
    * Mettre à jour la disponibilité
    */
-  const updateAvailability = async (isAvailable: boolean): Promise<boolean> => {
+  const updateAvailability = useCallback(async (isAvailable: boolean): Promise<boolean> => {
+    if (!isMountedRef.current) return false;
+
     if (!criteria?.user_id) {
-      setError('Aucun utilisateur connecté');
+      if (isMountedRef.current) {
+        setError('Aucun utilisateur connecté');
+      }
       return false;
     }
 
-    setLoading(true);
+    if (isMountedRef.current) {
+      setLoading(true);
+    }
+    
     try {
       const success = await fourmizService.updateAvailability(criteria.user_id, isAvailable);
       
-      if (success) {
+      if (success && isMountedRef.current) {
         setCriteria(prev => prev ? { ...prev, is_available: isAvailable } : null);
         return true;
       } else {
-        setError('Erreur lors de la mise à jour de la disponibilité');
+        if (isMountedRef.current) {
+          setError('Erreur lors de la mise à jour de la disponibilité');
+        }
         return false;
       }
-    } catch (err) {
-      setError('Erreur lors de la mise à jour de la disponibilité');
-      console.error('Erreur updateAvailability:', err);
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        setError('Erreur lors de la mise à jour de la disponibilité');
+        console.error('[FourmizCriteria] Erreur updateAvailability:', err);
+      }
       return false;
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [criteria?.user_id]);
 
   /**
    * Rechercher des fourmiz
    */
-  const searchFourmiz = async (params: FourmizSearchParams): Promise<FourmizSearchResult[]> => {
-    setLoading(true);
+  const searchFourmiz = useCallback(async (params: FourmizSearchParams): Promise<FourmizSearchResult[]> => {
+    if (!isMountedRef.current) return [];
+
+    if (isMountedRef.current) {
+      setLoading(true);
+    }
+    
     try {
       const results = await fourmizService.searchFourmiz(params);
       return results;
-    } catch (err) {
-      setError('Erreur lors de la recherche');
-      console.error('Erreur searchFourmiz:', err);
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        setError('Erreur lors de la recherche');
+        console.error('[FourmizCriteria] Erreur searchFourmiz:', err);
+      }
       return [];
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  /**
+   * Fonction refresh
+   */
+  const refresh = useCallback(async (): Promise<void> => {
+    if (!userId || !isMountedRef.current) return;
+    await loadCriteria(userId);
+  }, [userId, loadCriteria]);
 
   /**
    * Valider les critères
    */
-  const validateCriteria = (data: Partial<FourmizCriteriaAdapted>): string[] => {
-    return fourmizService.validateCriteria(data);
-  };
+  const validateCriteria = useCallback((data: Partial<FourmizCriteriaAdapted>): string[] => {
+    try {
+      return fourmizService.validateCriteria(data);
+    } catch (error) {
+      console.error('[FourmizCriteria] Erreur validateCriteria:', error);
+      return ['Erreur de validation'];
+    }
+  }, []);
 
   /**
-   * Vérifier si RGPD conforme
+   * Calculer RGPD compliance
    */
-  const isRGPDCompliant = criteria ? 
-    criteria.rgpd_accepte_cgu && 
-    criteria.rgpd_accepte_politique_confidentialite && 
-    criteria.rgpd_accepte_traitement_donnees : false;
+  const isRGPDCompliant = useMemo(() => {
+    if (!criteria) return false;
+    
+    try {
+      return criteria.rgpd_accepte_cgu && 
+             criteria.rgpd_accepte_politique_confidentialite && 
+             criteria.rgpd_accepte_traitement_donnees;
+    } catch (error) {
+      console.warn('[FourmizCriteria] Erreur calcul RGPD:', error);
+      return false;
+    }
+  }, [criteria]);
+
+  // Auto-chargement avec protection changement d'utilisateur
+  useEffect(() => {
+    if (!isMountedRef.current) return;
+
+    if (userId) {
+      console.log('🔧🔧 [CRITERIA DEBUG] === DÉBUT DEBUG MONTAGE ===');
+      
+      // Vérifier l'utilisateur actuel
+      const checkCurrentUser = async () => {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        console.log('🔧🔧 [CRITERIA DEBUG] Utilisateur actuel:', {
+          userId: user?.id || null,
+          email: user?.email || null,
+          error: error?.message || null
+        });
+      };
+      
+      checkCurrentUser();
+      console.log('🔧🔧 [CRITERIA DEBUG] === FIN DEBUG MONTAGE ===');
+      
+      loadCriteria(userId);
+    }
+  }, [userId, loadCriteria]);
+
+  // Nettoyage au démontage
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return {
     // État
@@ -174,68 +339,87 @@ export function useFourmizCriteria(userId?: string): UseFourmizCriteriaReturn {
     // Validation
     validateCriteria,
     isRGPDCompliant,
+    
+    // Contrôles
+    clearError,
+    refresh,
   };
 }
 
-// Hook simplifié pour la recherche uniquement
+// Hook simplifié pour la recherche
 export function useFourmizSearch() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<FourmizSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
-  const search = async (params: FourmizSearchParams) => {
+  const search = useCallback(async (params: FourmizSearchParams) => {
+    if (!isMountedRef.current) return;
+
     setLoading(true);
     setError(null);
     
     try {
       const searchResults = await fourmizService.searchFourmiz(params);
-      setResults(searchResults);
-    } catch (err) {
-      setError('Erreur lors de la recherche');
-      console.error('Erreur search:', err);
+      if (isMountedRef.current) {
+        setResults(searchResults);
+      }
+    } catch (err: any) {
+      if (isMountedRef.current) {
+        setError('Erreur lors de la recherche');
+        console.error('[FourmizSearch] Erreur search:', err);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
-  const clear = () => {
-    setResults([]);
-    setError(null);
-  };
+  const clear = useCallback(() => {
+    if (isMountedRef.current) {
+      setResults([]);
+      setError(null);
+    }
+  }, []);
 
-  return {
-    results,
-    loading,
-    error,
-    search,
-    clear
-  };
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  return { results, loading, error, search, clear };
 }
 
 // Hook pour les statistiques
 export function useFourmizStats() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const isMountedRef = useRef<boolean>(true);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
+    if (!isMountedRef.current) return;
+
     setLoading(true);
     try {
       const data = await fourmizService.getStats();
-      setStats(data);
-    } catch (err) {
-      console.error('Erreur loadStats:', err);
+      if (isMountedRef.current) {
+        setStats(data);
+      }
+    } catch (err: any) {
+      console.error('[FourmizStats] Erreur loadStats:', err);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
-
-  useEffect(() => {
-    loadStats();
   }, []);
 
-  return {
-    stats,
-    loading,
-    loadStats
-  };
+  useEffect(() => {
+    isMountedRef.current = true;
+    loadStats();
+    return () => { isMountedRef.current = false; };
+  }, [loadStats]);
+
+  return { stats, loading, loadStats };
 }

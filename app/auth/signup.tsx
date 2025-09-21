@@ -1,5 +1,5 @@
-// app/auth/signup.tsx - INSCRIPTION SÉCURISÉE + PARRAINAGE + TÉLÉPHONE FORMATÉ
-// ✅ CORRECTION: Suppression de la bulle de récompense + nom parrain correct
+﻿// app/auth/signup.tsx - INSCRIPTION SÉCURISÉE + PARRAINAGE + TÉLÉPHONE FORMATÉ
+// ✅ VERSION FINALE : Bouton de test supprimé + Prénom du parrain récupéré
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
@@ -18,34 +18,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase, handleSupabaseError } from '../../lib/supabase';
-// 🔧 CHANGEMENT: Remplacer par notre service fonctionnel
 import { ReferralService } from '../../lib/referralService';
-import { createReferralLink } from '../../lib/referralSystem';
-import PhoneInput from '../../components/PhoneInput'; // ➕ NOUVEAU: Import du composant téléphone
+import PhoneInput from '../../components/PhoneInput';
 
-// ✅ TYPES TYPESCRIPT + PARRAINAGE + TÉLÉPHONE
+// 📋 Types TypeScript 
 interface SignupFormData {
   email: string;
   password: string;
   confirmPassword: string;
   firstname?: string;
   lastname?: string;
-  phone?: string;        // ➕ NOUVEAU: Champ téléphone
+  phone?: string;
   referralCode: string;
 }
 
 export default function SignupScreen() {
-  // ✅ AJOUT: Référence pour le timeout de validation
   const validateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ✅ ÉTAT LOCAL + PARRAINAGE + TÉLÉPHONE
+  // 📊 État LOCAL
   const [formData, setFormData] = useState<SignupFormData>({
     email: '',
     password: '',
     confirmPassword: '',
     firstname: '',
     lastname: '',
-    phone: '',           // ➕ NOUVEAU: État téléphone
+    phone: '',
     referralCode: '',
   });
   
@@ -56,7 +53,6 @@ export default function SignupScreen() {
     validatingReferral: false,
   });
 
-  // ✅ MODIFIÉ: État pour la validation du code de parrainage avec nom complet
   const [referralInfo, setReferralInfo] = useState({
     isValid: false,
     referrerId: '',
@@ -64,7 +60,6 @@ export default function SignupScreen() {
     error: ''
   });
 
-  // ➕ NOUVEAU: Récupération code depuis URL
   const params = useLocalSearchParams();
   
   useEffect(() => {
@@ -74,7 +69,6 @@ export default function SignupScreen() {
     }
   }, [params.ref]);
 
-  // ✅ AJOUT: Cleanup au démontage du composant
   useEffect(() => {
     return () => {
       if (validateTimeoutRef.current) {
@@ -83,14 +77,50 @@ export default function SignupScreen() {
     };
   }, []);
 
-  // ✅ NAVIGATION RETOUR SÉCURISÉE (INCHANGÉ)
+  // 🆕 FONCTION POUR RÉCUPÉRER LE PRÉNOM DU PARRAIN
+  const getReferrerInfo = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('referrals')
+        .select('parrain_id')
+        .eq('filleul_id', userId)
+        .single();
+
+      if (error || !data) {
+        console.log('Aucun parrain trouvé pour cet utilisateur');
+        return null;
+      }
+
+      // Récupérer les infos du parrain
+      const { data: parrainData, error: parrainError } = await supabase
+        .from('profiles')
+        .select('firstname, lastname')
+        .eq('user_id', data.parrain_id)
+        .single();
+
+      if (parrainError || !parrainData) {
+        console.log('Profil du parrain non trouvé');
+        return null;
+      }
+
+      return {
+        referrerName: parrainData.firstname || 'Utilisateur',
+        referrerFullName: `${parrainData.firstname || ''} ${parrainData.lastname || ''}`.trim()
+      };
+    } catch (error) {
+      console.error('Erreur récupération parrain:', error);
+      return null;
+    }
+  };
+
+  // 🔙 NAVIGATION RETOUR
   const handleGoBack = useCallback(() => {
     try {
       if (router.canGoBack && router.canGoBack()) {
-        console.log('📱 Navigation retour - historique disponible');
+        console.log('🔙 Navigation retour - historique disponible');
         router.back();
       } else {
-        console.log('📱 Navigation retour - pas d\'historique, retour à l\'accueil');
+        console.log('🔙 Navigation retour - pas d\'historique, retour à l\'accueil');
         router.replace('/');
       }
     } catch (error) {
@@ -99,7 +129,7 @@ export default function SignupScreen() {
     }
   }, []);
 
-  // ✅ CORRIGÉE: Validation code de parrainage avec notre service + nom complet
+  // ✅ VALIDATION CODE DE PARRAINAGE
   const validateReferralCodeInput = async (code: string): Promise<void> => {
     if (!code.trim()) {
       setReferralInfo({ isValid: false, referrerId: '', referrerName: '', error: '' });
@@ -111,16 +141,15 @@ export default function SignupScreen() {
     try {
       console.log('🔍 Validation code parrainage:', code);
       
-      // ✅ UTILISE NOTRE SERVICE FONCTIONNEL CORRIGÉ
       const result = await ReferralService.validateReferralCode(code);
       
-      console.log('📋 Résultat validation:', result);
+      console.log('📊 Résultat validation:', result);
       
       if (result.isValid) {
         setReferralInfo({
           isValid: true,
           referrerId: result.parrainUserId || '',
-          referrerName: result.referrerName || 'Utilisateur', // ✅ UTILISE LE NOM CONSTRUIT INTELLIGEMMENT
+          referrerName: result.referrerName || 'Utilisateur',
           error: ''
         });
         console.log('✅ Code valide, parrain:', result.referrerName);
@@ -133,7 +162,6 @@ export default function SignupScreen() {
         });
         console.log('❌ Code invalide:', result.error);
       }
-
     } catch (error) {
       console.error('❌ Erreur validation parrainage:', error);
       setReferralInfo({ 
@@ -147,7 +175,7 @@ export default function SignupScreen() {
     }
   };
 
-  // ✅ VALIDATION DU FORMULAIRE (MODIFIÉ pour inclure téléphone)
+  // ✅ VALIDATION DU FORMULAIRE
   const validateForm = (): { isValid: boolean; error?: string } => {
     if (!formData.email.trim()) {
       return { isValid: false, error: 'L\'email est requis' };
@@ -169,7 +197,7 @@ export default function SignupScreen() {
       return { isValid: false, error: 'Les mots de passe ne correspondent pas' };
     }
 
-    // ➕ NOUVEAU: Validation téléphone (si renseigné)
+    // Validation téléphone
     if (formData.phone && formData.phone.trim()) {
       const phoneRegex = /^0[1-9]\d{8}$/;
       if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
@@ -185,7 +213,7 @@ export default function SignupScreen() {
     return { isValid: true };
   };
 
-  // 🚀 FONCTION D'INSCRIPTION PRINCIPALE (MODIFIÉE pour inclure téléphone)
+  // 🚀 FONCTION D'INSCRIPTION PRINCIPALE
   const handleSignup = async (): Promise<void> => {
     // Validation
     const validation = validateForm();
@@ -194,16 +222,16 @@ export default function SignupScreen() {
       return;
     }
 
-    console.log('📝 === DÉBUT INSCRIPTION UTILISATEUR ===');
+    console.log('🚀 === DÉBUT INSCRIPTION UTILISATEUR ===');
     console.log('📧 Email:', formData.email.trim());
-    console.log('📱 Téléphone:', formData.phone?.trim() || 'Non renseigné');
+    console.log('📞 Téléphone:', formData.phone?.trim() || 'Non renseigné');
     console.log('🎯 Code parrainage:', formData.referralCode.trim() || 'Aucun');
 
     setUiState(prev => ({ ...prev, loading: true }));
 
     try {
-      // ✅ INSCRIPTION SUPABASE (MODIFIÉ pour inclure téléphone)
-      console.log('🔑 Création du compte...');
+      // 🔐 INSCRIPTION SUPABASE
+      console.log('🔐 Création du compte...');
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email.trim().toLowerCase(),
@@ -212,7 +240,7 @@ export default function SignupScreen() {
           data: {
             firstname: formData.firstname?.trim() || '',
             lastname: formData.lastname?.trim() || '',
-            phone: formData.phone?.trim() || '', // ➕ NOUVEAU: Inclure téléphone
+            phone: formData.phone?.trim() || '',
           }
         }
       });
@@ -229,9 +257,9 @@ export default function SignupScreen() {
 
       console.log('✅ Compte créé avec succès:', signUpData.user.id);
 
-      // 🔧 MODIFIÉ: Appliquer le parrainage avec notre service
+      // 🎯 PARRAINAGE
       if (formData.referralCode.trim() && referralInfo.isValid && referralInfo.referrerId) {
-        console.log('🔗 Application du parrainage...');
+        console.log('🎯 Application du parrainage...');
         
         try {
           const referralApplied = await ReferralService.applyReferral(
@@ -239,15 +267,10 @@ export default function SignupScreen() {
             formData.referralCode.trim()
           );
           
-          if (referralApplied) {
+          if (referralApplied.success) {
             console.log('✅ Parrainage appliqué avec succès');
           } else {
-            console.warn('⚠️ Erreur application parrainage');
-          }
-          
-          // Aussi créer le lien si la fonction existe
-          if (createReferralLink) {
-            await createReferralLink(signUpData.user.id, referralInfo.referrerId, formData.referralCode.trim());
+            console.warn('⚠️ Erreur application parrainage:', referralApplied.error);
           }
         } catch (error) {
           console.error('❌ Erreur parrainage:', error);
@@ -255,16 +278,29 @@ export default function SignupScreen() {
         }
       }
 
-      // ✅ GESTION SELON LE TYPE DE CONFIRMATION (MODIFIÉ pour inclure parrainage)
+      // 🎯 GESTION SELON LE TYPE DE CONFIRMATION
       if (signUpData.session) {
-        // Connexion automatique (pas de confirmation email requise)
-        console.log('🏠 Connexion automatique, redirection...');
+        // Connexion automatique
+        console.log('🎯 Connexion automatique, redirection...');
         
-        // ✅ CORRIGÉ: Message personnalisé avec VRAI nom du parrain (pas "Utilisateur")
         const hasReferrer = formData.referralCode.trim() && referralInfo.isValid;
         
-        let message = hasReferrer && referralInfo.referrerName && referralInfo.referrerName !== 'Utilisateur'
-          ? `Bienvenue ! 🎉\n\nVous avez été parrainé(e) par ${referralInfo.referrerName}.`
+        // 🆕 RÉCUPÉRER LE PRÉNOM RÉEL DU PARRAIN DEPUIS LA BASE
+        let actualReferrerName = referralInfo.referrerName;
+        if (hasReferrer) {
+          try {
+            const referrerData = await getReferrerInfo(signUpData.user.id);
+            if (referrerData && referrerData.referrerName !== 'Utilisateur') {
+              actualReferrerName = referrerData.referrerName;
+            }
+          } catch (error) {
+            console.error('Erreur récupération nom parrain:', error);
+            // Garder le nom du validation si erreur
+          }
+        }
+        
+        let message = hasReferrer && actualReferrerName && actualReferrerName !== 'Utilisateur'
+          ? `Bienvenue ! 🎉\n\nVotre Parrain ${actualReferrerName} vous souhaite la bienvenue.`
           : `Bienvenue sur Fourmiz ! 🎉`;
 
         message += `\n\nComplétez votre profil pour accéder à l'application.`;
@@ -277,11 +313,10 @@ export default function SignupScreen() {
         // Confirmation email requise
         console.log('📧 Confirmation email requise');
         
-        // ✅ CORRIGÉ: Message avec info parrainage et VRAI nom
         let message = `Un email de confirmation a été envoyé à ${formData.email}. Cliquez sur le lien pour activer votre compte.`;
         
         if (formData.referralCode.trim() && referralInfo.isValid && referralInfo.referrerName && referralInfo.referrerName !== 'Utilisateur') {
-          message += `\n\n🎉 Parrainage par ${referralInfo.referrerName} enregistré !`;
+          message += `\n\n🎯 Parrainage par ${referralInfo.referrerName} enregistré !`;
         }
         
         Alert.alert('📧 Vérifiez votre email', message, [{ 
@@ -291,9 +326,9 @@ export default function SignupScreen() {
       }
 
     } catch (error: any) {
-      console.error('💥 ERREUR INSCRIPTION COMPLÈTE:', error);
+      console.error('❌ ERREUR INSCRIPTION COMPLÈTE:', error);
       
-      // Messages d'erreur personnalisés (INCHANGÉ)
+      // Messages d'erreur personnalisés
       let title = 'Erreur d\'inscription';
       let message = error.message || 'Impossible de créer le compte';
 
@@ -327,36 +362,31 @@ export default function SignupScreen() {
     }
   };
 
-  // ✅ CORRECTION: Fonction updateFormData avec debounce corrigé
+  // 🔄 FONCTION UPDATE FORM DATA
   const updateFormData = (field: keyof SignupFormData, value: string): void => {
     setFormData(prev => ({ ...prev, [field]: value }));
 
-    // ➕ NOUVEAU: Validation code parrainage CORRIGÉE
     if (field === 'referralCode') {
-      // Annuler la validation précédente
       if (validateTimeoutRef.current) {
         clearTimeout(validateTimeoutRef.current);
       }
       
       const cleanCode = value.trim().toUpperCase();
       
-      // Si code vide, reset immédiatement
       if (cleanCode.length === 0) {
         setReferralInfo({ isValid: false, referrerId: '', referrerName: '', error: '' });
         return;
       }
       
-      // Si code trop court, ne pas valider mais ne pas afficher d'erreur non plus
       if (cleanCode.length < 6) {
         setReferralInfo({ isValid: false, referrerId: '', referrerName: '', error: '' });
         return;
       }
       
-      // Seulement valider si le code fait 6 caractères
       if (cleanCode.length === 6) {
         validateTimeoutRef.current = setTimeout(() => {
           validateReferralCodeInput(cleanCode);
-        }, 300); // Réduit à 300ms pour plus de réactivité
+        }, 300);
       }
     }
   };
@@ -365,7 +395,7 @@ export default function SignupScreen() {
     setUiState(prev => ({ ...prev, ...updates }));
   };
 
-  // 🗑️ EFFACER LES CHAMPS (MODIFIÉ pour inclure téléphone)
+  // 🗑️ EFFACER LES CHAMPS
   const handleClearFields = (): void => {
     setFormData({
       email: '',
@@ -373,10 +403,9 @@ export default function SignupScreen() {
       confirmPassword: '',
       firstname: '',
       lastname: '',
-      phone: '',         // ➕ NOUVEAU: Reset téléphone
+      phone: '',
       referralCode: '',
     });
-    // Reset validation parrainage
     setReferralInfo({ isValid: false, referrerId: '', referrerName: '', error: '' });
   };
 
@@ -392,7 +421,7 @@ export default function SignupScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ✅ BOUTON RETOUR SÉCURISÉ (INCHANGÉ) */}
+          {/* Bouton retour */}
           <View style={styles.header}>
             <TouchableOpacity 
               style={styles.backButton}
@@ -405,7 +434,7 @@ export default function SignupScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 🎨 Section Logo (INCHANGÉ) */}
+          {/* Section Logo */}
           <View style={styles.logoSection}>
             <Image
               source={require('../../assets/logo-fourmiz.gif')}
@@ -416,12 +445,13 @@ export default function SignupScreen() {
             <Text style={styles.welcome}>Créer un compte</Text>
           </View>
 
-          {/* 👤 Champs de nom (INCHANGÉ) */}
+          {/* Champs de nom */}
           <View style={styles.nameContainer}>
             <View style={styles.nameInput}>
-              <TextInput
+              <TextInput 
                 style={styles.input}
                 placeholder="Prénom"
+                placeholderTextColor="#999"
                 value={formData.firstname}
                 onChangeText={(text) => updateFormData('firstname', text)}
                 autoCapitalize="words"
@@ -431,9 +461,10 @@ export default function SignupScreen() {
               />
             </View>
             <View style={styles.nameInput}>
-              <TextInput
+              <TextInput 
                 style={styles.input}
                 placeholder="Nom"
+                placeholderTextColor="#999"
                 value={formData.lastname}
                 onChangeText={(text) => updateFormData('lastname', text)}
                 autoCapitalize="words"
@@ -444,11 +475,12 @@ export default function SignupScreen() {
             </View>
           </View>
 
-          {/* 📧 Champ Email (INCHANGÉ) */}
+          {/* Champ Email */}
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={styles.input}
               placeholder="Email *"
+              placeholderTextColor="#999"
               value={formData.email}
               onChangeText={(text) => updateFormData('email', text)}
               keyboardType="email-address"
@@ -469,26 +501,40 @@ export default function SignupScreen() {
             )}
           </View>
 
-          {/* ➕ NOUVEAU: Champ Téléphone avec formatage automatique */}
-          <PhoneInput
-            value={formData.phone || ''}
-            onChangeText={(phone) => updateFormData('phone', phone)}
-            placeholder="06 12 34 56 78"
-            label="Téléphone"
-            style={styles.input}
-            // @ts-ignore - editable peut ne pas être dans les props TypeScript du composant
-            editable={!uiState.loading}
-          />
-
-          {/* ➕ Code de parrainage - ❌ SUPPRESSION DE LA BULLE */}
+          {/* Champ téléphone */}
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
+              style={styles.input}
+              placeholder="Téléphone"
+              placeholderTextColor="#999"
+              value={formData.phone || ''}
+              onChangeText={(phone) => updateFormData('phone', phone)}
+              keyboardType="phone-pad"
+              textContentType="telephoneNumber"
+              editable={!uiState.loading}
+              maxLength={15}
+            />
+            {formData.phone && formData.phone.length > 0 && (
+              <TouchableOpacity
+                onPress={() => updateFormData('phone', '')}
+                style={styles.clearInputButton}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close-circle" size={20} color="#666" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Code de parrainage */}
+          <View style={styles.inputContainer}>
+            <TextInput 
               style={[
                 styles.input,
                 referralInfo.isValid ? styles.inputValid : 
                 (formData.referralCode.trim().length === 6 && !uiState.validatingReferral && !referralInfo.isValid) ? styles.inputError : {}
               ]}
               placeholder="Code de parrainage (optionnel)"
+              placeholderTextColor="#999"
               value={formData.referralCode}
               onChangeText={(text) => updateFormData('referralCode', text.toUpperCase())}
               autoCapitalize="characters"
@@ -510,7 +556,7 @@ export default function SignupScreen() {
             </View>
           </View>
 
-          {/* ✅ CORRIGÉ: Message validation code - PLUS DE BULLE DE RÉCOMPENSE */}
+          {/* Message validation code */}
           {formData.referralCode.trim().length === 6 && !uiState.validatingReferral && (
             <View style={[
               styles.referralMessage,
@@ -526,18 +572,19 @@ export default function SignupScreen() {
                 { color: referralInfo.isValid ? "#28a745" : "#dc3545" }
               ]}>
                 {referralInfo.isValid 
-                  ? `Code valide - Parrain: ${referralInfo.referrerName}` // ✅ PLUS DE BULLE RÉCOMPENSE
+                  ? `Code valide - Votre Parrain ${referralInfo.referrerName}`
                   : (referralInfo.error || 'Code invalide')
                 }
               </Text>
             </View>
           )}
 
-          {/* 🔒 Champ Mot de passe (INCHANGÉ) */}
+          {/* Champ Mot de passe */}
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={styles.input}
               placeholder="Mot de passe * (min. 6 caractères)"
+              placeholderTextColor="#999"
               value={formData.password}
               onChangeText={(text) => updateFormData('password', text)}
               secureTextEntry={!uiState.showPassword}
@@ -558,11 +605,12 @@ export default function SignupScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 🔒 Confirmation mot de passe (INCHANGÉ) */}
+          {/* Confirmation mot de passe */}
           <View style={styles.inputContainer}>
-            <TextInput
+            <TextInput 
               style={styles.input}
               placeholder="Confirmer le mot de passe *"
+              placeholderTextColor="#999"
               value={formData.confirmPassword}
               onChangeText={(text) => updateFormData('confirmPassword', text)}
               secureTextEntry={!uiState.showConfirmPassword}
@@ -583,7 +631,7 @@ export default function SignupScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 🚀 Bouton d'inscription (INCHANGÉ) */}
+          {/* Bouton d'inscription */}
           <TouchableOpacity 
             style={[styles.signupButton, uiState.loading && styles.buttonDisabled]} 
             onPress={handleSignup} 
@@ -600,7 +648,7 @@ export default function SignupScreen() {
             )}
           </TouchableOpacity>
 
-          {/* 🗑️ Bouton d'effacement (MODIFIÉ pour inclure téléphone) */}
+          {/* Bouton d'effacement */}
           {(formData.email || formData.password || formData.firstname || formData.lastname || formData.phone || formData.referralCode) && (
             <TouchableOpacity 
               onPress={handleClearFields}
@@ -613,7 +661,7 @@ export default function SignupScreen() {
             </TouchableOpacity>
           )}
 
-          {/* 🔗 Lien vers connexion (INCHANGÉ) */}
+          {/* Lien vers connexion */}
           <TouchableOpacity 
             onPress={() => router.replace('/auth/login')} 
             style={styles.link}
@@ -623,7 +671,7 @@ export default function SignupScreen() {
             <Text style={styles.linkText}>Déjà inscrit ? Se connecter</Text>
           </TouchableOpacity>
 
-          {/* ➕ Info parrainage */}
+          {/* Info parrainage */}
           <View style={styles.referralInfo}>
             <Ionicons name="people" size={16} color="#666" />
             <Text style={styles.referralInfoText}>
@@ -631,7 +679,7 @@ export default function SignupScreen() {
             </Text>
           </View>
 
-          {/* 📋 Conditions d'utilisation (INCHANGÉ) */}
+          {/* Conditions d'utilisation */}
           <View style={styles.termsContainer}>
             <Ionicons name="document-text" size={16} color="#666" />
             <Text style={styles.termsText}>
@@ -648,7 +696,6 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ✅ STYLES EXISTANTS (INCHANGÉS)
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -658,8 +705,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexGrow: 1,
   },
-
-  // Header avec bouton retour
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -677,8 +722,6 @@ const styles = StyleSheet.create({
     color: '#FF3C38',
     fontWeight: '500',
   },
-
-  // Section logo
   logoSection: {
     alignItems: 'center',
     marginBottom: 40,
@@ -700,8 +743,6 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
-
-  // Champs de nom
   nameContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -710,8 +751,6 @@ const styles = StyleSheet.create({
   nameInput: {
     flex: 1,
   },
-
-  // Champs de saisie
   inputContainer: {
     position: 'relative',
     marginBottom: 16,
@@ -736,8 +775,6 @@ const styles = StyleSheet.create({
     right: 12,
     top: 16,
   },
-
-  // Boutons
   signupButton: {
     backgroundColor: '#FF3C38',
     padding: 16,
@@ -779,8 +816,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-
-  // Liens
   link: {
     alignItems: 'center',
     marginBottom: 20,
@@ -791,8 +826,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontSize: 14,
   },
-
-  // Conditions d'utilisation
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -813,8 +846,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontWeight: '500',
   },
-
-  // Styles parrainage
   inputValid: {
     borderColor: '#28a745',
     backgroundColor: '#f8fff9',

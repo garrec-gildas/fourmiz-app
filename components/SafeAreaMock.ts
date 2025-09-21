@@ -1,27 +1,62 @@
-// lib/SafeAreaMock.ts
+﻿// lib/SafeAreaMock.ts
 // 🛡️ MOCK COMPLET DE react-native-safe-area-context pour éviter le bug includes()
 
 import React from 'react';
-import { View, Platform, Dimensions } from 'react-native';
+import { View, Platform, Dimensions, ViewStyle } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-// 📱 VALEURS DE SAFE AREA PAR DÉFAUT
-const DEFAULT_INSETS = {
+// 📐 Types pour Safe Area
+interface EdgeInsets {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface Metrics {
+  insets: EdgeInsets;
+  frame: Rect;
+}
+
+type Edge = 'top' | 'bottom' | 'left' | 'right';
+
+interface SafeAreaViewProps {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  edges?: Edge[];
+  [key: string]: any;
+}
+
+interface SafeAreaProviderProps {
+  children: React.ReactNode;
+  initialMetrics?: Metrics;
+  [key: string]: any;
+}
+
+// 📏 VALEURS DE SAFE AREA PAR DÉFAUT
+const DEFAULT_INSETS: EdgeInsets = {
   top: Platform.OS === 'ios' ? 47 : 24, // Status bar + notch
   bottom: Platform.OS === 'ios' ? 34 : 0, // Home indicator
   left: 0,
   right: 0,
 };
 
-const DEFAULT_FRAME = {
+const DEFAULT_FRAME: Rect = {
   x: 0,
   y: 0,
   width,
   height,
 };
 
-const DEFAULT_METRICS = {
+const DEFAULT_METRICS: Metrics = {
   insets: DEFAULT_INSETS,
   frame: DEFAULT_FRAME,
 };
@@ -34,10 +69,10 @@ export function SafeAreaView({
   style, 
   edges = ['top', 'bottom', 'left', 'right'],
   ...props 
-}: any) {
+}: SafeAreaViewProps) {
   console.log('🛡️ SafeAreaView mocké rendu avec edges:', edges);
   
-  const paddingStyle = {
+  const paddingStyle: ViewStyle = {
     paddingTop: edges.includes('top') ? DEFAULT_INSETS.top : 0,
     paddingBottom: edges.includes('bottom') ? DEFAULT_INSETS.bottom : 0,
     paddingLeft: edges.includes('left') ? DEFAULT_INSETS.left : 0,
@@ -51,12 +86,19 @@ export function SafeAreaView({
   );
 }
 
-// 🛡️ MOCK SAFEAREAPROVIDER
-export function SafeAreaProvider({ children, initialMetrics, ...props }: any) {
-  console.log('🛡️ SafeAreaProvider mocké rendu');
+// 🔄 MOCK CONTEXT
+const SafeAreaContext = React.createContext<Metrics>(DEFAULT_METRICS);
+
+// 🏗️ MOCK SAFEAREAPROVIDER
+export function SafeAreaProvider({ 
+  children, 
+  initialMetrics = DEFAULT_METRICS, 
+  ...props 
+}: SafeAreaProviderProps) {
+  console.log('🏗️ SafeAreaProvider mocké rendu');
   
   return (
-    <SafeAreaContext.Provider value={DEFAULT_METRICS}>
+    <SafeAreaContext.Provider value={initialMetrics}>
       <View style={{ flex: 1 }} {...props}>
         {children}
       </View>
@@ -64,48 +106,47 @@ export function SafeAreaProvider({ children, initialMetrics, ...props }: any) {
   );
 }
 
-// 🛡️ MOCK CONTEXT
-const SafeAreaContext = React.createContext(DEFAULT_METRICS);
-
-// 🛡️ MOCK HOOKS
-export function useSafeAreaInsets() {
-  console.log('🛡️ useSafeAreaInsets mocké appelé');
+// 🪝 MOCK HOOKS
+export function useSafeAreaInsets(): EdgeInsets {
+  console.log('🪝 useSafeAreaInsets mocké appelé');
   return DEFAULT_INSETS;
 }
 
-export function useSafeAreaFrame() {
-  console.log('🛡️ useSafeAreaFrame mocké appelé');
+export function useSafeAreaFrame(): Rect {
+  console.log('🪝 useSafeAreaFrame mocké appelé');
   return DEFAULT_FRAME;
 }
 
-export function useSafeAreaMetrics() {
-  console.log('🛡️ useSafeAreaMetrics mocké appelé');
+export function useSafeAreaMetrics(): Metrics {
+  console.log('🪝 useSafeAreaMetrics mocké appelé');
   return DEFAULT_METRICS;
 }
 
-// 🛡️ MOCK CONSUMER
+// 📡 MOCK CONSUMER
 export const SafeAreaConsumer = SafeAreaContext.Consumer;
 
-// 🛡️ MOCK FONCTION UTILITAIRE
-export function withSafeAreaInsets<T>(Component: React.ComponentType<T>) {
+// 🔧 MOCK FONCTION UTILITAIRE
+export function withSafeAreaInsets<T extends object>(
+  Component: React.ComponentType<T & { insets?: EdgeInsets }>
+) {
   return React.forwardRef<any, T>((props, ref) => {
-    console.log('🛡️ withSafeAreaInsets mocké appelé');
+    console.log('🔧 withSafeAreaInsets mocké appelé');
     return <Component {...props} ref={ref} insets={DEFAULT_INSETS} />;
   });
 }
 
-// 🛡️ MOCK EDGE CONSTANT
+// 📍 MOCK EDGE CONSTANTS
 export const Edge = {
-  TOP: 'top',
-  BOTTOM: 'bottom',
-  LEFT: 'left',
-  RIGHT: 'right',
-} as const;
+  TOP: 'top' as const,
+  BOTTOM: 'bottom' as const,
+  LEFT: 'left' as const,
+  RIGHT: 'right' as const,
+};
 
-// 🛡️ STATIC PROPERTIES POUR REACT NAVIGATION
-SafeAreaProvider.initialMetrics = DEFAULT_METRICS;
+// 🎯 STATIC PROPERTIES POUR REACT NAVIGATION
+(SafeAreaProvider as any).initialMetrics = DEFAULT_METRICS;
 
-// 🛡️ EXPORT PAR DÉFAUT
+// 📦 EXPORT PAR DÉFAUT
 export default {
   SafeAreaView,
   SafeAreaProvider,
@@ -117,3 +158,6 @@ export default {
   Edge,
   initialMetrics: DEFAULT_METRICS,
 };
+
+// 🔍 TYPES EXPORTS POUR COMPATIBILITÉ
+export type { EdgeInsets, Rect, Metrics, Edge as EdgeType };

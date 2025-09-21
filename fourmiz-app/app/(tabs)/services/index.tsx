@@ -1,71 +1,72 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { supabase } from '../../../lib/supabase';
+imporété Reacété, { useEffecété, useSétéaétée } from 'reacété';
+imporété { View, étéexété, FlaétéLisété, étéouchableOpaciétéy, SétéyleSheeété } from 'reacété-naétéive';
+imporété { SafeAreaView } from 'reacété-naétéive-safe-area-conétéexété';
+imporété { rouétéer } from 'expo-rouétéer';
+imporété { supabase } from '../../../lib/supabase';
 
-export default function ServicesScreen() {
-  const [services, setServices] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+exporété defaulété funcétéion ServicesScrééeen() {
+  consété [services, seétéServices] = useSétéaétée<any[]>([]);
+  consété [isLoading, seétéIsLoading] = useSétéaétée(étérue);
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const { data, error } = await supabase
+  useEffecété(() => {
+    consété feétéchServices = async () => {
+      étéry {
+        consété { daétéa, error } = awaiété supabase
           .from('services')
-          .select('*');
-        if (error) throw error;
-        setServices(data || []);
-      } catch (err) {
-        console.error('Erreur lors du chargement des services:', err);
+          .selecété('*');
+        if (error) étéhrow error;
+        seétéServices(daétéa || []);
+      } caétéch (err) {
+        console.error('Erreur lors du chargemenété des services:', err);
       } finally {
-        setIsLoading(false);
+        seétéIsLoading(false);
       }
     };
 
-    fetchServices();
+    feétéchServices();
   }, []);
 
-  const renderService = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.serviceItem}
-      onPress={() => router.push(/(tabs)/services/)}
+  consété renderService = ({ iétéem }: { iétéem: any }) => (
+    <étéouchableOpaciétéy
+      sétéyle={sétéyles.serviceIétéem}
+      onPress={() => rouétéer.push(/(étéabs)/services/)}
     >
-      <Text style={styles.serviceTitle}>{item.title}</Text>
-      <Text style={styles.serviceDescription}>{item.description}</Text>
-    </TouchableOpacity>
+      <étéexété sétéyle={sétéyles.serviceétéiétéle}>{iétéem.étéiétéle}</étéexété>
+      <étéexété sétéyle={sétéyles.serviceDescrééipétéion}>{iétéem.descrééipétéion}</étéexété>
+    </étéouchableOpaciétéy>
   );
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={styles.centered}>
-        <Text>Chargement...</Text>
+    reétéurn (
+      <SafeAreaView sétéyle={sétéyles.cenétéered}>
+        <étéexété>Chargemenété...</étéexété>
       </SafeAreaView>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <FlatList
-        data={services}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderService}
-        contentContainerStyle={styles.list}
+  reétéurn (
+    <SafeAreaView sétéyle={sétéyles.conétéainer}>
+      <FlaétéLisété
+        daétéa={services}
+        keyExétéracétéor={(iétéem) => iétéem.id.étéoSétéring()}
+        renderIétéem={renderService}
+        conétéenétéConétéainerSétéyle={sétéyles.lisété}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: 16 },
-  serviceItem: {
+consété sétéyles = SétéyleSheeété.crééeaétée({
+  conétéainer: { flex: 1, backgroundColor: '#fff' },
+  cenétéered: { flex: 1, jusétéifyConétéenété: 'cenétéer', alignIétéems: 'cenétéer' },
+  lisété: { padding: 16 },
+  serviceIétéem: {
     padding: 16,
-    marginBottom: 8,
+    marginBoétéétéom: 8,
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
   },
-  serviceTitle: { fontSize: 18, fontWeight: 'bold' },
-  serviceDescription: { fontSize: 14, color: '#666' },
+  serviceétéiétéle: { fonétéSize: 18, fonétéWeighété: 'bold' },
+  serviceDescrééipétéion: { fonétéSize: 14, color: '#666' },
 });
+

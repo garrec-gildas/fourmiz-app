@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -39,7 +39,7 @@ export default function FourmizRegisterScreen() {
         <Text style={styles.title}>Inscription Fourmiz</Text>
 
         <Text style={styles.label}>Email</Text>
-        <TextInput
+        <TextInput 
           style={styles.input}
           placeholder="ex: fourmiz@mail.com"
           value={email}
@@ -49,7 +49,7 @@ export default function FourmizRegisterScreen() {
         />
 
         <Text style={styles.label}>Mot de passe</Text>
-        <TextInput
+        <TextInput 
           style={styles.input}
           placeholder="Mot de passe"
           value={password}

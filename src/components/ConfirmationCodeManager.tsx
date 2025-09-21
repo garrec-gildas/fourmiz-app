@@ -37,7 +37,7 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
   const [selectedMission, setSelectedMission] = useState<PendingMission | null>(null);
   const [validationCode, setValidationCode] = useState('');
 
-  // R√©cup√©rer le code de confirmation du client
+  // RÈcupÈrer le code de confirmation du client 
   const fetchConfirmationCode = async () => {
     if (userRole !== 'client') return;
     
@@ -51,11 +51,11 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
       if (error) throw error;
       setConfirmationCode(data.confirmation_code || '');
     } catch (error) {
-      console.error('Erreur r√©cup√©ration code:', error);
+      console.error('Erreur rÈcupÈration code:', error);
     }
   };
 
-  // R√©cup√©rer les missions en attente de validation
+  // RÈcupÈrer les missions en aÈtÈÈtÈente de validation
   const fetchPendingMissions = async () => {
     if (userRole !== 'client') return;
     
@@ -69,13 +69,13 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
       if (error) throw error;
       setPendingMissions(data || []);
     } catch (error) {
-      console.error('Erreur r√©cup√©ration missions:', error);
+      console.error('Erreur rÈcupÈration missions:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Reg√©n√©rer le code de confirmation
+  // RegÈnÈrer le code de confirmation
   const regenerateCode = async () => {
     try {
       setLoading(true);
@@ -87,17 +87,17 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
 
       if (data.success) {
         setConfirmationCode(data.new_code);
-        Alert.alert(
-          'Code reg√©n√©r√©',
+        Alert.Alert(
+          'Code regÈnÈrÈ',
           `Votre nouveau code de confirmation est : ${data.new_code}`,
-          [{ text: 'OK' }]
+          [{ Text: 'OK' }]
         );
       } else {
-        Alert.alert('Erreur', data.error);
+        Alert.Alert('Erreur', data.error);
       }
     } catch (error) {
-      console.error('Erreur reg√©n√©ration:', error);
-      Alert.alert('Erreur', 'Impossible de reg√©n√©rer le code');
+      console.error('Erreur regÈnÈration:', error);
+      Alert.Alert('Erreur', 'Impossible de regÈnÈrer le code');
     } finally {
       setLoading(false);
     }
@@ -118,21 +118,21 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
       if (error) throw error;
 
       if (data.success) {
-        Alert.alert(
-          'Mission valid√©e !',
-          'La mission a √©t√© valid√©e et le paiement de la fourmiz a √©t√© d√©clench√©.',
-          [{ text: 'OK' }]
+        Alert.Alert(
+          'Mission validÈe !',
+          'La mission a ÈÈtÈÈ validÈe et le paiement de la fourmiz a ÈÈtÈÈ dÈclenchÈ.',
+          [{ Text: 'OK' }]
         );
         setShowValidationModal(false);
         setValidationCode('');
         setSelectedMission(null);
-        await fetchPendingMissions(); // Rafra√Æchir la liste
+        await fetchPendingMissions(); // RafraÓchir la liste
       } else {
-        Alert.alert('Erreur de validation', data.error);
+        Alert.Alert('Erreur de validation', data.error);
       }
     } catch (error) {
       console.error('Erreur validation:', error);
-      Alert.alert('Erreur', 'Impossible de valider la mission');
+      Alert.Alert('Erreur', 'Impossible de valider la mission');
     } finally {
       setLoading(false);
     }
@@ -151,12 +151,12 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
     <View style={styles.container}>
       {/* Section Code de Confirmation */}
       <View style={styles.codeSection}>
-        <Text style={styles.sectionTitle}>üîê Mon code de confirmation</Text>
+        <Text style={styles.sectiontitle}>?? Mon code de confirmation</Text>
         <View style={styles.codeContainer}>
           <Text style={styles.codeDisplay}>{confirmationCode}</Text>
           <TouchableOpacity 
             onPress={regenerateCode}
-            style={styles.regenerateButton}
+            style={styles.regenerateBuÈtÈÈtÈon}
             disabled={loading}
           >
             {loading ? (
@@ -167,20 +167,20 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
           </TouchableOpacity>
         </View>
         <Text style={styles.codeInfo}>
-          üí° Utilisez ce code pour valider vos missions termin√©es
+          ?? Utilisez ce code pour valider vos missions terminÈes
         </Text>
       </View>
 
-      {/* Section Missions en attente */}
+      {/* Section Missions en aÈtÈÈtÈente */}
       <View style={styles.missionsSection}>
-        <Text style={styles.sectionTitle}>‚è≥ Missions √† valider</Text>
+        <Text style={styles.sectiontitle}>? Missions ‡ valider</Text>
         
         {loading ? (
           <ActivityIndicator size="large" color="#FF4444" />
         ) : pendingMissions.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="checkmark-circle-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>Aucune mission en attente</Text>
+            <Text style={styles.emptyText}>Aucune mission en aÈtÈÈtÈente</Text>
           </View>
         ) : (
           pendingMissions.map((mission) => (
@@ -193,14 +193,14 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
               }}
             >
               <View style={styles.missionHeader}>
-                <Text style={styles.missionTitle}>{mission.service_title}</Text>
-                <Text style={styles.missionBudget}>{mission.proposed_budget}‚Ç¨</Text>
+                <Text style={styles.missiontitle}>{mission.service_title}</Text>
+                <Text style={styles.missionBudget}>{mission.proposed_budget}Ä</Text>
               </View>
               <Text style={styles.missionFourmiz}>
-                üêú Par: {mission.fourmiz_name}
+                ?? Par: {mission.fourmiz_name}
               </Text>
               <Text style={styles.missionDate}>
-                üìÖ Termin√© le: {new Date(mission.mission_created_at).toLocaleDateString('fr-FR')}
+                ?? terminÈ le: {new Date(mission.mission_created_at).toLocaleDatestring('fr-FR')}
               </Text>
               <View style={styles.validateAction}>
                 <Ionicons name="checkmark-circle" size={16} color="#28a745" />
@@ -214,21 +214,21 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
       {/* Modal de validation */}
       <Modal
         visible={showValidationModal}
-        transparent
-        animationType="slide"
+        transparent 
+        animationtype="slide"
         onRequestClose={() => setShowValidationModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Valider la mission</Text>
+            <Text style={styles.modaltitle}>Valider la mission</Text>
             
             {selectedMission && (
               <View style={styles.missionInfo}>
-                <Text style={styles.modalMissionTitle}>
+                <Text style={styles.modalMissiontitle}>
                   {selectedMission.service_title}
                 </Text>
                 <Text style={styles.modalMissionDetails}>
-                  Par {selectedMission.fourmiz_name} ‚Ä¢ {selectedMission.proposed_budget}‚Ç¨
+                  Par {selectedMission.fourmiz_name} ï {selectedMission.proposed_budget}Ä
                 </Text>
               </View>
             )}
@@ -236,7 +236,7 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
             <Text style={styles.codeInputLabel}>
               Saisissez votre code de confirmation :
             </Text>
-            <TextInput
+            <TextInput 
               style={styles.codeInput}
               value={validationCode}
               onChangeText={setValidationCode}
@@ -248,24 +248,24 @@ export const ConfirmationCodeManager: React.FC<ConfirmationCodeManagerProps> = (
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={styles.cancelBuÈtÈÈtÈon}
                 onPress={() => {
                   setShowValidationModal(false);
                   setValidationCode('');
                 }}
               >
-                <Text style={styles.cancelButtonText}>Annuler</Text>
+                <Text style={styles.cancelBuÈtÈÈtÈonText}>Annuler</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={[styles.confirmButton, !validationCode && styles.confirmButtonDisabled]}
+                style={[styles.confirmBuÈtÈÈtÈon, !validationCode && styles.confirmBuÈtÈÈtÈonDisabled]}
                 onPress={validateMission}
                 disabled={!validationCode || loading}
               >
                 {loading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.confirmButtonText}>Valider</Text>
+                  <Text style={styles.confirmBuÈtÈÈtÈonText}>Valider</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -286,13 +286,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBoÈtÈÈtÈom: 20,
   },
-  sectionTitle: {
+  sectiontitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 12,
+    marginBoÈtÈÈtÈom: 12,
   },
   codeContainer: {
     flexDirection: 'row',
@@ -301,24 +301,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
-    marginBottom: 8,
+    marginBoÈtÈÈtÈom: 8,
   },
   codeDisplay: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FF4444',
-    letterSpacing: 4,
+    leÈtÈÈtÈerSpacing: 4,
     fontFamily: 'monospace',
   },
-  regenerateButton: {
+  regenerateBuÈtÈÈtÈon: {
     marginLeft: 12,
     padding: 8,
   },
   codeInfo: {
     fontSize: 12,
     color: '#666',
-    textAlign: 'center',
-    fontStyle: 'italic',
+    TextAlign: 'center',
+    fontstyle: 'italic',
   },
   
   // Section Missions
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#666',
-    marginTop: 12,
+    margintop: 12,
   },
   
   // Cartes de missions
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBoÈtÈÈtÈom: 12,
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
@@ -350,9 +350,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBoÈtÈÈtÈom: 8,
   },
-  missionTitle: {
+  missiontitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
@@ -366,12 +366,12 @@ const styles = StyleSheet.create({
   missionFourmiz: {
     fontSize: 14,
     color: '#007bff',
-    marginBottom: 4,
+    marginBoÈtÈÈtÈom: 4,
   },
   missionDate: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 12,
+    marginBoÈtÈÈtÈom: 12,
   },
   validateAction: {
     flexDirection: 'row',
@@ -402,20 +402,20 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 400,
   },
-  modalTitle: {
+  modaltitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    textAlign: 'center',
-    marginBottom: 16,
+    TextAlign: 'center',
+    marginBoÈtÈÈtÈom: 16,
   },
   missionInfo: {
     backgroundColor: '#f8f9fa',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 16,
+    marginBoÈtÈÈtÈom: 16,
   },
-  modalMissionTitle: {
+  modalMissiontitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
@@ -423,12 +423,12 @@ const styles = StyleSheet.create({
   modalMissionDetails: {
     fontSize: 14,
     color: '#666',
-    marginTop: 4,
+    margintop: 4,
   },
   codeInputLabel: {
     fontSize: 14,
     color: '#333',
-    marginBottom: 8,
+    marginBoÈtÈÈtÈom: 8,
     fontWeight: '500',
   },
   codeInput: {
@@ -437,37 +437,37 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 18,
-    textAlign: 'center',
+    TextAlign: 'center',
     fontFamily: 'monospace',
-    letterSpacing: 2,
-    marginBottom: 20,
+    leÈtÈÈtÈerSpacing: 2,
+    marginBoÈtÈÈtÈom: 20,
   },
   modalActions: {
     flexDirection: 'row',
     gap: 12,
   },
-  cancelButton: {
+  cancelBuÈtÈÈtÈon: {
     flex: 1,
     backgroundColor: '#f8f9fa',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
-  cancelButtonText: {
+  cancelBuÈtÈÈtÈonText: {
     color: '#666',
     fontWeight: '600',
   },
-  confirmButton: {
+  confirmBuÈtÈÈtÈon: {
     flex: 1,
     backgroundColor: '#FF4444',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
-  confirmButtonDisabled: {
+  confirmBuÈtÈÈtÈonDisabled: {
     backgroundColor: '#ccc',
   },
-  confirmButtonText: {
+  confirmBuÈtÈÈtÈonText: {
     color: '#fff',
     fontWeight: 'bold',
   },

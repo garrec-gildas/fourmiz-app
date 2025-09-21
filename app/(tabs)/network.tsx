@@ -1,6 +1,13 @@
-// app/(tabs)/network.tsx - VERSION CORRIGÉE COMPLÈTE AVEC VRAIS PRÉNOMS
-// ✅ Syntaxe corrigée + Jointure profiles pour afficher les vrais prénoms
-// 🚀 DOIT AFFICHER LES VRAIS NOMS
+﻿// app/(tabs)/network.tsx - VERSION ÉPURÉE COHÉRENTE AVEC SERVICES
+// ✅ Utilise ReferralService.getUserReferrals() corrigé
+// ✅ Garde toutes les fonctionnalités existantes
+// ✅ Récupère enfin les vrais noms des filleuls
+// 🎨 STYLE ÉPURÉ : Cohérent avec le design services.tsx et messages.tsx
+// ❌ HEADER LOGO SUPPRIMÉ
+// 🔧 MODIFIÉ : Email des filleuls supprimé de l'affichage
+// 🆕 CORRIGÉ : Affichage correct des rôles fourmiz/client
+// 🔍 DEBUG AJOUTÉ : Pour diagnostiquer le problème T19
+// 🆕 AJOUTÉ : Pourcentage des commissions par filleul
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -17,7 +24,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ReferralService } from '@/lib/referralService';
 import * as Clipboard from 'expo-clipboard';
 
 interface ReferralStats {
@@ -85,7 +92,7 @@ export default function NetworkScreen() {
         loadReferralSettings(),
         loadMyReferrer(user.id),
         loadReferralStatsDirect(user.id),
-        loadReferralHistoryDirect(user.id) // ✅ Version avec vrais prénoms
+        loadReferralHistoryWithReferralService(user.id)
       ]);
 
     } catch (error) {
@@ -104,29 +111,34 @@ export default function NetworkScreen() {
 
   const loadUserReferralCode = async (userId: string) => {
     try {
-      console.log('🔍 Récupération code direct...');
+      console.log('🔍 Récupération code depuis user_referrals...');
       
-      // Chercher un code existant
-      const { data: existingCode } = await supabase
+      const { data: existingReferral } = await supabase
         .from('user_referrals')
         .select('referral_code')
         .eq('referrer_user_id', userId)
         .limit(1)
         .single();
 
-      if (existingCode?.referral_code) {
-        setReferralCode(existingCode.referral_code);
-        console.log('✅ Code existant:', existingCode.referral_code);
+      if (existingReferral?.referral_code) {
+        setReferralCode(existingReferral.referral_code);
+        console.log('✅ Code existant récupéré:', existingReferral.referral_code);
       } else {
-        // Générer un nouveau code
-        const newCode = generateRandomCode();
-        setReferralCode(newCode);
-        console.log('✅ Code généré:', newCode);
+        const code = generateCodeFromUserId(userId);
+        setReferralCode(code);
+        console.log('✅ Nouveau code généré:', code);
       }
     } catch (error) {
-      console.error('❌ Erreur récupération code:', error);
-      setReferralCode('FOURMIZ');
+      console.error('❌ Erreur code:', error);
+      const fallbackCode = generateCodeFromUserId(userId);
+      setReferralCode(fallbackCode);
     }
+  };
+
+  const generateCodeFromUserId = (userId: string): string => {
+    const cleanId = userId.replace(/-/g, '');
+    const code = (cleanId.substring(0, 3) + cleanId.substring(cleanId.length - 3)).toUpperCase();
+    return code;
   };
 
   const generateRandomCode = (): string => {
@@ -140,39 +152,22 @@ export default function NetworkScreen() {
 
   const loadReferralStatsDirect = async (userId: string) => {
     try {
-      console.log('📊 Stats directes...');
+      console.log('📊 Stats depuis table user_referrals...');
       
-      // Stats depuis user_referrals
-      const { data: userReferrals, error: userError } = await supabase
+      const { data: referrals, error: referralError } = await supabase
         .from('user_referrals')
         .select('status, bonus_earned, total_commission_earned')
         .eq('referrer_user_id', userId);
-
-      // Stats depuis referrals
-      const { data: referrals, error: referralError } = await supabase
-        .from('referrals')
-        .select('is_validated, bonus_amount, total_commission_earned')
-        .eq('parrain_id', userId);
 
       let totalReferrals = 0;
       let successfulReferrals = 0;
       let totalEarnings = 0;
 
-      // Calculer depuis user_referrals
-      if (!userError && userReferrals) {
-        totalReferrals += userReferrals.length;
-        successfulReferrals += userReferrals.filter(r => r.status === 'completed').length;
-        totalEarnings += userReferrals.reduce((sum, r) => 
-          sum + (r.bonus_earned || 0) + (r.total_commission_earned || 0), 0
-        );
-      }
-
-      // Ajouter depuis referrals
       if (!referralError && referrals) {
-        totalReferrals += referrals.length;
-        successfulReferrals += referrals.filter(r => r.is_validated).length;
-        totalEarnings += referrals.reduce((sum, r) => 
-          sum + (r.bonus_amount || 0) + (r.total_commission_earned || 0), 0
+        totalReferrals = referrals.length;
+        successfulReferrals = referrals.filter(r => r.status === 'active' || r.status === 'completed').length;
+        totalEarnings = referrals.reduce((sum, r) => 
+          sum + (Number(r.bonus_earned) || 0) + (Number(r.total_commission_earned) || 0), 0
         );
       }
 
@@ -184,102 +179,173 @@ export default function NetworkScreen() {
         thisMonthEarnings: totalEarnings,
       }));
 
-      console.log('✅ Stats directes:', { totalReferrals, successfulReferrals, totalEarnings });
+      console.log('✅ Stats corrigées:', { totalReferrals, successfulReferrals, totalEarnings });
     } catch (error) {
-      console.error('❌ Erreur stats directes:', error);
+      console.error('❌ Erreur stats:', error);
     }
   };
 
-  // ✅ VERSION CORRIGÉE AVEC VRAIS PRÉNOMS
-  const loadReferralHistoryDirect = async (userId: string) => {
+  const loadReferralHistoryWithReferralService = async (userId: string) => {
     try {
-      console.log('📜 🚀 Chargement DIRECT des filleuls avec prénoms pour:', userId);
+      console.log('🔧 === CHARGEMENT FILLEULS AVEC REFERRALSERVICE ===');
+      console.log('🔧 ID utilisateur:', userId);
+
+      const filleulsData = await ReferralService.getUserReferrals(userId);
       
-      // ✅ JOINTURE avec la table profiles pour récupérer les prénoms
-      const { data: rawReferrals, error } = await supabase
-        .from('user_referrals')
-        .select(`
-          *,
-          profiles!user_referrals_referred_user_id_fkey (
-            firstname,
-            lastname,
-            email
-          )
-        `)
-        .eq('referrer_user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ Erreur requête avec jointure:', error);
-        throw error;
-      }
-
-      console.log('✅ Filleuls trouvés avec jointure:', rawReferrals?.length || 0);
-      console.log('📋 Données brutes avec profiles:', rawReferrals);
-
-      if (!rawReferrals || rawReferrals.length === 0) {
-        console.log('ℹ️ Aucun filleul trouvé');
-        setReferralHistory([]);
-        return;
-      }
-
-      // ✅ Mapper avec les vrais prénoms
-      const history: ReferralHistory[] = rawReferrals.map((referral: any) => {
-        const profile = referral.profiles;
-        const firstName = profile?.firstname || 'Utilisateur';
-        const lastName = profile?.lastname || '';
-        const email = profile?.email || '';
-        
-        // Construire le nom complet
-        const fullName = lastName ? `${firstName} ${lastName}` : firstName;
-        
-        return {
-          id: referral.id,
-          referred_user_name: fullName, // ✅ VRAI PRÉNOM !
-          referred_user_email: email,
-          referred_user_type: 'client' as const,
-          bonus_earned: referral.bonus_earned || 0,
-          commission_earned: referral.total_commission_earned || 0,
-          status: referral.status === 'completed' ? 'active' : 'pending',
-          created_at: referral.created_at,
-          code_utilise: referral.referral_code || '',
-          first_order_completed: referral.first_order_completed || false,
-        };
+      console.log('🔧 RÉSULTAT REFERRALSERVICE:', {
+        nombreFilleuls: filleulsData.length,
+        filleulsAvecNoms: filleulsData.filter(f => f.referred_user?.profiles?.firstname).length,
+        premierFilleul: filleulsData[0]
       });
 
+      const history: ReferralHistory[] = await Promise.all(filleulsData.map(async (referral) => {
+        const profile = referral.referred_user?.profiles;
+        
+        let displayName = 'Utilisateur';
+        let email = referral.referred_user?.email || '';
+        
+        if (profile?.firstname && profile?.lastname) {
+          displayName = `${profile?.firstname.trim()} ${profile?.lastname.trim()}`;
+        } else if (profile?.firstname) {
+          displayName = profile?.firstname.trim();
+        } else if (profile?.lastname) {
+          displayName = profile?.lastname.trim();
+        } else if (email) {
+          displayName = email.split('@')[0];
+        } else {
+          const idStr = referral.referred_user?.id?.toString() || '';
+          displayName = `Utilisateur ${idStr.slice(-4)}`;
+        }
+        
+        // 🆕 SOLUTION : REQUÊTE DIRECTE POUR RÉCUPÉRER LES RÔLES
+        let roles: string[] = [];
+        if (referral.referred_user?.id) {
+          try {
+            const { data: fullProfile, error: profileError } = await supabase
+              .from('profiles')
+              .select('roles')
+              .eq('id', referral.referred_user.id)
+              .single();
+            
+            if (!profileError && fullProfile?.roles) {
+              roles = fullProfile.roles;
+              console.log(`🔧 RÔLES RÉCUPÉRÉS pour ${displayName}:`, roles);
+            } else {
+              console.log(`⚠️ Erreur récupération rôles pour ${displayName}:`, profileError);
+            }
+          } catch (roleError) {
+            console.error(`❌ Erreur requête rôles pour ${displayName}:`, roleError);
+          }
+        }
+        
+        const referred_user_type = roles.includes('fourmiz') ? 'fourmiz' : 'client';
+        
+        // 🔍 DEBUG DÉTAILLÉ POUR CHAQUE FILLEUL
+        console.log(`🔧 DEBUG FILLEUL ${displayName}:`, {
+          user_id: referral.referred_user?.id,
+          profile_exist: !!profile,
+          profile_complet: profile,
+          roles_depuis_referral: profile?.roles,
+          roles_depuis_requete_directe: roles,
+          roles_type: typeof roles,
+          roles_array: Array.isArray(roles),
+          roles_length: roles?.length,
+          includes_fourmiz: roles?.includes('fourmiz'),
+          type_final: referred_user_type,
+          referral_complet: referral
+        });
+        
+        // 🔍 SPÉCIAL T19 - DEBUG ULTRA DÉTAILLÉ
+        if (displayName.includes('T19') || profile?.firstname === 'T19') {
+          console.log('🚨 === DEBUG SPÉCIAL T19 ===');
+          console.log('🚨 T19 - Données complètes:', JSON.stringify(referral, null, 2));
+          console.log('🚨 T19 - Profile:', JSON.stringify(profile, null, 2));
+          console.log('🚨 T19 - Rôles depuis ReferralService:', profile?.roles);
+          console.log('🚨 T19 - Rôles depuis requête directe:', roles);
+          console.log('🚨 T19 - Type final:', referred_user_type);
+          console.log('🚨 === FIN DEBUG T19 ===');
+        }
+        
+        console.log(`✅ Filleul traité: ${displayName} (${email}) - Type: ${referred_user_type} - Rôles: ${JSON.stringify(roles)}`);
+        
+        return {
+          id: referral.id?.toString() || '',
+          referred_user_name: displayName,
+          referred_user_email: email,
+          referred_user_type, // 🆕 CORRIGÉ : Utilisation du vrai type depuis requête directe
+          bonus_earned: Number(referral.bonus_earned) || 0,
+          commission_earned: Number(referral.total_commission_earned) || 0,
+          status: (referral.status === 'active' || referral.status === 'completed') ? 'active' : 'pending',
+          created_at: referral.created_at || new Date().toISOString(),
+          code_utilise: referral.referral_code || generateCodeFromUserId(referral.referred_user?.id || ''),
+          first_order_completed: referral.first_order_completed || false,
+        };
+      }));
+      
       setReferralHistory(history);
-      console.log('✅ Historique avec VRAIS PRÉNOMS chargé:', history.length, 'filleuls');
-      console.log('👥 Noms des filleuls RÉELS:', history.map(h => h.referred_user_name));
-
+      
+      const realNames = history.filter(h => !h.referred_user_name.startsWith('Utilisateur'));
+      console.log('📋 RAPPORT FINAL REFERRALSERVICE:', {
+        total_referrals: history.length,
+        noms_récupérés: realNames.length,
+        taux_succès: `${Math.round(realNames.length / history.length * 100)}%`,
+        noms: history.map(h => h.referred_user_name),
+        types: history.map(h => ({ nom: h.referred_user_name, type: h.referred_user_type }))
+      });
+      
     } catch (error) {
-      console.error('❌ Erreur chargement historique avec prénoms:', error);
+      console.error('❌ ERREUR REFERRALSERVICE:', error);
       setReferralHistory([]);
     }
   };
 
   const loadMyReferrer = async (userId: string) => {
     try {
-      console.log('👨‍👩‍👧‍👦 Recherche parrain...');
+      console.log('🔍 Recherche parrain...');
       
       const { data: referrerData, error } = await supabase
         .from('user_referrals')
-        .select('id, referral_code, referrer_name, created_at, referrer_user_id')
+        .select('id, referrer_user_id, referral_code, created_at, referrer_name')
         .eq('referred_user_id', userId)
         .single();
 
       if (!error && referrerData) {
+        let parrainName = referrerData.referrer_name || 'Utilisateur';
+        
+        if (!referrerData.referrer_name || referrerData.referrer_name === 'Utilisateur') {
+          const { data: parrainProfile } = await supabase
+            .from('profiles')
+            .select('firstname, lastname, email')
+            .eq('id', referrerData.referrer_user_id)
+            .single();
+          
+          if (parrainProfile) {
+            const firstName = parrainProfile.firstname?.trim();
+            const lastName = parrainProfile.lastname?.trim();
+            
+            if (firstName && lastName) {
+              parrainName = firstName + ' ' + lastName;
+            } else if (firstName) {
+              parrainName = firstName;
+            } else if (parrainProfile?.email) {
+              parrainName = parrainProfile?.email.split('@')[0];
+            }
+          }
+        }
+        
         setMyReferrer({
-          id: referrerData.id,
-          parrain_name: referrerData.referrer_name || 'Utilisateur',
-          code_utilise: referrerData.referral_code || '',
-          created_at: referrerData.created_at
+          id: referrerData.id.toString(),
+          parrain_name: parrainName,
+          code_utilise: referrerData.referral_code || generateCodeFromUserId(referrerData.referrer_user_id),
+          created_at: referrerData.created_at 
         });
-        console.log('✅ Parrain trouvé:', referrerData.referrer_name);
+        
+        console.log('✅ Parrain trouvé:', parrainName);
       } else {
-        console.log('ℹ️ Aucun parrain trouvé');
+        console.log('⚠️ Aucun parrain trouvé');
       }
     } catch (error) {
-      console.error('❌ Erreur récupération parrain:', error);
+      console.error('❌ Erreur recherche parrain:', error);
     }
   };
 
@@ -307,7 +373,7 @@ export default function NetworkScreen() {
         }));
       }
     } catch (error) {
-      console.error('Erreur chargement paramètres:', error);
+      console.error('❌ Erreur chargement paramètres:', error);
     }
   };
 
@@ -322,14 +388,14 @@ export default function NetworkScreen() {
 
   const shareReferralCode = async () => {
     try {
-      const message = `🚀 Rejoignez Fourmiz avec mon code de parrainage : ${referralCode}\n\n✨ Obtenez des services de qualité et gagnez des récompenses !`;
+      const message = `🐜 Rejoignez Fourmiz avec mon code de parrainage : ${referralCode}\n\n✨ Obtenez des services de qualité et gagnez des récompenses !`;
       
       await Share.share({
         message,
         title: 'Rejoignez Fourmiz !',
       });
     } catch (error) {
-      console.error('Erreur partage:', error);
+      console.error('❌ Erreur partage:', error);
     }
   };
 
@@ -346,18 +412,45 @@ export default function NetworkScreen() {
           onPress: () => {
             const newCode = generateRandomCode();
             setReferralCode(newCode);
-            Alert.alert('✅ Nouveau code !', `Votre nouveau code : ${newCode}`);
+            Alert.alert('🔄 Nouveau code !', `Votre nouveau code : ${newCode}`);
           }
         }
       ]
     );
   };
 
+  // 🆕 CALCUL DU TOTAL DES COMMISSIONS DE TOUS LES FILLEULS
+  const getTotalCommissions = () => {
+    return referralHistory.reduce((total, filleul) => total + filleul.commission_earned, 0);
+  };
+
+  // 🆕 CALCUL DU POURCENTAGE POUR UN FILLEUL
+  const getCommissionPercentage = (filleulCommission: number) => {
+    const totalCommissions = getTotalCommissions();
+    if (totalCommissions === 0) return 0;
+    return (filleulCommission / totalCommissions) * 100;
+  };
+
+  // 🆕 NOUVELLE FONCTION : Récupération icône selon le type
+  const getTypeIcon = (type: 'client' | 'fourmiz') => {
+    return type === 'fourmiz' ? 'construct-outline' : 'person-outline';
+  };
+
+  // 🆕 NOUVELLE FONCTION : Récupération couleur selon le type
+  const getTypeColor = (type: 'client' | 'fourmiz') => {
+    return type === 'fourmiz' ? '#2563eb' : '#16a34a';
+  };
+
+  // 🆕 NOUVELLE FONCTION : Texte affiché selon le type
+  const getTypeDisplayText = (type: 'client' | 'fourmiz') => {
+    return type === 'fourmiz' ? 'Fourmiz' : 'Client';
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF4444" />
+          <ActivityIndicator size="large" color="#000000" />
           <Text style={styles.loadingText}>Chargement de votre réseau...</Text>
         </View>
       </SafeAreaView>
@@ -367,67 +460,64 @@ export default function NetworkScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
+        style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            colors={['#000000']}
+            tintColor="#000000"
+          />
         }
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>👥 Mon Réseau</Text>
-          <Text style={styles.headerSubtitle}>Parrainez et gagnez des récompenses</Text>
-        </View>
-
-        {/* ✅ DEBUG FINAL */}
-        <View style={styles.debugSection}>
-          <Text style={styles.debugTitle}>🔍 DEBUG FINAL</Text>
-          <Text style={styles.debugText}>User: {currentUser?.id?.slice(-8)}</Text>
-          <Text style={styles.debugText}>Code: {referralCode}</Text>
-          <Text style={styles.debugText}>Stats Total: {stats.totalReferred}</Text>
-          <Text style={styles.debugText}>Liste Filleuls: {referralHistory.length}</Text>
-          <Text style={styles.debugText}>
-            Noms: {referralHistory.map(r => r.referred_user_name).slice(0, 3).join(', ')}
-            {referralHistory.length > 3 && '...'}
+        {/* Introduction */}
+        <View style={styles.introSection}>
+          <Text style={styles.introTitle}>
+            Mon Réseau
           </Text>
-          <Text style={[styles.debugText, { 
-            color: stats.totalReferred === referralHistory.length ? '#10b981' : '#ef4444',
-            fontWeight: 'bold'
-          }]}>
-            Status: {stats.totalReferred === referralHistory.length ? '✅ SYNC' : '❌ DÉSYNC'}
+          <Text style={styles.introSubtitle}>
+            Parrainez et gagnez des récompenses
           </Text>
         </View>
 
         {/* Code de parrainage */}
         <View style={styles.referralCodeSection}>
-          <LinearGradient
-            colors={['#FF4444', '#FF6B6B']}
-            style={styles.referralCodeCard}
-          >
-            <Text style={styles.referralCodeTitle}>Votre code de parrainage</Text>
+          <View style={styles.referralCodeCard}>
+            <View style={styles.referralCodeHeader}>
+              <Ionicons name="qr-code-outline" size={20} color="#000000" />
+              <Text style={styles.referralCodeTitle}>Votre code de parrainage</Text>
+            </View>
+            
             <View style={styles.codeContainer}>
               <Text style={styles.referralCodeText}>{referralCode}</Text>
               <TouchableOpacity onPress={copyReferralCode} style={styles.copyButton}>
-                <Ionicons name="copy" size={20} color="#fff" />
+                <Ionicons name="copy-outline" size={16} color="#666666" />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={shareReferralCode} style={styles.shareButton}>
-              <Ionicons name="share" size={16} color="#FF4444" />
-              <Text style={styles.shareButtonText}>Partager mon code</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={regenerateReferralCode} style={styles.regenerateButton}>
-              <Ionicons name="refresh" size={16} color="#666" />
-              <Text style={styles.regenerateButtonText}>Régénérer</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+            
+            <View style={styles.codeActions}>
+              <TouchableOpacity onPress={shareReferralCode} style={styles.shareButton}>
+                <Ionicons name="share-outline" size={16} color="#000000" />
+                <Text style={styles.shareButtonText}>Partager</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity onPress={regenerateReferralCode} style={styles.regenerateButton}>
+                <Ionicons name="refresh-outline" size={16} color="#666666" />
+                <Text style={styles.regenerateButtonText}>Régénérer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
-        {/* Section Mon Parrain */}
+        {/* Mon Parrain */}
         {myReferrer && (
           <View style={styles.referrerSection}>
-            <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Mon Parrain</Text>
+            <Text style={styles.sectionTitle}>Mon Parrain</Text>
             <View style={styles.referrerCard}>
               <View style={styles.referrerInfo}>
-                <Ionicons name="person-circle" size={24} color="#4CAF50" />
+                <Ionicons name="person-circle-outline" size={20} color="#000000" />
                 <View style={styles.referrerDetails}>
                   <Text style={styles.referrerName}>{myReferrer.parrain_name}</Text>
                   <Text style={styles.referrerCode}>Code utilisé : {myReferrer.code_utilise}</Text>
@@ -436,14 +526,14 @@ export default function NetworkScreen() {
                   </Text>
                 </View>
               </View>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+              <Ionicons name="checkmark-circle-outline" size={20} color="#000000" />
             </View>
           </View>
         )}
 
         {/* Statistiques */}
         <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>📊 Mes statistiques</Text>
+          <Text style={styles.sectionTitle}>Mes statistiques</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
               <Text style={styles.statNumber}>{stats.totalReferred}</Text>
@@ -464,25 +554,28 @@ export default function NetworkScreen() {
           </View>
         </View>
 
-        {/* Conditions de rémunération */}
+        {/* Récompenses */}
         <View style={styles.conditionsSection}>
-          <Text style={styles.sectionTitle}>💰 Vos récompenses</Text>
+          <Text style={styles.sectionTitle}>Vos récompenses</Text>
+          
           <View style={styles.conditionCard}>
-            <Ionicons name="gift" size={24} color="#FF4444" />
+            <Ionicons name="gift-outline" size={20} color="#000000" />
             <View style={styles.conditionContent}>
               <Text style={styles.conditionTitle}>Bonus de parrainage</Text>
               <Text style={styles.conditionDesc}>{stats.bonusAmount} € à la première commande</Text>
             </View>
           </View>
+          
           <View style={styles.conditionCard}>
-            <Ionicons name="trending-up" size={24} color="#4CAF50" />
+            <Ionicons name="trending-up-outline" size={20} color="#000000" />
             <View style={styles.conditionContent}>
               <Text style={styles.conditionTitle}>Commission sur filleul Client</Text>
               <Text style={styles.conditionDesc}>{stats.clientCommissionRate}% sur chaque commande</Text>
             </View>
           </View>
+          
           <View style={styles.conditionCard}>
-            <Ionicons name="star" size={24} color="#9C27B0" />
+            <Ionicons name="star-outline" size={20} color="#000000" />
             <View style={styles.conditionContent}>
               <Text style={styles.conditionTitle}>Commission sur filleul Fourmiz</Text>
               <Text style={styles.conditionDesc}>{stats.fourmizCommissionRate}% sur chaque service</Text>
@@ -490,59 +583,70 @@ export default function NetworkScreen() {
           </View>
         </View>
 
-        {/* ✅ SECTION PRINCIPALE : Historique des filleuls avec VRAIS PRÉNOMS */}
+        {/* Liste des filleuls */}
         <View style={styles.historySection}>
-          <Text style={styles.sectionTitle}>📜 Mes filleuls ({referralHistory.length})</Text>
+          <Text style={styles.sectionTitle}>Mes filleuls ({referralHistory.length})</Text>
           {referralHistory.length > 0 ? (
             referralHistory.map((item) => (
               <View key={item.id} style={styles.historyCard}>
                 <View style={styles.historyHeader}>
                   <View style={styles.historyUser}>
                     <Ionicons 
-                      name="person" 
+                      name={getTypeIcon(item.referred_user_type)} // 🆕 CORRIGÉ : Icône selon le type
                       size={20} 
-                      color={item.status === 'active' ? '#4CAF50' : '#666'} 
+                      color={item.status === 'active' ? getTypeColor(item.referred_user_type) : '#666666'} // 🆕 CORRIGÉ : Couleur selon le type
                     />
                     <View style={styles.historyUserInfo}>
                       <Text style={styles.historyUserName}>{item.referred_user_name}</Text>
                       <Text style={styles.historyUserCode}>
-                        {item.referred_user_email && `${item.referred_user_email} • `}
                         Code: {item.code_utilise}
                       </Text>
                     </View>
                   </View>
                   <View style={[
                     styles.statusBadge,
-                    { backgroundColor: item.status === 'active' ? '#E8F5E8' : '#F5F5F5' }
+                    { backgroundColor: item.status === 'active' ? '#f8f8f8' : '#f8f8f8' }
                   ]}>
                     <Text style={[
                       styles.statusText,
-                      { color: item.status === 'active' ? '#4CAF50' : '#666' }
+                      { color: item.status === 'active' ? '#000000' : '#666666' }
                     ]}>
                       {item.status === 'active' ? 'Actif' : 'En attente'}
                     </Text>
                   </View>
                 </View>
+                
                 <View style={styles.historyFooter}>
-                  <Text style={styles.historyType}>👤 Client</Text>
+                  <Text style={[
+                    styles.historyType,
+                    { color: getTypeColor(item.referred_user_type) } // 🆕 CORRIGÉ : Couleur selon le type
+                  ]}>
+                    {getTypeDisplayText(item.referred_user_type)} {/* 🆕 CORRIGÉ : Texte selon le type */}
+                  </Text>
                   <Text style={styles.historyDate}>
                     {new Date(item.created_at).toLocaleDateString('fr-FR')}
                   </Text>
                 </View>
-                {/* Affichage des gains */}
+                
                 {(item.bonus_earned > 0 || item.commission_earned > 0) && (
                   <View style={styles.historyEarnings}>
                     <Text style={styles.historyEarningsText}>
-                      💰 Bonus: €{item.bonus_earned.toFixed(2)}
+                      Bonus: €{item.bonus_earned.toFixed(2)}
                       {item.commission_earned > 0 && ` • Commission: €${item.commission_earned.toFixed(2)}`}
                     </Text>
+                    {/* 🆕 AJOUT DU POURCENTAGE DES COMMISSIONS */}
+                    {item.commission_earned > 0 && getTotalCommissions() > 0 && (
+                      <Text style={styles.commissionPercentageText}>
+                        {getCommissionPercentage(item.commission_earned).toFixed(1)}% des commissions totales
+                      </Text>
+                    )}
                   </View>
                 )}
               </View>
             ))
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={48} color="#ccc" />
+              <Ionicons name="people-outline" size={48} color="#cccccc" />
               <Text style={styles.emptyTitle}>Aucun filleul pour le moment</Text>
               <Text style={styles.emptyDesc}>
                 Partagez votre code {referralCode} pour commencer à parrainer !
@@ -553,177 +657,179 @@ export default function NetworkScreen() {
 
         {/* Comment ça marche */}
         <View style={styles.howToSection}>
-          <Text style={styles.sectionTitle}>❓ Comment ça marche ?</Text>
-          <View style={styles.howToSteps}>
-            <View style={styles.howToStep}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>1</Text>
-              </View>
-              <Text style={styles.stepText}>Partagez votre code {referralCode}</Text>
+          <Text style={styles.sectionTitle}>Comment ça marche ?</Text>
+          
+          <View style={styles.howToStep}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>1</Text>
             </View>
-            <View style={styles.howToStep}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>2</Text>
-              </View>
-              <Text style={styles.stepText}>Votre ami s'inscrit avec votre code</Text>
+            <Text style={styles.stepText}>Partagez votre code {referralCode}</Text>
+          </View>
+          
+          <View style={styles.howToStep}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>2</Text>
             </View>
-            <View style={styles.howToStep}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>3</Text>
-              </View>
-              <Text style={styles.stepText}>Il apparaît dans votre liste de filleuls</Text>
+            <Text style={styles.stepText}>Votre ami s'inscrit avec votre code</Text>
+          </View>
+          
+          <View style={styles.howToStep}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>3</Text>
             </View>
-            <View style={styles.howToStep}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>4</Text>
-              </View>
-              <Text style={styles.stepText}>Vous gagnez des récompenses sur ses commandes</Text>
+            <Text style={styles.stepText}>Il apparaît dans votre liste de filleuls</Text>
+          </View>
+          
+          <View style={styles.howToStep}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>4</Text>
             </View>
+            <Text style={styles.stepText}>Vous gagnez des récompenses sur ses commandes</Text>
           </View>
         </View>
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// 🎨 STYLES ÉPURÉS COHÉRENTS AVEC SERVICES.TSX ET MESSAGES.TSX
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#ffffff',
   },
-  content: {
-    padding: 16,
-    paddingBottom: 100,
-  },
+  
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    gap: 24,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '400',
   },
 
-  // DEBUG
-  debugSection: {
-    backgroundColor: '#fff3cd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#ffeaa7',
+  scrollView: {
+    flex: 1,
   },
-  debugTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#856404',
-    marginBottom: 8,
-  },
-  debugText: {
-    fontSize: 12,
-    color: '#856404',
-    marginBottom: 4,
+  content: {
+    padding: 24,
   },
 
-  // Header
-  header: {
+  // Introduction épurée
+  introSection: {
     alignItems: 'center',
     marginBottom: 24,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 4,
+  introTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
+  introSubtitle: {
+    fontSize: 13,
+    color: '#666666',
+    textAlign: 'center',
+    fontWeight: '400',
   },
 
-  // Code de parrainage
+  // Code de parrainage épuré
   referralCodeSection: {
     marginBottom: 24,
   },
   referralCodeCard: {
-    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
     padding: 20,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderLeftWidth: 3,
+    borderLeftColor: '#000000',
+  },
+  referralCodeHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
   },
   referralCodeTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
   },
   codeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 16,
+    gap: 12,
   },
   referralCodeText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
     letterSpacing: 2,
-    marginRight: 12,
+    flex: 1,
   },
   copyButton: {
-    padding: 8,
+    padding: 4,
+  },
+  codeActions: {
+    flexDirection: 'row',
+    gap: 12,
   },
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f8f8',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 6,
     gap: 8,
+    flex: 1,
+    justifyContent: 'center',
   },
   shareButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#FF4444',
+    color: '#000000',
   },
   regenerateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: '#f8f8f8',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
     gap: 6,
-    marginTop: 8,
   },
   regenerateButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#666',
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#666666',
   },
 
-  // Section Mon Parrain
+  // Parrain épuré
   referrerSection: {
     marginBottom: 24,
   },
   referrerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E8F5E8',
+    borderColor: '#e0e0e0',
   },
   referrerInfo: {
     flexDirection: 'row',
@@ -735,30 +841,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   referrerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
   },
   referrerCode: {
-    fontSize: 14,
-    color: '#4CAF50',
+    fontSize: 12,
+    color: '#333333',
     marginTop: 2,
+    fontWeight: '400',
   },
   referrerDate: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#666666',
     marginTop: 2,
+    fontWeight: '400',
   },
 
-  // Statistiques
+  // Sections
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 16,
+  },
+
+  // Stats épurées
   statsSection: {
     marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 16,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -768,74 +878,67 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FF4444',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#666666',
     textAlign: 'center',
+    fontWeight: '400',
   },
 
-  // Conditions
+  // Conditions épurées
   conditionsSection: {
     marginBottom: 24,
   },
   conditionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   conditionContent: {
     marginLeft: 12,
     flex: 1,
   },
   conditionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#000000',
     marginBottom: 2,
   },
   conditionDesc: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#666666',
+    fontWeight: '400',
   },
 
-  // Historique
+  // Historique épuré
   historySection: {
     marginBottom: 24,
   },
   historyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   historyHeader: {
     flexDirection: 'row',
@@ -853,23 +956,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   historyUserName: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#000000',
   },
   historyUserCode: {
     fontSize: 12,
-    color: '#FF4444',
+    color: '#333333',
     marginTop: 2,
+    fontWeight: '400',
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 6,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   historyFooter: {
     flexDirection: 'row',
@@ -877,73 +981,84 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   historyType: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
+    fontSize: 13,
+    fontWeight: '600', // 🆕 MODIFIÉ : Plus visible
   },
   historyDate: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#666666',
+    fontWeight: '400',
   },
   historyEarnings: {
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: '#e0e0e0',
   },
   historyEarningsText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#333333',
+  },
+  // 🆕 STYLE POUR LE POURCENTAGE DES COMMISSIONS
+  commissionPercentageText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: '#2563eb',
+    marginTop: 4,
   },
 
-  // Comment faire
+  // Comment ça marche épuré
   howToSection: {
     marginBottom: 24,
-  },
-  howToSteps: {
-    gap: 12,
   },
   howToStep: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 12,
   },
   stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FF4444',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepNumberText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   stepText: {
     flex: 1,
-    fontSize: 14,
-    color: '#333',
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '400',
   },
 
-  // État vide
+  // État vide épuré
   emptyState: {
     alignItems: 'center',
     paddingVertical: 32,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6b7280',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDesc: {
-    fontSize: 14,
-    color: '#9ca3af',
+    fontSize: 13,
+    color: '#666666',
     textAlign: 'center',
     lineHeight: 20,
+    fontWeight: '400',
+  },
+
+  bottomSpacer: {
+    height: 32,
   },
 });

@@ -1,4 +1,4 @@
-// app/(auth)/_layout.tsx - LAYOUT AUTHENTIFICATION FINAL
+﻿// app/(auth)/_layout.tsx - LAYOUT AUTHENTIFICATION FINAL
 import React from 'react';
 import { Stack } from 'expo-router';
 

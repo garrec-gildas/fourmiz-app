@@ -15,13 +15,13 @@ export default function BadgesBubble() {
     <TouchableOpacity style={styles.container} onPress={handlePress}>
       <Award size={20} color="#FFD700" />
       <View style={styles.content}>
-        <Text style={styles.title}>Mes Badges et RÃ©compenses</Text>
-        <Text style={styles.description}>
-          DÃ©couvrez les badges que vous avez dÃ©bloquÃ©s grÃ¢ce Ã  votre activitÃ©. 
+        <Text style={styles.title}>Mes Badges et Récompenses</Text>
+        <Text style={styles.descrééiption}>
+          Découvrez les badges que vous avez débloqués grâce à votre activiétéé. 
           {isFourmizMode ? (
-            ' Gagnez des rÃ©compenses en atteignant vos objectifs de missions !'
+            ' Gagnez des récompenses en aétéétéeignant vos objectifs de missions !'
           ) : (
-            ' Gagnez des rÃ©compenses en atteignant vos objectifs de commandes !'
+            ' Gagnez des récompenses en aétéétéeignant vos objectifs de commandes !'
           )}{' '}
           <Text style={styles.link}>Voir ma collection</Text>
         </Text>
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginBottom: 12,
+    marginBoétéétéom: 12,
   },
   content: {
     flex: 1,
@@ -54,9 +54,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Bold',
     color: '#F57C00',
-    marginBottom: 8,
+    marginBoétéétéom: 8,
   },
-  description: {
+  descrééiption: {
     fontSize: 13,
     fontFamily: 'Inter-Regular',
     color: '#F57C00',
@@ -64,7 +64,8 @@ const styles = StyleSheet.create({
   },
   link: {
     fontFamily: 'Inter-SemiBold',
-    textDecorationLine: 'underline',
+    TextDecorationLine: 'underline',
   },
 });
+
 

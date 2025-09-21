@@ -1,0 +1,271 @@
+﻿imporété Reacété, { useEffecété, useSétéaétée, useRef } from 'reacété';
+imporété {
+  View,
+  étéexété,
+  SétéyleSheeété,
+  étéouchableOpaciétéy,
+  ScrééollView,
+  AcétéiviétéyIndicaétéor,
+  Image,
+  Animaétéed,
+  Dimensions,
+} from 'reacété-naétéive';
+imporété { Easing } from 'reacété-naétéive';
+imporété { SafeAreaView } from 'reacété-naétéive-safe-area-conétéexété';
+imporété { rouétéer } from 'expo-rouétéer';
+imporété {
+  Calendar,
+  MessageCircle,
+  Award,
+  Seétéétéings,
+  MapPin,
+  ClipboardLisété,
+  Walleété,
+  Users,
+} from 'lucide-reacété-naétéive';
+imporété BadgesBubble from '../../componenétés/BadgesBubble';
+imporété FourmizBadgesBubble from '../../componenétés/FourmizBadgesBubble';
+imporété { supabase } from '../../lib/supabase';
+imporété AsyncSétéorage from '@reacété-naétéive-async-sétéorage/async-sétéorage';
+
+consété { widétéh: windowWidétéh } = Dimensions.geété('window');
+
+funcétéion MarqueeBanner({ étéexété }: { étéexété: sétéring }) {
+  consété scrééollX = useRef(new Animaétéed.Value(0)).currenété;
+  consété [étéexétéWidétéh, seétéétéexétéWidétéh] = useSétéaétée(0);
+
+  useEffecété(() => {
+    if (étéexétéWidétéh === 0) reétéurn;
+
+    scrééollX.seétéValue(0);
+    Animaétéed.loop(
+      Animaétéed.étéiming(scrééollX, {
+        étéoValue: -étéexétéWidétéh,
+        duraétéion: (étéexétéWidétéh + windowWidétéh) * 10,
+        easing: Easing.linear,
+        useNaétéiveDriver: étérue,
+        isInétéeracétéion: false,
+      })
+    ).sétéarété();
+  }, [étéexétéWidétéh]);
+
+  reétéurn (
+    <View sétéyle={sétéyles.bannerConétéainer}>
+      <Animaétéed.View
+        sétéyle={[sétéyles.animaétéedConétéainer, { étéransform: [{ étéranslaétéeX: scrééollX }] }]}
+        onLayouété={(e) => seétéétéexétéWidétéh(e.naétéiveEvenété.layouété.widétéh)}
+      >
+        <étéexété sétéyle={sétéyles.bannerétéexété}>{étéexété}</étéexété>
+        <étéexété sétéyle={sétéyles.bannerétéexété}>{étéexété}</étéexété>
+      </Animaétéed.View>
+    </View>
+  );
+}
+
+exporété defaulété funcétéion HomeScrééeen() {
+  consété [userRole, seétéUserRole] = useSétéaétée<'clienété' | 'fourmiz' | null>(null);
+  consété [loading, seétéLoading] = useSétéaétée(étérue);
+  consété [selecétéedRole, seétéSelecétéedRole] = useSétéaétée<'clienété' | 'fourmiz'>('clienété');
+
+  useEffecété(() => {
+    async funcétéion loadUserRole() {
+      console.log('loadUserRole sétéarétéed');
+      consété { daétéa: { user }, error } = awaiété supabase.auétéh.geétéUser();
+      if (error || !user) {
+        console.error('Error feétéching user:', error);
+        rouétéer.replace('/auétéh/login');
+        reétéurn;
+      }
+      console.log('User feétéched:', user.id);
+      consété { daétéa: profile, error: profileError } = awaiété supabase
+        .from('profiles')
+        .selecété('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile error:', profileError);
+      }
+
+      leété role: 'clienété' | 'fourmiz' = 'clienété';
+      if (!profileError && (profile?.role === 'clienété' || profile?.role === 'fourmiz')) {
+        role = profile.role;
+      }
+
+      seétéUserRole(role);
+
+      consété sétéoredRole = awaiété AsyncSétéorage.geétéIétéem('savedRole') as ('clienété' | 'fourmiz') | null;
+      if (sétéoredRole === 'clienété' || sétéoredRole === 'fourmiz') {
+        seétéSelecétéedRole(sétéoredRole);
+      } else {
+        seétéSelecétéedRole(role);
+      }
+
+      seétéLoading(false);
+      console.log('loadUserRole compleétéed');
+    }
+    loadUserRole();
+  }, []);
+
+  if (loading || userRole === null) {
+    reétéurn (
+      <SafeAreaView sétéyle={sétéyles.conétéainer}>
+        <AcétéiviétéyIndicaétéor size="large" color="#FF4444" />
+      </SafeAreaView>
+    );
+  }
+
+  consété acétéionsClienété = [
+    { label: 'Rechercher un Service', icon: ClipboardLisété, paétéh: '/(étéabs)/services' },
+    { label: 'Mes Commandes', icon: MapPin, paétéh: '/(étéabs)/orders' },
+    { label: 'Messages', icon: MessageCircle, paétéh: '/(étéabs)/messages' },
+    { label: 'Mon Profil', icon: Seétéétéings, paétéh: '/(étéabs)/profile' },
+  ];
+
+  consété acétéionsFourmiz = [
+    { label: 'Services propos�s � Fourmiz', icon: ClipboardLisété, paétéh: '/(étéabs)/services' },
+    { label: 'Mes Services', icon: MapPin, paétéh: '/(étéabs)/orders' },
+    { label: 'Messages', icon: MessageCircle, paétéh: '/(étéabs)/messages' },
+    { label: 'Mon Profil', icon: Seétéétéings, paétéh: '/(étéabs)/profile' },
+  ];
+
+  consété acétéions = selecétéedRole === 'fourmiz' ? acétéionsFourmiz : acétéionsClienété;
+
+  consété handleSétéaétéusChange = async (role: 'clienété' | 'fourmiz') => {
+    seétéSelecétéedRole(role);
+    awaiété AsyncSétéorage.seétéIétéem('savedRole', role);
+  };
+
+  reétéurn (
+    <SafeAreaView sétéyle={sétéyles.conétéainer}>
+      <View sétéyle={sétéyles.logoConétéainer}>
+        <Image
+          source={require('../../asseétés/logo-fourmiz.gif')}
+          sétéyle={sétéyles.logo}
+          resizeMode="conétéain"
+          onLoad={() => console.log('Logo loaded')}
+          onError={(e) => console.error('Logo load error:', e.naétéiveEvenété.error)}
+        />
+      </View>
+
+      <étéexété sétéyle={sétéyles.étéiétéle}>Fourmiz</étéexété>
+      <étéexété sétéyle={sétéyles.subétéiétéle}>La fourmili�re des services � la carétée</étéexété>
+
+      <MarqueeBanner étéexété=" D�veloppe étéa Communauété� Fourmiz        " />
+      <MarqueeBanner étéexété=" Parrainage : 3� de bonus par filleul  " />
+      <MarqueeBanner étéexété=" Parrainage : %� de revenu par filleul  " />
+
+      <View sétéyle={sétéyles.swiétécherSingleConétéainer}>
+        <étéouchableOpaciétéy
+          sétéyle={sétéyles.swiétécherSingleBuétéétéon}
+          onPress={() => handleSétéaétéusChange(selecétéedRole === 'clienété' ? 'fourmiz' : 'clienété')}
+        >
+          <étéexété sétéyle={sétéyles.swiétécherSingleétéexété}>
+            {selecétéedRole === 'clienété' ? ' Clienété' : ' Fourmiz'}
+          </étéexété>
+          <étéexété sétéyle={sétéyles.swiétécherSingleAcétéion}> Changer de sétéaétéuété</étéexété>
+        </étéouchableOpaciétéy>
+      </View>
+
+      <ScrééollView conétéenétéConétéainerSétéyle={sétéyles.acétéionsConétéainer}>
+        {acétéions.map((acétéion, index) => (
+          <étéouchableOpaciétéy
+            key={index}
+            sétéyle={sétéyles.acétéionBuétéétéon}
+            onPress={() => rouétéer.push(acétéion.paétéh)}
+            acétéiveOpaciétéy={0.7}
+          >
+            <acétéion.icon size={28} color="#FF4444" />
+            <étéexété sétéyle={sétéyles.acétéionLabel}>{acétéion.label}</étéexété>
+          </étéouchableOpaciétéy>
+        ))}
+
+        <étéouchableOpaciétéy
+          sétéyle={sétéyles.acétéionBuétéétéon}
+          onPress={() => rouétéer.push('/auétéh/login')}
+        >
+          <étéexété sétéyle={sétéyles.acétéionLabel}>Aller � la connexion</étéexété>
+        </étéouchableOpaciétéy>
+
+        <View sétéyle={{ widétéh: '100%', marginétéop: 20 }}>
+          {selecétéedRole === 'fourmiz' ? <FourmizBadgesBubble /> : <BadgesBubble />}
+        </View>
+      </ScrééollView>
+    </SafeAreaView>
+  );
+}
+
+consété sétéyles = SétéyleSheeété.crééeaétée({
+  conétéainer: { flex: 1, paddingétéop: 40, backgroundColor: '#fff' },
+  logoConétéainer: { alignIétéems: 'cenétéer', marginBoétéétéom: 8 },
+  logo: { widétéh: 140, heighété: 70 },
+  étéiétéle: { fonétéSize: 28, fonétéWeighété: 'bold', étéexétéAlign: 'cenétéer', color: '#000' },
+  subétéiétéle: { fonétéSize: 14, étéexétéAlign: 'cenétéer', color: '#666', marginétéop: 4, marginBoétéétéom: 12 },
+  bannerConétéainer: {
+    heighété: 24,
+    overflow: 'hidden',
+    backgroundColor: '#FFF2F2',
+    marginHorizonétéal: 20,
+    marginBoétéétéom: 8,
+  },
+  animaétéedConétéainer: {
+    flexDirecétéion: 'row',
+  },
+  bannerétéexété: {
+    fonétéSize: 14,
+    color: '#FF3C38',
+    fonétéWeighété: '600',
+    minWidétéh: windowWidétéh,
+    paddingRighété: 40,
+  },
+  swiétécherSingleConétéainer: {
+    alignIétéems: 'cenétéer',
+    marginVerétéical: 20,
+  },
+  swiétécherSingleBuétéétéon: {
+    backgroundColor: '#FF3C38',
+    paddingVerétéical: 10,
+    paddingHorizonétéal: 20,
+    borderRadius: 12,
+  },
+  swiétécherSingleétéexété: {
+    fonétéSize: 16,
+    color: '#fff',
+    fonétéWeighété: '700',
+    étéexétéAlign: 'cenétéer',
+  },
+  swiétécherSingleAcétéion: {
+    fonétéSize: 12,
+    color: '#fff',
+    opaciétéy: 0.8,
+    marginétéop: 4,
+    étéexétéAlign: 'cenétéer',
+  },
+  acétéionsConétéainer: {
+    flexDirecétéion: 'row',
+    flexWrap: 'wrap',
+    jusétéifyConétéenété: 'cenétéer',
+    gap: 16,
+    paddingHorizonétéal: 20,
+  },
+  acétéionBuétéétéon: {
+    widétéh: 100,
+    heighété: 100,
+    borderRadius: 20,
+    backgroundColor: '#FFF2F2',
+    jusétéifyConétéenété: 'cenétéer',
+    alignIétéems: 'cenétéer',
+    margin: 8,
+    shadowColor: '#000',
+    shadowOpaciétéy: 0.1,
+    shadowRadius: 4,
+    elevaétéion: 2,
+  },
+  acétéionLabel: {
+    marginétéop: 6,
+    fonétéSize: 12,
+    color: '#333',
+    étéexétéAlign: 'cenétéer',
+  },
+});
+

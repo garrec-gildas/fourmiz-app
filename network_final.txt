@@ -1,0 +1,83 @@
+﻿  const loadReferralHistoryDirect = async (userId: string) => {
+    try {
+      console.log(' Chargement filleuls pour:', userId);
+      
+      //  UTILISER LES CHAMPS QUI FONCTIONNENT (trouvés par le debug)
+      const possibleFields = ['referrer_user_id', 'referrer_id', 'parrain_id'];
+      
+      for (const field of possibleFields) {
+        const { data: testData, error: testError } = await supabase
+          .from('user_referrals')
+          .select('*')
+          .eq(field, userId)
+          .limit(10);
+          
+        if (!testError && testData && testData.length > 0) {
+          console.log(` Données trouvées avec ${field}:`, testData.length, 'filleuls');
+          
+          //  ESSAYER JOINTURE POUR VRAIS PRÉNOMS
+          const { data: withProfiles, error: joinError } = await supabase
+            .from('user_referrals')
+            .select(`
+              *,
+              referred_profile:profiles!user_referrals_referred_user_id_fkey (
+                firstname,
+                lastname,
+                email
+              )
+            `)
+            .eq(field, userId)
+            .order('created_at', { ascending: false });
+            
+          let finalData = testData;
+          
+          if (!joinError && withProfiles) {
+            console.log(' Jointure profiles réussie');
+            finalData = withProfiles;
+          } else {
+            console.log(' Jointure échouée, utilisation données simples');
+          }
+          
+          //  MAPPER AVEC VRAIS PRÉNOMS
+          const history = finalData.map((referral: any) => {
+            let displayName = 'Utilisateur';
+            
+            if (referral.referred_profile) {
+              const profile = referral.referred_profile;
+              const firstName = profile.firstname || '';
+              const lastName = profile.lastname || '';
+              displayName = lastName ? `${firstName} ${lastName}`.trim() : firstName || 'Utilisateur';
+            } else if (referral.referred_user_name) {
+              displayName = referral.referred_user_name;
+            } else if (referral.filleul_name) {
+              displayName = referral.filleul_name;
+            }
+            
+            return {
+              id: referral.id,
+              referred_user_name: displayName,
+              referred_user_email: referral.referred_profile?.email || referral.referred_user_email || '',
+              referred_user_type: 'client' as const,
+              bonus_earned: referral.bonus_earned || 0,
+              commission_earned: referral.total_commission_earned || 0,
+              status: referral.status === 'completed' ? 'active' : 'pending',
+              created_at: referral.created_at,
+              code_utilise: referral.referral_code || '',
+              first_order_completed: referral.first_order_completed || false,
+            };
+          });
+          
+          setReferralHistory(history);
+          console.log(' Filleuls chargés avec vrais noms:', history.map(h => h.referred_user_name));
+          return;
+        }
+      }
+      
+      console.log('ℹ Aucun filleul trouvé');
+      setReferralHistory([]);
+      
+    } catch (error) {
+      console.error(' Erreur chargement filleuls:', error);
+      setReferralHistory([]);
+    }
+  };

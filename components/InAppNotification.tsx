@@ -1,4 +1,4 @@
-// components/InAppNotification.tsx - Notifications flottantes dans l'app (SANS DÉPENDANCES)
+﻿// components/InAppNotification.tsx - Notifications flottantes dans l'app (SANS DÉPENDANCES)
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -17,7 +17,7 @@ import { useChatNotifications } from '@/components/ChatNotificationProvider';
 
 const { width } = Dimensions.get('window');
 
-// ✅ Calcul des safe areas sans dépendance externe
+// 📱 Calcul des safe areas sans dépendance externe
 const getStatusBarHeight = () => {
   if (Platform.OS === 'ios') {
     return 44; // Safe area par défaut iOS
@@ -89,7 +89,7 @@ export const InAppNotification: React.FC = () => {
       style={[
         styles.notificationContainer,
         {
-          top: getStatusBarHeight() + 10, // ✅ Safe area calculée manuellement
+          top: getStatusBarHeight() + 10, // 📱 Safe area calculée manuellement 
           transform: [{ translateY: slideAnim }]
         }
       ]}
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// ✅ Hook pour utiliser les notifications depuis n'importe où
+// 🔧 Hook pour utiliser les notifications depuis n'importe où
 export const useInAppNotification = () => {
   const { showInAppNotification } = useChatNotifications();
 

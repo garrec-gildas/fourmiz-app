@@ -1,7 +1,7 @@
-// lib/roleManager.ts - VERSION ULTRA-PROTÉGÉE COMPLÈTE
-// 🎯 Client peut devenir Fourmiz (et rester Client)
-// 🎯 Fourmiz peut devenir Client (et rester Fourmiz)
-// 🔧 CORRIGÉ : Utilisation de 'id' au lieu de 'user_id' pour la cohérence avec index.tsx
+﻿// lib/roleManager.ts - VERSION ULTRA-PROTÉGÉE COMPLÈTE
+// 🧑‍💼 Client peut devenir Fourmiz (et rester Client)
+// 🐜 Fourmiz peut devenir Client (et rester Fourmiz)
+// ✅ CORRIGÉ : Utilisation de 'id' au lieu de 'user_id' pour la cohérence avec index.tsx
 // 🛡️ ULTRA-PROTÉGÉ : Protection maximale contre les erreurs .includes()
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,7 +10,7 @@ import { supabase } from './supabase';
 export type UserRole = 'client' | 'fourmiz';
 
 export interface UserProfile {
-  id: string;  // 🔧 CHANGÉ : de 'user_id' à 'id' pour la cohérence
+  id: string;  // ✅ CHANGÉ : de 'user_id' à 'id' pour la cohérence
   roles: UserRole[];
   firstname?: string;
   lastname?: string;
@@ -18,7 +18,6 @@ export interface UserProfile {
   address?: string;
   postal_code?: string;
   city?: string;
-  rib?: string;
   id_document_path?: string;
   profile_completed: boolean;
 }
@@ -39,9 +38,9 @@ export interface ProfileAnalysis {
   needsFourmizInfo: boolean;  // Infos supplémentaires pour fourmiz
 }
 
-// 🔍 ANALYSE COMPLÈTE DU PROFIL UTILISATEUR - VERSION ULTRA-PROTÉGÉE
+// 📊 ANALYSE COMPLÈTE DU PROFIL UTILISATEUR - VERSION ULTRA-PROTÉGÉE
 export async function analyzeUserProfile(userId: string): Promise<ProfileAnalysis> {
-  console.log('🔍 Analyse profil utilisateur:', userId);
+  console.log('📊 Analyse profil utilisateur:', userId);
   
   try {
     const { data: profile, error } = await supabase
@@ -55,14 +54,13 @@ export async function analyzeUserProfile(userId: string): Promise<ProfileAnalysi
         address,
         postal_code,
         city,
-        rib,
         id_document_path,
         profile_completed
       `)
       .eq('id', userId)
       .single();
 
-    // 🚨 DEBUG TEMPORAIRE - AVANT toute manipulation
+    // 🔍 DEBUG TEMPORAIRE - AVANT toute manipulation
     console.log('🔍 DEBUG - Données brutes de Supabase:', {
       profile,
       error,
@@ -93,7 +91,7 @@ export async function analyzeUserProfile(userId: string): Promise<ProfileAnalysi
       } else if (rawRoles === null || rawRoles === undefined) {
         // Pas de rôles définis, array vide
         safeCurrentRoles = [];
-        console.log('ℹ️ Pas de rôles définis, array vide');
+        console.log('⚠️ Pas de rôles définis, array vide');
       } else {
         // Format inattendu, logger et utiliser array vide
         console.warn('⚠️ Format de rôles inattendu:', rawRoles, 'Type:', typeof rawRoles);
@@ -106,9 +104,9 @@ export async function analyzeUserProfile(userId: string): Promise<ProfileAnalysi
     
     console.log('📊 Profil trouvé:', profileExists, 'Rôles sécurisés final:', safeCurrentRoles);
 
-    // 🚨 VÉRIFICATION FINALE avant .includes()
+    // 🔍 VÉRIFICATION FINALE avant .includes()
     if (!Array.isArray(safeCurrentRoles)) {
-      console.error('🚨 ERREUR CRITIQUE: safeCurrentRoles n\'est pas un array:', safeCurrentRoles);
+      console.error('❌ ERREUR CRITIQUE: safeCurrentRoles n\'est pas un array:', safeCurrentRoles);
       safeCurrentRoles = [];
     }
 
@@ -133,7 +131,6 @@ export async function analyzeUserProfile(userId: string): Promise<ProfileAnalysi
     );
 
     const hasFourmizInfo = !!(
-      profile?.rib &&
       profile?.id_document_path
     );
 
@@ -156,7 +153,7 @@ export async function analyzeUserProfile(userId: string): Promise<ProfileAnalysi
       needsFourmizInfo: !hasBasicInfo || !hasFourmizInfo
     };
 
-    console.log('📋 Analyse complète:', analysis);
+    console.log('📊 Analyse complète:', analysis);
     return analysis;
 
   } catch (error) {
@@ -198,7 +195,7 @@ export async function addComplementaryRole(
     console.log('🔄 Addition de rôle:', {
       avant: analysis.currentRoles,
       ajout: newRole,
-      après: newRoles
+      apres: newRoles
     });
 
     // 4. Préparer les données de mise à jour
@@ -213,10 +210,10 @@ export async function addComplementaryRole(
     const { error: upsertError } = await supabase
       .from('profiles')
       .upsert({
-        id: userId,  // 🔧 CHANGÉ : de 'user_id' à 'id'
+        id: userId,  // ✅ CHANGÉ : de 'user_id' à 'id'
         ...updateData
       }, {
-        onConflict: 'id',  // 🔧 CHANGÉ : de 'user_id' à 'id'
+        onConflict: 'id',  // ✅ CHANGÉ : de 'user_id' à 'id'
         ignoreDuplicates: false
       });
 
@@ -234,7 +231,7 @@ export async function addComplementaryRole(
     };
 
   } catch (error) {
-    console.error('💥 Erreur critique ajout rôle complémentaire:', error);
+    console.error('❌ Erreur critique ajout rôle complémentaire:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Erreur inconnue'
@@ -242,12 +239,12 @@ export async function addComplementaryRole(
   }
 }
 
-// 🎯 DÉTERMINANT LA ROUTE SUIVANTE SELON L'ANALYSE
+// 🧭 DÉTERMINANT LA ROUTE SUIVANTE SELON L'ANALYSE
 export function determineNextRoute(
   analysis: ProfileAnalysis, 
   targetRole: UserRole
 ): { route: string; reason: string } {
-  console.log('🎯 Détermination route suivante:', { analysis, targetRole });
+  console.log('🧭 Détermination route suivante:', { analysis, targetRole });
 
   // CAS 1: L'utilisateur a déjà le rôle demandé
   if (targetRole === 'client' && analysis.hasClientRole) {
@@ -293,7 +290,6 @@ export function determineNextRoute(
       // Client manque d'infos spécifiques Fourmiz → Complétion nécessaire
       return {
         route: '/auth/complete-profile-fourmiz',
-        reason: 'Client doit ajouter infos Fourmiz (RIB + ID)'
       };
     }
   }
@@ -335,7 +331,7 @@ export async function safeNavigateToRole(
           profile_completed: false,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId);  // 🔧 CHANGÉ : de 'user_id' à 'id'
+        .eq('id', userId);  // ✅ CHANGÉ : de 'user_id' à 'id'
         
       console.log('🔧 Auto-correction: profile_completed réinitialisé');
     }
@@ -368,9 +364,9 @@ export async function safeNavigateToRole(
   }
 }
 
-// 🧪 DIAGNOSTIC SPÉCIFIQUE BOUCLE CLIENT ↔ FOURMIZ
+// 🔍 DIAGNOSTIC SPÉCIFIQUE BOUCLE CLIENT ↔ FOURMIZ
 export async function diagnoseRoleLoop(userId: string): Promise<void> {
-  console.log('🧪 === DIAGNOSTIC BOUCLE RÔLES ===');
+  console.log('🔍 === DIAGNOSTIC BOUCLE RÔLES ===');
   
   try {
     const analysis = await analyzeUserProfile(userId);
@@ -392,7 +388,7 @@ export async function diagnoseRoleLoop(userId: string): Promise<void> {
       'Rôles dupliqués': analysis.currentRoles.length !== new Set(analysis.currentRoles).size
     };
 
-    console.log('🚨 TESTS ANTI-BOUCLE:');
+    console.log('🔍 TESTS ANTI-BOUCLE:');
     let hasIssues = false;
     Object.entries(loopTests).forEach(([test, hasIssue]) => {
       const status = hasIssue ? '⚠️ PROBLÈME' : '✅ OK';
@@ -405,18 +401,18 @@ export async function diagnoseRoleLoop(userId: string): Promise<void> {
     }
 
     // Simulation de navigation pour détecter boucles
-    console.log('🎯 SIMULATION NAVIGATION:');
+    console.log('🧭 SIMULATION NAVIGATION:');
     const clientRoute = determineNextRoute(analysis, 'client');
     const fourmizRoute = determineNextRoute(analysis, 'fourmiz');
     
-    console.log('- Client →', clientRoute.route, '(' + clientRoute.reason + ')');
-    console.log('- Fourmiz →', fourmizRoute.route, '(' + fourmizRoute.reason + ')');
+    console.log('- Client 🧑‍💼', clientRoute.route, '(' + clientRoute.reason + ')');
+    console.log('- Fourmiz 🐜', fourmizRoute.route, '(' + fourmizRoute.reason + ')');
 
   } catch (error) {
     console.error('❌ Erreur diagnostic boucle rôles:', error);
   }
   
-  console.log('🏁 === FIN DIAGNOSTIC BOUCLE RÔLES ===');
+  console.log('🔍 === FIN DIAGNOSTIC BOUCLE RÔLES ===');
 }
 
 // 🔧 RÉPARATION AUTOMATIQUE DES BOUCLES DE RÔLES
@@ -437,14 +433,14 @@ export async function fixRoleLoop(userId: string): Promise<boolean> {
           profile_completed: false,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId);  // 🔧 CHANGÉ : de 'user_id' à 'id'
+        .eq('id', userId);  // ✅ CHANGÉ : de 'user_id' à 'id'
       
       fixed = true;
       console.log('✅ Profile_completed réinitialisé');
     }
 
     // Réparation 2: Rôles dupliqués
-    const uniqueRoles = [...new Set(analysis.currentRoles)];
+    const uniqueRoles = analysis.currentRoles.filter((role, index, self) => self.indexOf(role) === index);
     if (uniqueRoles.length !== analysis.currentRoles.length) {
       console.log('🔧 Réparation: Suppression rôles dupliqués');
       
@@ -454,7 +450,7 @@ export async function fixRoleLoop(userId: string): Promise<boolean> {
           roles: uniqueRoles,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId);  // 🔧 CHANGÉ : de 'user_id' à 'id'
+        .eq('id', userId);  // ✅ CHANGÉ : de 'user_id' à 'id'
       
       fixed = true;
       console.log('✅ Rôles dupliqués supprimés');
@@ -471,7 +467,7 @@ export async function fixRoleLoop(userId: string): Promise<boolean> {
           roles: validRoles,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId);  // 🔧 CHANGÉ : de 'user_id' à 'id'
+        .eq('id', userId);  // ✅ CHANGÉ : de 'user_id' à 'id'
       
       fixed = true;
       console.log('✅ Rôles invalides supprimés');
@@ -522,7 +518,7 @@ export function useRoleManager() {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', userId)  // 🔧 CHANGÉ : de 'user_id' à 'id'
+          .eq('id', userId)  // ✅ CHANGÉ : de 'user_id' à 'id'
           .single();
 
         if (profileError) {
@@ -574,7 +570,7 @@ export function useRoleManager() {
     }
   }, [refreshProfile]);
 
-  // 🎯 Navigation sécurisée vers un rôle
+  // 🧭 Navigation sécurisée vers un rôle
   const navigateToRole = useCallback(async (userId: string, targetRole: UserRole) => {
     try {
       return await safeNavigateToRole(userId, targetRole);
@@ -588,7 +584,7 @@ export function useRoleManager() {
     }
   }, []);
 
-  // 🧪 Diagnostiquer les boucles de rôles
+  // 🔍 Diagnostiquer les boucles de rôles
   const diagnose = useCallback(async (userId: string) => {
     try {
       await diagnoseRoleLoop(userId);
@@ -612,7 +608,7 @@ export function useRoleManager() {
     }
   }, [refreshProfile]);
 
-  // ✅ VARIABLES SÉCURISÉES pour éviter les erreurs undefined - ULTRA-PROTÉGÉES
+  // 🛡️ VARIABLES SÉCURISÉES pour éviter les erreurs undefined - ULTRA-PROTÉGÉES
   const currentRoles = (analysis?.currentRoles && Array.isArray(analysis.currentRoles)) ? analysis.currentRoles : [];
   const hasClientRole = analysis?.hasClientRole === true;
   const hasFourmizRole = analysis?.hasFourmizRole === true;
@@ -623,12 +619,12 @@ export function useRoleManager() {
   const needsClientInfo = analysis?.needsClientInfo === true;
   const needsFourmizInfo = analysis?.needsFourmizInfo === true;
 
-  // ✅ FONCTION hasRole ULTRA-SÉCURISÉE
+  // 🔍 FONCTION hasRole ULTRA-SÉCURISÉE
   const hasRole = useCallback((role: UserRole): boolean => {
     try {
       // Triple vérification pour éviter les erreurs
       if (!analysis || !analysis.currentRoles || !Array.isArray(analysis.currentRoles)) {
-        console.log('⚠️ hasRole: Pas de rôles disponibles:', { analysis, currentRoles: analysis?.currentRoles });
+        console.log('ℹ️ hasRole: Pas de rôles disponibles:', { analysis, currentRoles: analysis?.currentRoles });
         return false;
       }
       
@@ -641,7 +637,7 @@ export function useRoleManager() {
     }
   }, [analysis]);
 
-  // ✅ FONCTION canAddRole ULTRA-SÉCURISÉE
+  // 🔍 FONCTION canAddRole ULTRA-SÉCURISÉE
   const canAddRole = useCallback((role: UserRole): boolean => {
     try {
       if (!analysis) return false;
@@ -666,14 +662,14 @@ export function useRoleManager() {
     loading,
     error,
     
-    // 🔍 Helpers basés sur l'analyse (valeurs ultra-sécurisées)
+    // 📊 Helpers basés sur l'analyse (valeurs ultra-sécurisées)
     currentRoles,
     hasClientRole,
     hasFourmizRole,
     profileExists,
     profileCompleted,
     
-    // ✅ Raccourcis pour vérifications (valeurs ultra-sécurisées)
+    // 🔍 Raccourcis pour vérifications (valeurs ultra-sécurisées)
     isClient: hasClientRole,
     isFourmiz: hasFourmizRole,
     canBecomeClient: canAddClient,
@@ -687,7 +683,7 @@ export function useRoleManager() {
     diagnose,
     fixLoops,
     
-    // 🔧 Utilitaires ultra-sécurisés
+    // 🛠️ Utilitaires ultra-sécurisés
     hasRole,
     canAddRole,
   };

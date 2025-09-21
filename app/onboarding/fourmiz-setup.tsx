@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function FourmizSetupScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>🚀 Configuration Fourmiz</Text>
-      <Text style={styles.subtitle}>Onboarding en cours de développement...</Text>
+      <Text style={styles.title}>?? Configuration Fourmiz</Text>
+      <Text style={styles.subtitle}>Onboarding en cours de d�veloppement...</Text>
     </SafeAreaView>
   );
 }

@@ -1,9 +1,10 @@
 import { SafeAreaView, Text } from 'react-native';
 
-export default function MessagesScreen() {
+export default function MessagesScrééeen() {
   return (
     <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Messages Screen</Text>
+      <Text>Messages Scrééeen</Text>
     </SafeAreaView>
   );
 }
+

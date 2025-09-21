@@ -1,4 +1,4 @@
-// components/fourmiz/CategoryMapper.tsx
+﻿// components/fourmiz/CategoryMapper.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -83,7 +83,7 @@ export default function CategoryMapper({ onMappingComplete }: Props) {
       return;
     }
 
-    const servicesList = mappingResults.unmappedServicesList
+    const servicesList = mappingResults.unmappedServicesList 
       .map((s: Service) => `• ${s.title} (${s.categorie || 'sans catégorie'})`)
       .slice(0, 10) // Limiter à 10 pour l'affichage
       .join('\n');
@@ -108,7 +108,7 @@ export default function CategoryMapper({ onMappingComplete }: Props) {
     <ScrollView style={styles.container}>
       {/* Header avec statistiques */}
       <View style={styles.header}>
-        <Text style={styles.title}>🔄 Mapping des services</Text>
+        <Text style={styles.title}>🔗 Mapping des services</Text>
         <Text style={styles.subtitle}>
           Correspondance entre vos services et les catégories fourmiz
         </Text>
