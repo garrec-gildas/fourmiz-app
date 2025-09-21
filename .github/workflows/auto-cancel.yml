@@ -1,0 +1,17 @@
+name: Auto Cancel Expired Orders
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  auto-cancel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Auto Cancel Function
+        run: |
+          curl -X POST "https://hsijgsqtqbqevbytgvhm.supabase.co/functions/v1/auto-cancel" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            --fail-with-body
