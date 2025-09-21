@@ -6,6 +6,8 @@
 // 🔧 MODIFIÉ : Header local compact sans bouton de retour
 // 🔧 NOUVEAU : Correction complète du problème de clavier dans RatingModal
 // 🆕 AJOUTÉ : Option B - Lien contextuel vers candidatures pour workflow candidatures
+// 🗑️ SUPPRIMÉ : Badges de statut de paiement (débit effectué en fin de commande)
+// 🔧 INTERFACE CORRIGÉE : Conformité parfaite avec la structure DB orders
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
@@ -90,23 +92,84 @@ const translateUrgencyLevel = (urgencyLevel: string): string => {
   return urgencyLevel || 'Priorité élevée';
 };
 
+// 🔧 INTERFACE ORDER CORRIGÉE - CONFORMITÉ PARFAITE AVEC DB
 interface Order {
+  // Champs de base de la table orders
   id: number;
+  user_id?: string;
   service_id: number | null;
   service_title?: string;
-  status: string;
+  description?: string;
   date: string;
   start_time?: string;
   end_time?: string;
-  proposed_amount: number;
   address: string;
   postal_code: string;
   city: string;
-  description?: string;
+  phone?: string;
+  urgent?: boolean;
+  urgency_level?: string;
+  invoice_required?: boolean;
+  proposed_amount: number;
+  status: string;
   created_at: string;
   updated_at: string;
+  
+  // Champs de gestion des utilisateurs
+  client_id?: string;
+  fourmiz_id?: string;
+  confirmed_by_fourmiz?: boolean;
+  accepted_at?: string;
   cancelled_at?: string;
-  cancelled_by?: number;
+  cancelled_by?: string; // 🔧 CORRIGÉ: uuid -> string (était number)
+  cancellation_reason?: string;
+  
+  // Champs de validation et évaluation
+  validated_at?: string;
+  validated_by?: string;
+  validation_method?: string;
+  client_validated_at?: string;
+  fourmiz_validated_at?: string;
+  validation_completed_at?: string;
+  rating?: number;
+  feedback?: string;
+  
+  // Champs financiers
+  urgency_surcharge?: number;
+  cancellation_fee?: number;
+  fourmiz_amount?: number;
+  platform_fee?: number;
+  commission?: number;
+  invoice_url?: string;
+  
+  // Champs de paiement
+  payment_method?: string;
+  payment_status?: string;
+  payment_authorized_at?: string; // 🔧 CORRIGÉ: remplace paid_at
+  payment_intent_id?: string;
+  funds_released_at?: string;
+  
+  // Champs d'adresses étendues
+  departure_address?: string;
+  arrival_address?: string;
+  arrival_postal_code?: string;
+  arrival_city?: string;
+  delivery_address?: string;
+  pickup_address?: string;
+  addresses?: {
+    categorie?: string;
+  } | null;
+  
+  // Champs spécialisés
+  equipment?: any; // jsonb
+  package_number?: string;
+  duration?: number;
+  
+  // Workflow et candidatures
+  workflow_type?: 'direct' | 'candidatures';
+  allow_multiple_candidates?: boolean;
+  
+  // Relations JOIN (non-DB, calculées)
   services?: {
     title: string;
     categorie: string;
@@ -117,18 +180,6 @@ interface Order {
     lastname: string;
     avatar_url?: string;
   } | null;
-  phone?: string;
-  urgent?: boolean;
-  urgency_level?: string;
-  addresses?: {
-    categorie?: string;
-  } | null;
-  // 💳 Champs de paiement (pour indicateur statut uniquement)
-  payment_status?: string;
-  paid_at?: string;
-  client_id?: string;
-  // 🆕 NOUVEAU : Champ pour workflow candidatures
-  workflow_type?: 'direct' | 'candidatures';
 }
 
 type FilterType = 'all' | 'en_attente' | 'acceptee' | 'en_cours' | 'terminee' | 'annulee';
@@ -298,8 +349,6 @@ const OrdersScreen = () => {
     // Fallback par défaut
     return 'direct';
   }, []);
-
-  // ✅ SYSTÈME PAIEMENT SUPPRIMÉ - Le paiement se fait à la création
 
   // ✅ MAPPING ULTRA-SÉCURISÉ ET OPTIMISÉ DES STATUTS
   const normalizeStatus = useCallback((status: any): FilterType => {
@@ -1050,30 +1099,6 @@ const OrdersScreen = () => {
     return safeString(order.services?.categorie) || '';
   }, []);
 
-  // ✅ INDICATEUR DE STATUT DE PAIEMENT (remplace le bouton paiement)
-  const getPaymentStatusBadge = useCallback((order: Order) => {
-    if (order.payment_status === 'paid' || order.paid_at) {
-      return (
-        <View style={styles.paidBadge}>
-          <Ionicons name="checkmark-circle" size={12} color="#10b981" />
-          <Text style={styles.paidText}>Payé</Text>
-        </View>
-      );
-    }
-    
-    const normalizedStatus = normalizeStatus(order.status);
-    if (normalizedStatus === 'acceptee' || normalizedStatus === 'en_cours') {
-      return (
-        <View style={styles.pendingBadge}>
-          <Ionicons name="time" size={12} color="#d97706" />
-          <Text style={styles.pendingText}>Débit en cours</Text>
-        </View>
-      );
-    }
-    
-    return null;
-  }, [normalizeStatus]);
-
   // ✅ OPTIONS DE FILTRE
   const filterOptions = useMemo(() => [
     { id: 'all', label: `Toutes (${orders.length})`, icon: 'apps' as const },
@@ -1409,15 +1434,6 @@ const OrdersScreen = () => {
               </Text>
             </View>
           )}
-
-          {order.urgent && (
-            <View style={styles.detailRow}>
-              <Ionicons name="flash" size={14} color="#ef4444" />
-              <Text style={[styles.detailText, { color: '#ef4444', fontWeight: '600' }]}>
-                Dès que possible - {translateUrgencyLevel(order.urgency_level)}
-              </Text>
-            </View>
-          )}
         </View>
 
         {order.fourmiz_profile && (
@@ -1455,9 +1471,6 @@ const OrdersScreen = () => {
             </TouchableOpacity>
           </View>
         )}
-
-        {/* ✅ INDICATEUR DE PAIEMENT (remplace le bouton paiement) */}
-        {getPaymentStatusBadge(order)}
 
         {/* Actions de timeout intelligentes */}
         {(() => {
@@ -1549,7 +1562,7 @@ const OrdersScreen = () => {
         </View>
       </View>
     );
-  }, [getStatusConfig, getOrderTitle, getOrderCategory, normalizeStatus, getOrderTimeoutStatus, formatDate, formatTime, getHoursUntilService, getOrderWorkflow, getPaymentStatusBadge, handleIncreaseBudget, handleRepostOrder, handleFreeCancel, handleChatOrder, canValidateOrder, handleValidateOrder, handleCancelOrder]);
+  }, [getStatusConfig, getOrderTitle, getOrderCategory, normalizeStatus, getOrderTimeoutStatus, formatDate, formatTime, getHoursUntilService, getOrderWorkflow, handleIncreaseBudget, handleRepostOrder, handleFreeCancel, handleChatOrder, canValidateOrder, handleValidateOrder, handleCancelOrder]);
 
   if (authLoading || loading) {
     return (
@@ -1707,7 +1720,7 @@ const OrdersScreen = () => {
   );
 };
 
-// ✅ STYLES OPTIMISÉS + HEADER COMPACT + INDICATEURS PAIEMENT + OPTION B CANDIDATURES
+// ✅ STYLES OPTIMISÉS + HEADER COMPACT + SUPPRESSION STYLES PAIEMENT + OPTION B CANDIDATURES
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -2009,42 +2022,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#0369a1',
-  },
-
-  // ✅ STYLES POUR INDICATEURS PAIEMENT
-  paidBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    gap: 4,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  paidText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#10b981',
-  },
-  pendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    gap: 4,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  pendingText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#d97706',
   },
 
   orderActions: {

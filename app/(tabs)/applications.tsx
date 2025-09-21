@@ -1,6 +1,7 @@
 // app/(tabs)/applications.tsx - VERSION ÉPURÉE HARMONISÉE
 // Style cohérent avec orders.tsx et available-orders.tsx
 // Design simple et fonctionnel sans fioritures
+// 🔧 MODIFIÉ: Bouton retour vers orders au lieu de router.back()
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -134,7 +135,7 @@ export default function ApplicationsScreen() {
 
   const viewFourmizProfile = useCallback((fourmizId: string) => {
     console.log('Navigation vers profil fourmiz:', fourmizId);
-    router.push(`/fourmiz-profile-readonly/${fourmizId}`);
+    router.push(`/fourmiz-profile-readonly/${fourmizId}?from=applications`);
   }, []);
 
   const acceptApplication = useCallback(async (application: ApplicationWithProfile) => {
@@ -365,7 +366,7 @@ export default function ApplicationsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/orders')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>

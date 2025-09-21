@@ -1,6 +1,7 @@
 // app/fourmiz-profile-readonly/[fourmizId].tsx - FICHE FOURMIZ EN LECTURE SEULE HARMONISÉE
 // Version strictement identique à fourmiz-preview.tsx pour la consultation par les clients
 // Design moderne et cohérent avec la fiche de présentation du fourmiz
+// 🔧 MODIFIÉ: Navigation conditionnelle au lieu de router.back()
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -108,7 +109,7 @@ const formatEquipments = (equipmentProvided: string[] | null, specializedEquipme
 };
 
 export default function FourmizProfileReadonly() {
-  const { fourmizId } = useLocalSearchParams<{ fourmizId: string }>();
+  const { fourmizId, from } = useLocalSearchParams<{ fourmizId: string; from?: string }>();
   
   const [profile, setProfile] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
@@ -128,6 +129,35 @@ export default function FourmizProfileReadonly() {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 🔧 NOUVELLE FONCTION DE NAVIGATION CONDITIONNELLE
+  const handleBack = useCallback(() => {
+    console.log('🔙 Navigation retour depuis fourmiz-profile, source:', from);
+    
+    switch (from) {
+      case 'applications':
+        console.log('→ Retour vers applications');
+        router.replace('/(tabs)/applications');
+        break;
+      case 'map':
+        console.log('→ Retour vers map');
+        router.replace('/(tabs)/map');
+        break;
+      case 'services':
+        console.log('→ Retour vers services');
+        router.replace('/(tabs)/services');
+        break;
+      case 'orders':
+        console.log('→ Retour vers orders');
+        router.replace('/(tabs)/orders');
+        break;
+      default:
+        // Fallback intelligent : essayer de détecter la source ou aller vers applications
+        console.log('→ Fallback vers applications (source par défaut)');
+        router.replace('/(tabs)/applications');
+        break;
+    }
+  }, [from]);
 
   // ====================================
   // CHARGEMENT DES CATÉGORIES DEPUIS SUPABASE
@@ -399,7 +429,7 @@ export default function FourmizProfileReadonly() {
           <Ionicons name="warning" size={32} color="#333333" />
           <Text style={styles.errorTitle}>Erreur</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
             <Text style={styles.retryButtonText}>Retour</Text>
           </TouchableOpacity>
         </View>
@@ -413,7 +443,7 @@ export default function FourmizProfileReadonly() {
         <View style={styles.errorContainer}>
           <Ionicons name="person-circle-outline" size={32} color="#666666" />
           <Text style={styles.errorTitle}>Profil non trouvé</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.retryButton} onPress={handleBack}>
             <Text style={styles.retryButtonText}>Retour</Text>
           </TouchableOpacity>
         </View>
@@ -429,7 +459,7 @@ export default function FourmizProfileReadonly() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleBack}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         

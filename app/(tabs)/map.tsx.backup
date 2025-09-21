@@ -1,9 +1,16 @@
-Ôªø// app/(tabs)/map.tsx - CARTE INTERACTIVE DUAL MODE FINAL - VERSION CORRIG√âE COH√âRENTE
-// üó∫Ô∏è MODE CLIENT : Voit les fourmiz disponibles
-// üêú MODE FOURMIZ : Voit les demandes clients
-// üì± INTERFACE ADAPT√âE SELON LE R√îLE (G√âR√â PAR LE HEADER)
-// ‚úÖ CORRIG√â : Utilise la m√™me source available_orders_filtered
-// üîß MODIFI√â : Navigation CLIENT vers profil fourmiz en lecture seule avec from=map
+// app/(tabs)/map.tsx - CARTE INTERACTIVE DUAL MODE FINAL - VERSION CORRIG…E COH…RENTE
+// ??? MODE CLIENT : Voit les fourmiz disponibles
+// ?? MODE FOURMIZ : Voit les demandes clients
+// ?? INTERFACE ADAPT…E SELON LE R‘LE (G…R… PAR LE HEADER)
+// ? CORRIG… : Utilise la mÍme source available_orders_filtered que available-orders.tsx
+// ? CORRIG… : Ajoute la dÈduplication pour cohÈrence parfaite
+// ? CORRIG… : Exclut les propres demandes de l'utilisateur
+// ?? CORRIG… : Navigation vers /orders/[id] avec validation rigoureuse des IDs
+// ?? CORRIG… : SystËme de catÈgories basÈ sur services.categorie (vraie source)
+// ?? CORRIG… : Logique simple fourmiz_amount (accepte les valeurs 0Ä)
+// ?? CORRIG… : Colonne "urgent" au lieu de "urgency" 
+// ? NOUVEAU : Suppression complËte des rÈfÈrences ‡ la table categories
+// ? NOUVEAU : Utilisation de service_category_text au lieu de service_category_id
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
@@ -30,7 +37,7 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
-// Importer le contexte de r√¥le
+// Importer le contexte de rÙle
 import { useSharedRoleManager } from './_layout';
 
 const { width, height } = Dimensions.get('window');
@@ -41,7 +48,7 @@ enum UserMode {
   FOURMIZ = 'fourmiz'
 }
 
-// INTERFACES ADAPT√âES POUR DUAL MODE
+// INTERFACES ADAPT…ES POUR DUAL MODE
 interface Fourmiz {
   id: string;
   name: string;
@@ -109,7 +116,7 @@ interface AppConfig {
   minMovementForRefreshKm: number;
 }
 
-// NOUVELLE INTERFACE POUR LA D√âDUPLICATION
+// NOUVELLE INTERFACE POUR LA D…DUPLICATION
 interface AvailableOrder {
   id: number;
   service_id?: number;
@@ -168,7 +175,7 @@ interface AvailableOrder {
   };
 }
 
-// CONFIGURATION PAR D√âFAUT
+// CONFIGURATION PAR D…FAUT
 const DEFAULT_APP_CONFIG: AppConfig = {
   defaultRegion: {
     latitude: 48.8566,
@@ -178,21 +185,21 @@ const DEFAULT_APP_CONFIG: AppConfig = {
   },
   availableRadius: [1, 3, 5, 10, 20],
   defaultRadius: 5,
-  defaultMarkerIcon: 'üîß',
+  defaultMarkerIcon: '??',
   refreshIntervalMs: 30000,
   minMovementForRefreshKm: 0.1
 };
 
-// IC√îNES POUR CHAQUE MODE
-const FOURMIZ_ICON = 'üêú';
-const CLIENT_ICON = 'üë§'; // Ic√¥ne personne pour les clients
+// IC‘NES POUR CHAQUE MODE
+const FOURMIZ_ICON = '??';
+const CLIENT_ICON = '??'; // IcÙne personne pour les clients
 
 // COULEURS FALLBACK
 const FALLBACK_SERVICE_COLORS = {
   'aide': '#4CAF50',
   'domicile': '#4CAF50',
   'bricolage': '#FF9800',
-  'r√©paration': '#FF9800',
+  'rÈparation': '#FF9800',
   'transport': '#2196F3',
   'livraison': '#2196F3',
   'jardinage': '#8BC34A',
@@ -204,14 +211,14 @@ const FALLBACK_SERVICE_COLORS = {
   'formation': '#9C27B0',
   'administratif': '#FF9800',
   'informatique': '#2196F3',
-  'secr√©tariat': '#673AB7',
-  '√©v√©nementiel': '#E91E63',
-  's√©curit√©': '#F44336',
-  'b√¢timent': '#795548',
+  'secrÈtariat': '#673AB7',
+  'ÈvÈnementiel': '#E91E63',
+  'sÈcuritÈ': '#F44336',
+  'b‚timent': '#795548',
   'agriculture': '#8BC34A',
-  'bien-√™tre': '#4CAF50',
+  'bien-Ítre': '#4CAF50',
   'coaching': '#FF5722',
-  'd√©pannage': '#FF9800'
+  'dÈpannage': '#FF9800'
 };
 
 const getFallbackColor = (categoryName: string): string => {
@@ -239,7 +246,7 @@ const calculateDistance = (pos1: MapRegion, pos2: MapRegion): number => {
   return R * c;
 };
 
-// ‚úÖ NOUVELLE FONCTION DE D√âDUPLICATION (identique √† available-orders.tsx)
+// ? NOUVELLE FONCTION DE D…DUPLICATION (identique ‡ available-orders.tsx)
 const deduplicateOrders = (orders: AvailableOrder[]): AvailableOrder[] => {
   const seen = new Set<number>();
   const unique = orders.filter(order => {
@@ -302,12 +309,12 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
           .map(categorie => {
             let key = categorie.toLowerCase()
               .replace(/\s+/g, '_')
-              .replace(/[√†√°√¢√§√£]/g, 'a')
-              .replace(/[√®√©√™√´]/g, 'e')
-              .replace(/[√¨√≠√Æ√Ø]/g, 'i')
-              .replace(/[√≤√≥√¥√∂√µ]/g, 'o')
-              .replace(/[√π√∫√ª√º]/g, 'u')
-              .replace(/[√ß]/g, 'c')
+              .replace(/[‡·‚„‰Â]/g, 'a')
+              .replace(/[ËÈÍÎ]/g, 'e')
+              .replace(/[ÏÌÓÔ]/g, 'i')
+              .replace(/[ÚÛÙıˆ]/g, 'o')
+              .replace(/[˘˙˚¸]/g, 'u')
+              .replace(/[Á]/g, 'c')
               .replace(/[^a-z0-9_]/g, '');
             
             if (!key || key.trim() === '') {
@@ -327,7 +334,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
       }
       
     } catch (error) {
-      console.error('Erreur chargement d√©tails fourmiz:', error);
+      console.error('Erreur chargement dÈtails fourmiz:', error);
     } finally {
       setLoading(false);
     }
@@ -343,7 +350,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
 
   const formatServiceTypes = (serviceTypes: Record<string, boolean> | null): string => {
     if (!serviceTypes || typeof serviceTypes !== 'object') {
-      return 'Services non renseign√©s';
+      return 'Services non renseignÈs';
     }
     
     const selectedServices = Object.entries(serviceTypes)
@@ -354,7 +361,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
       })
       .filter(Boolean);
     
-    return selectedServices.length > 0 ? selectedServices.join(', ') : 'Aucun service s√©lectionn√©';
+    return selectedServices.length > 0 ? selectedServices.join(', ') : 'Aucun service sÈlectionnÈ';
   };
 
   return (
@@ -376,7 +383,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarText}>
-                    {fourmiz.name ? fourmiz.name.charAt(0).toUpperCase() : 'üêú'}
+                    {fourmiz.name ? fourmiz.name.charAt(0).toUpperCase() : '??'}
                   </Text>
                 </View>
               )}
@@ -388,9 +395,9 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
                 <Ionicons name="star" size={16} color="#FFD700" />
                 <Text style={styles.ratingText}>{fourmiz.rating}</Text>
               </View>
-              <Text style={styles.metaDivider}>‚Ä¢</Text>
+              <Text style={styles.metaDivider}>ï</Text>
               <Text style={styles.distanceText}>{fourmiz.distance}</Text>
-              <Text style={styles.metaDivider}>‚Ä¢</Text>
+              <Text style={styles.metaDivider}>ï</Text>
               <Text style={styles.responseTimeText}>{fourmiz.responseTime}</Text>
             </View>
           </View>
@@ -398,7 +405,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color="#000" />
-              <Text style={styles.loadingText}>Chargement des d√©tails...</Text>
+              <Text style={styles.loadingText}>Chargement des dÈtails...</Text>
             </View>
           ) : criteriaData ? (
             <>
@@ -415,7 +422,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
               <View style={styles.modalSection}>
                 <View style={styles.modalSectionHeader}>
                   <Ionicons name="briefcase-outline" size={18} color="#000" />
-                  <Text style={styles.modalSectionTitle}>Services propos√©s</Text>
+                  <Text style={styles.modalSectionTitle}>Services proposÈs</Text>
                 </View>
                 <Text style={styles.modalSectionContent}>
                   {formatServiceTypes(criteriaData.service_types)}
@@ -428,7 +435,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
                   <Text style={styles.modalSectionTitle}>Localisation</Text>
                 </View>
                 <Text style={styles.modalSectionContent}>
-                  {fourmiz.fullData?.city || 'Ville non renseign√©e'}
+                  {fourmiz.fullData?.city || 'Ville non renseignÈe'}
                 </Text>
               </View>
             </>
@@ -436,7 +443,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
             <View style={styles.noCriteriaContainer}>
               <Ionicons name="information-circle-outline" size={24} color="#666" />
               <Text style={styles.noCriteriaText}>
-                Ce fourmiz n'a pas encore compl√©t√© sa fiche de pr√©sentation.
+                Ce fourmiz n'a pas encore complÈtÈ sa fiche de prÈsentation.
               </Text>
             </View>
           )}
@@ -456,7 +463,7 @@ const FourmizDetailModal = ({ fourmiz, visible, onClose, onContactFourmiz }: Fou
   );
 };
 
-// MODAL REQUEST DETAIL (MODE FOURMIZ) - VERSION CORRIG√âE
+// MODAL REQUEST DETAIL (MODE FOURMIZ) - VERSION CORRIG…E
 interface RequestDetailModalProps {
   request: ClientRequest | null;
   visible: boolean;
@@ -479,21 +486,21 @@ const RequestDetailModal = ({ request, visible, onClose, onRespondToRequest }: R
   const getUrgencyLabel = (urgency: string) => {
     switch (urgency) {
       case 'high': return 'Urgent';
-      case 'medium': return 'Mod√©r√©';
+      case 'medium': return 'ModÈrÈ';
       case 'low': return 'Flexible';
-      default: return 'Non sp√©cifi√©';
+      default: return 'Non spÈcifiÈ';
     }
   };
 
   const handleRespondClick = () => {
-    console.log('üîÑ Clic "R√©pondre √† la demande":', {
+    console.log('?? Clic "RÈpondre ‡ la demande":', {
       requestId: request.id,
       requestType: typeof request.id,
       requestTitle: request.title
     });
     
     if (!request.id) {
-      console.error('‚ùå Request ID manquant dans modal');
+      console.error('? Request ID manquant dans modal');
       Alert.alert('Erreur', 'Identifiant de commande manquant');
       return;
     }
@@ -520,7 +527,7 @@ const RequestDetailModal = ({ request, visible, onClose, onRespondToRequest }: R
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarText}>
-                    {request.clientName ? request.clientName.charAt(0).toUpperCase() : 'üë§'}
+                    {request.clientName ? request.clientName.charAt(0).toUpperCase() : '??'}
                   </Text>
                 </View>
               )}
@@ -532,9 +539,9 @@ const RequestDetailModal = ({ request, visible, onClose, onRespondToRequest }: R
               <View style={[styles.urgencyBadge, { backgroundColor: getUrgencyColor(request.urgency) }]}>
                 <Text style={styles.urgencyText}>{getUrgencyLabel(request.urgency)}</Text>
               </View>
-              <Text style={styles.metaDivider}>‚Ä¢</Text>
+              <Text style={styles.metaDivider}>ï</Text>
               <Text style={styles.distanceText}>{request.distance}</Text>
-              <Text style={styles.metaDivider}>‚Ä¢</Text>
+              <Text style={styles.metaDivider}>ï</Text>
               <Text style={styles.budgetText}>{request.budget}</Text>
             </View>
           </View>
@@ -550,7 +557,7 @@ const RequestDetailModal = ({ request, visible, onClose, onRespondToRequest }: R
           <View style={styles.modalSection}>
             <View style={styles.modalSectionHeader}>
               <Ionicons name="briefcase-outline" size={18} color="#000" />
-              <Text style={styles.modalSectionTitle}>Service demand√©</Text>
+              <Text style={styles.modalSectionTitle}>Service demandÈ</Text>
             </View>
             <Text style={styles.modalSectionContent}>{request.service}</Text>
           </View>
@@ -558,10 +565,10 @@ const RequestDetailModal = ({ request, visible, onClose, onRespondToRequest }: R
           <View style={styles.modalSection}>
             <View style={styles.modalSectionHeader}>
               <Ionicons name="time-outline" size={18} color="#000" />
-              <Text style={styles.modalSectionTitle}>Publi√©</Text>
+              <Text style={styles.modalSectionTitle}>PubliÈ</Text>
             </View>
             <Text style={styles.modalSectionContent}>
-              {request.createdAt.toLocaleDateString()} √† {request.createdAt.toLocaleTimeString()}
+              {request.createdAt.toLocaleDateString()} ‡ {request.createdAt.toLocaleTimeString()}
             </Text>
           </View>
         </ScrollView>
@@ -572,7 +579,7 @@ const RequestDetailModal = ({ request, visible, onClose, onRespondToRequest }: R
             onPress={handleRespondClick}
           >
             <Ionicons name="chatbubble" size={20} color="#fff" />
-            <Text style={styles.contactButtonText}>R√©pondre √† la demande</Text>
+            <Text style={styles.contactButtonText}>RÈpondre ‡ la demande</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -581,28 +588,28 @@ const RequestDetailModal = ({ request, visible, onClose, onRespondToRequest }: R
 };
 
 export default function MapScreen() {
-  // D√âTERMINATION DU MODE DEPUIS LE CONTEXTE DE R√îLE
+  // D…TERMINATION DU MODE DEPUIS LE CONTEXTE DE R‘LE
   const { currentRole, isInitialized } = useSharedRoleManager();
   
   // LOGIQUE : CLIENT voit les FOURMIZ, FOURMIZ voit les DEMANDES CLIENTS  
   const userMode = useMemo(() => {
     if (!isInitialized || !currentRole) {
-      return UserMode.CLIENT; // Mode par d√©faut pendant le chargement
+      return UserMode.CLIENT; // Mode par dÈfaut pendant le chargement
     }
     
-    // üë§ Utilisateur CLIENT ‚Üí voit les FOURMIZ (mode CLIENT)
-    // üêú Utilisateur FOURMIZ ‚Üí voit les DEMANDES CLIENTS (mode FOURMIZ) 
+    // ?? Utilisateur CLIENT ? voit les FOURMIZ (mode CLIENT)
+    // ?? Utilisateur FOURMIZ ? voit les DEMANDES CLIENTS (mode FOURMIZ) 
     return currentRole === 'client' ? UserMode.CLIENT : UserMode.FOURMIZ;
   }, [currentRole, isInitialized]);
 
-  console.log('üó∫Ô∏è MapScreen - D√©termination du mode:', {
+  console.log('??? MapScreen - DÈtermination du mode:', {
     currentRole,
     isInitialized, 
     userMode: userMode === UserMode.CLIENT ? 'CLIENT (voit fourmiz)' : 'FOURMIZ (voit demandes)',
     modeEnum: userMode
   });
 
-  // √âTATS PRINCIPAUX - MODE G√âR√â PAR LE HEADER/LAYOUT
+  // …TATS PRINCIPAUX - MODE G…R… PAR LE HEADER/LAYOUT
   const [userLocation, setUserLocation] = useState<MapRegion | null>(null);
   const [fourmizList, setFourmizList] = useState<Fourmiz[]>([]);
   const [requestsList, setRequestsList] = useState<ClientRequest[]>([]);
@@ -630,15 +637,15 @@ export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ‚úÖ FONCTION DEBUG RELATIONS CAT√âGORIES CORRIG√âE - Sans table categories
+  // ? FONCTION DEBUG RELATIONS CAT…GORIES CORRIG…E - Sans table categories
   const debugCategoriesRelations = async () => {
-    console.log('üîç === DEBUG RELATIONS CAT√âGORIES (SANS TABLE CATEGORIES) ===');
+    console.log('?? === DEBUG RELATIONS CAT…GORIES (SANS TABLE CATEGORIES) ===');
     
     try {
-      // ‚úÖ SUPPRIM√â : V√©rification des cat√©gories dans la table categories
-      console.log('üìù Plus de table categories - utilisation de services.categorie uniquement');
+      // ? SUPPRIM… : VÈrification des catÈgories dans la table categories
+      console.log('?? Plus de table categories - utilisation de services.categorie uniquement');
 
-      // V√©rifier les cat√©gories services.categorie
+      // VÈrifier les catÈgories services.categorie
       const { data: servicesCategories } = await supabase
         .from('services')
         .select('categorie')
@@ -653,7 +660,7 @@ export default function MapScreen() {
         }
       });
 
-      console.log('üìä Cat√©gories services.categorie:', servicesCategoriesCount.size);
+      console.log('??? CatÈgories services.categorie:', servicesCategoriesCount.size);
       Array.from(servicesCategoriesCount.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
@@ -662,13 +669,13 @@ export default function MapScreen() {
         });
 
     } catch (error) {
-      console.error('‚ùå Erreur debug:', error);
+      console.error('? Erreur debug:', error);
     }
   };
 
   // CHARGEMENT INITIAL
   useEffect(() => {
-    console.log(`üöÄ MapScreen - Initialisation mode ${userMode}...`);
+    console.log(`?? MapScreen - Initialisation mode ${userMode}...`);
     initializeApp();
   }, []);
 
@@ -681,7 +688,7 @@ export default function MapScreen() {
 
   // RECHARGEMENT LORS DU CHANGEMENT DE FILTRES OU MODE
   useEffect(() => {
-    console.log('üîÑ Filters/Mode changed:', { radiusFilter, selectedService, userMode, userLocation: !!userLocation });
+    console.log('?? Filters/Mode changed:', { radiusFilter, selectedService, userMode, userLocation: !!userLocation });
     if (userLocation) {
       if (userMode === UserMode.CLIENT) {
         loadNearbyFourmiz(userLocation);
@@ -699,7 +706,7 @@ export default function MapScreen() {
 
     refreshIntervalRef.current = setInterval(() => {
       if (AppState.currentState === 'active') {
-        console.log('üîÑ Refresh automatique position + donn√©es...');
+        console.log('?? Refresh automatique position + donnÈes...');
         refreshUserLocationAndData();
       }
     }, appConfig.refreshIntervalMs);
@@ -717,7 +724,7 @@ export default function MapScreen() {
 
   const refreshUserLocationAndData = async () => {
     if (isRefreshingLocation) {
-      console.log('‚è≠Ô∏è Refresh d√©j√† en cours, skip...');
+      console.log('?? Refresh dÈj‡ en cours, skip...');
       return;
     }
 
@@ -726,7 +733,7 @@ export default function MapScreen() {
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.log('üö´ Permissions GPS non accord√©es, skip refresh position');
+        console.log('?? Permissions GPS non accordÈes, skip refresh position');
         return;
       }
 
@@ -748,7 +755,7 @@ export default function MapScreen() {
       setUserLocation(newRegion);
 
       if (distanceMoved > appConfig.minMovementForRefreshKm) {
-        console.log('üìç D√©placement d√©tect√©, rechargement donn√©es...');
+        console.log('?? DÈplacement dÈtectÈ, rechargement donnÈes...');
         if (userMode === UserMode.CLIENT) {
           await loadNearbyFourmiz(newRegion);
         } else {
@@ -759,7 +766,7 @@ export default function MapScreen() {
       setLastLocationRefresh(new Date());
 
     } catch (error) {
-      console.error('‚ùå Erreur refresh position:', error);
+      console.error('? Erreur refresh position:', error);
     } finally {
       setIsRefreshingLocation(false);
     }
@@ -778,33 +785,33 @@ export default function MapScreen() {
       setAppConfig(config);
       setRadiusFilter(config.defaultRadius);
       
-      console.log(`‚úÖ Initialisation termin√©e - Mode: ${userMode}`);
+      console.log(`? Initialisation terminÈe - Mode: ${userMode}`);
       
     } catch (error) {
-      console.error('‚ùå Erreur initialisation app:', error);
+      console.error('? Erreur initialisation app:', error);
       Alert.alert('Erreur', 'Impossible de charger l\'application');
     } finally {
       setLoading(false);
     }
   };
 
-  // ‚úÖ loadServiceCategories CORRIG√â - Sans table categories + UTILISE available_orders_filtered
+  // ? loadServiceCategories CORRIG… - Sans table categories + UTILISE available_orders_filtered
   const loadServiceCategories = async (forceRefresh = false) => {
     try {
       setLoadingServices(true);
-      console.log('üìÇ Chargement cat√©gories r√©elles depuis available_orders_filtered...');
+      console.log('?? Chargement catÈgories rÈelles depuis available_orders_filtered...');
       
       if (userMode === UserMode.FOURMIZ) {
-        // MODE FOURMIZ : R√©cup√©rer les cat√©gories des commandes disponibles via available_orders_filtered
+        // MODE FOURMIZ : RÈcupÈrer les catÈgories des commandes disponibles via available_orders_filtered
         const { data: { user } } = await supabase.auth.getUser();
         if (!user?.id) {
-          console.error('‚ùå Utilisateur non connect√©');
+          console.error('? Utilisateur non connectÈ');
           setServiceCategories([]);
           setLoadingServices(false);
           return;
         }
 
-        // ‚úÖ NOUVEAU : Utilise available_orders_filtered pour coh√©rence
+        // ? NOUVEAU : Utilise available_orders_filtered pour cohÈrence
         const { data: ordersData, error: ordersError } = await supabase
           .from('available_orders_filtered')
           .select(`
@@ -823,21 +830,21 @@ export default function MapScreen() {
           .not('client_id', 'is', null);
 
         if (ordersError) {
-          console.error('‚ùå Erreur chargement available_orders_filtered:', ordersError);
+          console.error('? Erreur chargement available_orders_filtered:', ordersError);
           throw ordersError;
         }
 
-        // ‚úÖ NOUVEAU : Appliquer la d√©duplication comme dans available-orders.tsx
+        // ? NOUVEAU : Appliquer la dÈduplication comme dans available-orders.tsx
         const uniqueOrders = ordersData ? deduplicateOrders(ordersData) : [];
-        console.log(`‚úÖ Orders apr√®s d√©duplication: ${uniqueOrders.length} (avant: ${ordersData?.length || 0})`);
+        console.log(`? Orders aprËs dÈduplication: ${uniqueOrders.length} (avant: ${ordersData?.length || 0})`);
 
-        // Extraire les cat√©gories selon la hi√©rarchie r√©elle
+        // Extraire les catÈgories selon la hiÈrarchie rÈelle
         const categoriesMap = new Map<string, { name: string; count: number }>();
         
         uniqueOrders?.forEach(order => {
           let categoryName = null;
           
-          // Hi√©rarchie de priorit√© pour trouver la cat√©gorie
+          // HiÈrarchie de prioritÈ pour trouver la catÈgorie
           if (order.addresses?.category) {
             categoryName = order.addresses.category;
           } else if (order.addresses?.categorie) {
@@ -866,8 +873,8 @@ export default function MapScreen() {
           .map(([key, value]) => ({
             id: key.toLowerCase()
               .replace(/\s+/g, '-')
-              .replace(/[√†√°√¢√§√£]/g, 'a')
-              .replace(/[√®√©√™√´]/g, 'e')
+              .replace(/[‡·‚„‰Â]/g, 'a')
+              .replace(/[ËÈÍÎ]/g, 'e')
               .replace(/[&]/g, 'et')
               .replace(/[^a-z0-9-]/g, ''),
             name: value.name,
@@ -878,7 +885,7 @@ export default function MapScreen() {
           }))
           .sort((a, b) => b.servicesCount! - a.servicesCount!);
 
-        console.log('üìä Cat√©gories des commandes FOURMIZ (coh√©rentes):', realCategories.length);
+        console.log('?? CatÈgories des commandes FOURMIZ (cohÈrentes):', realCategories.length);
         realCategories.forEach(cat => {
           console.log(`  - ${cat.name}: ${cat.servicesCount} commandes`);
         });
@@ -886,7 +893,7 @@ export default function MapScreen() {
         setServiceCategories(realCategories);
 
       } else {
-        // MODE CLIENT : R√©cup√©rer les cat√©gories depuis services.categorie avec comptage fourmiz
+        // MODE CLIENT : RÈcupÈrer les catÈgories depuis services.categorie avec comptage fourmiz
         const { data: servicesData, error: servicesError } = await supabase
           .from('services')
           .select('categorie')
@@ -894,11 +901,11 @@ export default function MapScreen() {
           .neq('categorie', '');
 
         if (servicesError) {
-          console.error('‚ùå Erreur chargement services:', servicesError);
+          console.error('? Erreur chargement services:', servicesError);
           throw servicesError;
         }
 
-        // Compter les occurrences de chaque cat√©gorie
+        // Compter les occurrences de chaque catÈgorie
         const categoriesCount = new Map<string, number>();
         servicesData?.forEach(service => {
           if (service.categorie?.trim()) {
@@ -907,10 +914,10 @@ export default function MapScreen() {
           }
         });
 
-        // ‚úÖ CORRIG√â : Compter les fourmiz directement sans utiliser service_category_id
+        // ? CORRIG… : Compter les fourmiz directement sans utiliser service_category_id
         const categoriesWithFourmiz = await Promise.all(
           Array.from(categoriesCount.entries()).map(async ([categoryName, serviceCount]) => {
-            // ‚úÖ NOUVEAU : Compter les fourmiz qui ont cette cat√©gorie dans service_category_text
+            // ? NOUVEAU : Compter les fourmiz qui ont cette catÈgorie dans service_category_text
             const { count: fourmizCount } = await supabase
               .from('profiles')
               .select('id', { count: 'exact' })
@@ -928,12 +935,12 @@ export default function MapScreen() {
 
         // Convertir en ServiceCategory
         const clientCategories: ServiceCategory[] = categoriesWithFourmiz
-          .filter(cat => cat.fourmizCount > 0) // Garder seulement les cat√©gories avec des fourmiz
+          .filter(cat => cat.fourmizCount > 0) // Garder seulement les catÈgories avec des fourmiz
           .map(cat => ({
             id: cat.name.toLowerCase()
               .replace(/\s+/g, '-')
-              .replace(/[√†√°√¢√§√£]/g, 'a')
-              .replace(/[√®√©√™√´]/g, 'e')
+              .replace(/[‡·‚„‰Â]/g, 'a')
+              .replace(/[ËÈÍÎ]/g, 'e')
               .replace(/[&]/g, 'et')
               .replace(/[^a-z0-9-]/g, ''),
             name: cat.name,
@@ -945,7 +952,7 @@ export default function MapScreen() {
           }))
           .sort((a, b) => b.fourmizCount! - a.fourmizCount!);
 
-        console.log('üìä Cat√©gories CLIENT avec fourmiz:', clientCategories.length);
+        console.log('?? CatÈgories CLIENT avec fourmiz:', clientCategories.length);
         clientCategories.forEach(cat => {
           console.log(`  - ${cat.name}: ${cat.fourmizCount} fourmiz, ${cat.servicesCount} services`);
         });
@@ -953,25 +960,25 @@ export default function MapScreen() {
         setServiceCategories(clientCategories);
       }
 
-      // Charger les cat√©gories de l'utilisateur
+      // Charger les catÈgories de l'utilisateur
       await loadMyCategories();
       
     } catch (error) {
-      console.error('‚ùå Erreur chargement cat√©gories:', error);
+      console.error('? Erreur chargement catÈgories:', error);
       setServiceCategories([]);
     } finally {
       setLoadingServices(false);
     }
   };
 
-  // ‚úÖ loadMyCategories CORRIG√â - Utilise service_category_text
+  // ? loadMyCategories CORRIG… - Utilise service_category_text
   const loadMyCategories = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) return;
 
       if (userMode === UserMode.CLIENT) {
-        // Pour un client, r√©cup√©rer uniquement ses demandes en cours
+        // Pour un client, rÈcupÈrer uniquement ses demandes en cours
         const { data: orders, error } = await supabase
           .from('orders')
           .select(`
@@ -992,7 +999,7 @@ export default function MapScreen() {
           setMyCategories(uniqueCategories);
         }
       } else {
-        // ‚úÖ CORRIG√â : Pour un fourmiz, r√©cup√©rer ses cat√©gories depuis service_category_text
+        // ? CORRIG… : Pour un fourmiz, rÈcupÈrer ses catÈgories depuis service_category_text
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('service_category_text, service_types')
@@ -1002,29 +1009,29 @@ export default function MapScreen() {
         if (!error && profile) {
           const categories: string[] = [];
           
-          // ‚úÖ NOUVEAU : Cat√©gorie principale depuis service_category_text
+          // ? NOUVEAU : CatÈgorie principale depuis service_category_text
           if (profile.service_category_text) {
             categories.push(profile.service_category_text);
           }
           
-          // Cat√©gories suppl√©mentaires depuis service_types (bas√©es sur les cat√©gories textuelles)
+          // CatÈgories supplÈmentaires depuis service_types (basÈes sur les catÈgories textuelles)
           if (profile.service_types && typeof profile.service_types === 'object') {
             const selectedServiceTypes = Object.entries(profile.service_types)
               .filter(([key, isSelected]) => isSelected)
               .map(([key]) => key);
             
-            // ‚úÖ NOUVEAU : Mapper les service_types vers les noms de cat√©gories textuelles
+            // ? NOUVEAU : Mapper les service_types vers les noms de catÈgories textuelles
             const categoryMapping = serviceCategories.reduce((acc, cat) => {
               const key = cat.name.toLowerCase()
                 .replace(/\s+/g, '_')
-                .replace(/[√†√°√¢√§√£]/g, 'a')
-                .replace(/[√®√©√™√´]/g, 'e')
-                .replace(/[√¨√≠√Æ√Ø]/g, 'i')
-                .replace(/[√≤√≥√¥√∂√µ]/g, 'o')
-                .replace(/[√π√∫√ª√º]/g, 'u')
-                .replace(/[√ß]/g, 'c')
+                .replace(/[‡·‚„‰Â]/g, 'a')
+                .replace(/[ËÈÍÎ]/g, 'e')
+                .replace(/[ÏÌÓÔ]/g, 'i')
+                .replace(/[ÚÛÙıˆ]/g, 'o')
+                .replace(/[˘˙˚¸]/g, 'u')
+                .replace(/[Á]/g, 'c')
                 .replace(/[^a-z0-9_]/g, '');
-              acc[key] = cat.name; // Utiliser le nom de la cat√©gorie au lieu de l'ID
+              acc[key] = cat.name; // Utiliser le nom de la catÈgorie au lieu de l'ID
               return acc;
             }, {} as Record<string, string>);
 
@@ -1040,7 +1047,7 @@ export default function MapScreen() {
         }
       }
     } catch (error) {
-      console.error('‚ùå Erreur chargement mes cat√©gories:', error);
+      console.error('? Erreur chargement mes catÈgories:', error);
       setMyCategories([]);
     }
   };
@@ -1051,10 +1058,10 @@ export default function MapScreen() {
       
       if (status !== 'granted') {
         Alert.alert(
-          'Permission refus√©e',
-          'L\'acc√®s √† la localisation est n√©cessaire pour afficher les donn√©es pr√®s de vous.',
+          'Permission refusÈe',
+          'L\'accËs ‡ la localisation est nÈcessaire pour afficher les donnÈes prËs de vous.',
           [
-            { text: 'Param√®tres', onPress: () => Location.requestForegroundPermissionsAsync() },
+            { text: 'ParamËtres', onPress: () => Location.requestForegroundPermissionsAsync() },
             { text: 'Continuer sans', style: 'cancel' }
           ]
         );
@@ -1092,7 +1099,7 @@ export default function MapScreen() {
       }
       
     } catch (error) {
-      console.error('‚ùå Erreur initialisation localisation:', error);
+      console.error('? Erreur initialisation localisation:', error);
       Alert.alert('Erreur', 'Impossible de charger votre position');
       setUserLocation(appConfig.defaultRegion);
       
@@ -1104,11 +1111,11 @@ export default function MapScreen() {
     }
   };
 
-  // ‚úÖ loadNearbyFourmiz CORRIG√â - Utilise service_category_text
+  // ? loadNearbyFourmiz CORRIG… - Utilise service_category_text
   const loadNearbyFourmiz = async (region: MapRegion) => {
     try {
       setLoadingData(true);
-      console.log('üîç MODE CLIENT - Recherche Fourmiz:', {
+      console.log('?? MODE CLIENT - Recherche Fourmiz:', {
         lat: region.latitude,
         lng: region.longitude,
         radius: radiusFilter,
@@ -1116,7 +1123,7 @@ export default function MapScreen() {
         serviceCategories: serviceCategories.length
       });
 
-      // ‚úÖ CORRIG√â : Requ√™te utilisant service_category_text
+      // ? CORRIG… : RequÍte utilisant service_category_text
       let query = supabase
         .from('profiles')
         .select(`
@@ -1127,36 +1134,36 @@ export default function MapScreen() {
         .not('latitude', 'is', null)
         .not('longitude', 'is', null);
 
-      // ‚úÖ CORRIG√â : Filtrage par service_category_text
+      // ? CORRIG… : Filtrage par service_category_text
       if (selectedService !== 'all' && selectedService !== 'my') {
-        console.log('üîé Filtrage par service_category_text:', selectedService);
+        console.log('?? Filtrage par service_category_text:', selectedService);
         const selectedCategory = serviceCategories.find(cat => cat.id === selectedService);
         if (selectedCategory) {
           query = query.ilike('service_category_text', `%${selectedCategory.name}%`);
         }
       } else if (selectedService === 'my') {
-        console.log('üéØ Filtrage "Mes cat√©gories":', myCategories);
+        console.log('?? Filtrage "Mes catÈgories":', myCategories);
         if (myCategories.length > 0) {
-          // ‚úÖ NOUVEAU : Filtrer par noms de cat√©gories textuelles
+          // ? NOUVEAU : Filtrer par noms de catÈgories textuelles
           query = query.or(
             myCategories.map(cat => `service_category_text.ilike.%${cat}%`).join(',')
           );
         }
       } else {
-        console.log('üåê Pas de filtre (tous)');
+        console.log('?? Pas de filtre (tous)');
       }
 
       const { data, error } = await query;
 
       if (error) {
-        console.error('‚ùå Erreur requ√™te profiles:', error);
+        console.error('? Erreur requÍte profiles:', error);
         throw error;
       }
 
-      console.log(`üìä Profiles trouv√©s avant filtre distance: ${data?.length || 0}`);
+      console.log(`?? Profiles trouvÈs avant filtre distance: ${data?.length || 0}`);
 
       if (!data || data.length === 0) {
-        console.log('üö´ Aucun fourmiz trouv√© avec les crit√®res actuels');
+        console.log('?? Aucun fourmiz trouvÈ avec les critËres actuels');
         setFourmizList([]);
         return;
       }
@@ -1173,7 +1180,7 @@ export default function MapScreen() {
         return distance <= radiusFilter;
       });
 
-      console.log(`üìç Profiles dans le rayon ${radiusFilter}km: ${nearbyProfiles.length}`);
+      console.log(`?? Profiles dans le rayon ${radiusFilter}km: ${nearbyProfiles.length}`);
 
       const transformedData: Fourmiz[] = nearbyProfiles.map((profile: any) => {
         const distance = calculateDistance(
@@ -1181,16 +1188,16 @@ export default function MapScreen() {
           { latitude: profile.latitude, longitude: profile.longitude, latitudeDelta: 0, longitudeDelta: 0 }
         );
 
-        // ‚úÖ DEBUG : Afficher les cat√©gories textuelles
-        console.log('üîç Profile-Cat√©gorie:', {
+        // ? DEBUG : Afficher les catÈgories textuelles
+        console.log('?? Profile-CatÈgorie:', {
           profileId: profile.id,
-          categoryText: profile.service_category_text || 'Non d√©fini'
+          categoryText: profile.service_category_text || 'Non dÈfini'
         });
 
         return {
           id: profile.id,
           name: `${profile.firstname || ''} ${profile.lastname || ''}`.trim() || 'Fourmiz',
-          service: profile.service_category_text || 'Service g√©n√©ral',
+          service: profile.service_category_text || 'Service gÈnÈral',
           serviceColor: getFallbackColor(profile.service_category_text),
           serviceIcon: FOURMIZ_ICON,
           rating: parseFloat(profile.fourmiz_rating || profile.default_rating) || 4.5,
@@ -1208,22 +1215,22 @@ export default function MapScreen() {
         };
       });
 
-      console.log(`‚úÖ Fourmiz transform√©s et charg√©s: ${transformedData.length}`);
+      console.log(`? Fourmiz transformÈs et chargÈs: ${transformedData.length}`);
       setFourmizList(transformedData);
 
     } catch (error) {
-      console.error('‚ùå Erreur chargement Fourmiz:', error);
+      console.error('? Erreur chargement Fourmiz:', error);
       setFourmizList([]);
     } finally {
       setLoadingData(false);
     }
   };
 
-  // ‚úÖ loadNearbyRequests CORRIG√â - UTILISE available_orders_filtered + D√âDUPLICATION
+  // ? loadNearbyRequests CORRIG… - UTILISE available_orders_filtered + D…DUPLICATION
   const loadNearbyRequests = async (region: MapRegion) => {
     try {
       setLoadingData(true);
-      console.log('üîç MODE FOURMIZ - Recherche demandes clients (coh√©rent):', {
+      console.log('?? MODE FOURMIZ - Recherche demandes clients (cohÈrent):', {
         lat: region.latitude,
         lng: region.longitude,
         radius: radiusFilter,
@@ -1233,13 +1240,13 @@ export default function MapScreen() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) {
-        console.error('‚ùå Utilisateur non connect√©');
+        console.error('? Utilisateur non connectÈ');
         setRequestsList([]);
         setLoadingData(false);
         return;
       }
 
-      // ‚úÖ CORRIG√â : Utilise available_orders_filtered pour coh√©rence avec available-orders.tsx
+      // ? CORRIG… : Utilise available_orders_filtered pour cohÈrence avec available-orders.tsx
       let query = supabase
         .from('available_orders_filtered')
         .select(`
@@ -1261,35 +1268,35 @@ export default function MapScreen() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('‚ùå Erreur requ√™te available_orders_filtered:', error);
+        console.error('? Erreur requÍte available_orders_filtered:', error);
         throw error;
       }
 
-      console.log(`üìä Orders trouv√©s avant filtres et d√©duplication: ${data?.length || 0}`);
+      console.log(`?? Orders trouvÈs avant filtres et dÈduplication: ${data?.length || 0}`);
 
       if (!data || data.length === 0) {
-        console.log('üö´ Aucune demande trouv√©e');
+        console.log('?? Aucune demande trouvÈe');
         setRequestsList([]);
         return;
       }
 
-      // ‚úÖ NOUVEAU : Appliquer la d√©duplication comme dans available-orders.tsx
+      // ? NOUVEAU : Appliquer la dÈduplication comme dans available-orders.tsx
       const deduplicatedData = deduplicateOrders(data);
-      console.log(`‚úÖ Apr√®s d√©duplication: ${deduplicatedData.length} (supprim√©: ${data.length - deduplicatedData.length})`);
+      console.log(`? AprËs dÈduplication: ${deduplicatedData.length} (supprimÈ: ${data.length - deduplicatedData.length})`);
 
-      // FILTRAGE par cat√©gorie services.categorie
+      // FILTRAGE par catÈgorie services.categorie
       let filteredOrders = deduplicatedData;
       
       if (selectedService !== 'all' && selectedService !== 'my') {
-        console.log('üîé Filtrage par cat√©gorie:', selectedService);
+        console.log('?? Filtrage par catÈgorie:', selectedService);
         
-        // Trouver le nom de la cat√©gorie s√©lectionn√©e
+        // Trouver le nom de la catÈgorie sÈlectionnÈe
         const selectedCategory = serviceCategories.find(cat => cat.id === selectedService);
         const categoryName = selectedCategory?.name;
         
         if (categoryName) {
           filteredOrders = deduplicatedData.filter((order: any) => {
-            // Extraire la cat√©gorie selon la hi√©rarchie
+            // Extraire la catÈgorie selon la hiÈrarchie
             let orderCategory = null;
             
             if (order.addresses?.category) {
@@ -1304,7 +1311,7 @@ export default function MapScreen() {
             
             const match = orderCategory && orderCategory.toLowerCase().includes(categoryName.toLowerCase());
             if (!match) {
-              console.log('‚ùå Order exclu:', {
+              console.log('? Order exclu:', {
                 orderId: order.id,
                 orderCategory,
                 expectedCategory: categoryName
@@ -1314,10 +1321,10 @@ export default function MapScreen() {
           });
         }
         
-        console.log(`üìä Orders apr√®s filtre cat√©gorie: ${filteredOrders.length}`);
+        console.log(`?? Orders aprËs filtre catÈgorie: ${filteredOrders.length}`);
       } else if (selectedService === 'my') {
-        // Logique "Mes cat√©gories" √† impl√©menter si n√©cessaire
-        console.log('üéØ Filtrage "Mes cat√©gories" - √† impl√©menter');
+        // Logique "Mes catÈgories" ‡ implÈmenter si nÈcessaire
+        console.log('?? Filtrage "Mes catÈgories" - ¿ implÈmenter');
       }
 
       // Filtrer par distance
@@ -1332,22 +1339,22 @@ export default function MapScreen() {
         return distance <= radiusFilter;
       });
 
-      console.log(`üìç Orders dans le rayon ${radiusFilter}km: ${nearbyRequests.length}`);
+      console.log(`?? Orders dans le rayon ${radiusFilter}km: ${nearbyRequests.length}`);
 
-      // Validation rigoureuse des IDs + transformation + colonne "urgent" corrig√©e
+      // Validation rigoureuse des IDs + transformation + colonne "urgent" corrigÈe
       const transformedRequests: ClientRequest[] = nearbyRequests
         .map((order: any) => {
           // VALIDATION RIGOUREUSE DE L'ID
           if (!order.id || order.id === null || order.id === undefined) {
-            console.warn('‚ö†Ô∏è Order sans ID valide, ignor√©:', order);
+            console.warn('?? Order sans ID valide, ignorÈ:', order);
             return null;
           }
 
           const orderId = String(order.id).trim();
           
-          // V√âRIFICATION SUPPL√âMENTAIRE
+          // V…RIFICATION SUPPL…MENTAIRE
           if (orderId === '' || orderId === 'null' || orderId === 'undefined') {
-            console.warn('‚ö†Ô∏è Order avec ID invalide, ignor√©:', { orderId, originalId: order.id });
+            console.warn('?? Order avec ID invalide, ignorÈ:', { orderId, originalId: order.id });
             return null;
           }
 
@@ -1358,10 +1365,10 @@ export default function MapScreen() {
 
          // Affichage uniquement du montant de commission fourmiz
           const fourmizAmount = order.fourmiz_amount || 0;
-          let budgetText = `${Number(fourmizAmount).toFixed(2)}‚Ç¨`;
+          let budgetText = `${Number(fourmizAmount).toFixed(2)}Ä`;
 
-          // Extraction cat√©gorie avec services.categorie
-          let serviceName = 'Service non sp√©cifi√©';
+          // Extraction catÈgorie avec services.categorie
+          let serviceName = 'Service non spÈcifiÈ';
           let serviceColor = '#757575';
           
           if (order.addresses?.category) {
@@ -1379,7 +1386,7 @@ export default function MapScreen() {
           }
 
           return {
-            id: orderId, // ID d√©j√† valid√©
+            id: orderId, // ID dÈj‡ validÈ
             title: order.description?.substring(0, 50) || 'Demande de service',
             description: order.description || 'Aucune description fournie',
             service: serviceName,
@@ -1398,18 +1405,18 @@ export default function MapScreen() {
             fullData: order
           };
         })
-        .filter(Boolean); // FILTRER LES √âL√âMENTS NULL
+        .filter(Boolean); // FILTRER LES …L…MENTS NULL
 
-      console.log(`‚úÖ ${transformedRequests.length} demandes transform√©es et charg√©es (COH√âRENT avec available-orders)`);
+      console.log(`? ${transformedRequests.length} demandes transformÈes et chargÈes (COH…RENT avec available-orders)`);
       setRequestsList(transformedRequests);
 
     } catch (error: any) {
-      console.error('‚ùå Erreur chargement demandes:', error);
+      console.error('? Erreur chargement demandes:', error);
       Alert.alert(
         'Erreur de connexion', 
-        'Impossible de charger les demandes. V√©rifiez votre connexion.',
+        'Impossible de charger les demandes. VÈrifiez votre connexion.',
         [
-          { text: 'R√©essayer', onPress: () => loadNearbyRequests(region) },
+          { text: 'RÈessayer', onPress: () => loadNearbyRequests(region) },
           { text: 'OK', style: 'cancel' }
         ]
       );
@@ -1456,17 +1463,17 @@ export default function MapScreen() {
       
       setAppConfig(config);
       
-      console.log('‚úÖ Rafra√Æchissement termin√©');
+      console.log('? RafraÓchissement terminÈ');
     } catch (error) {
-      console.error('‚ùå Erreur rafra√Æchissement:', error);
+      console.error('? Erreur rafraÓchissement:', error);
     } finally {
       setRefreshing(false);
     }
   };
 
-  // S√âLECTION D'√âL√âMENTS - VERSION CORRIG√âE AVEC DEBUG
+  // S…LECTION D'…L…MENTS - VERSION CORRIG…E AVEC DEBUG
   const handleItemSelect = (item: Fourmiz | ClientRequest) => {
-    console.log('üéØ S√©lection item:', { 
+    console.log('?? SÈlection item:', { 
       id: item.id, 
       type: typeof item.id,
       userMode,
@@ -1479,7 +1486,7 @@ export default function MapScreen() {
     } else {
       setSelectedRequest(item as ClientRequest);
       setShowRequestDetail(true);
-      console.log('üîç ClientRequest s√©lectionn√©e:', { 
+      console.log('?? ClientRequest sÈlectionnÈe:', { 
         id: (item as ClientRequest).id, 
         title: (item as ClientRequest).title 
       });
@@ -1494,9 +1501,9 @@ export default function MapScreen() {
     }
   };
 
-  // ACTIONS SELON LE MODE - VERSION CORRIG√âE AVEC DEBUG COMPLET
+  // ACTIONS SELON LE MODE - VERSION CORRIG…E AVEC DEBUG COMPLET
   const handleContactAction = (id: string) => {
-    console.log('üöÄ HandleContactAction appel√©e:', { 
+    console.log('?? HandleContactAction appelÈe:', { 
       id, 
       type: typeof id,
       userMode,
@@ -1508,33 +1515,32 @@ export default function MapScreen() {
     
     if (userMode === UserMode.CLIENT) {
       setShowFourmizDetail(false);
-      console.log('üë§ Navigation CLIENT vers profil fourmiz avec fourmizId:', id);
-      // üîß MODIFI√â : Navigation vers profil fourmiz en lecture seule avec from=map
-      router.push(`/fourmiz-profile-readonly/${id}?from=map`);
+      console.log('?? Navigation CLIENT vers services avec fourmizId:', id);
+      router.push(`/services?fourmizId=${id}`);
     } else {
       setShowRequestDetail(false);
       
-      // V√©rifications rigoureuses
+      // VÈrifications rigoureuses
       if (!id) {
-        console.error('‚ùå ID manquant');
+        console.error('? ID manquant');
         Alert.alert('Erreur', 'Identifiant de commande manquant');
         return;
       }
       
       if (id === 'undefined' || id === 'null') {
-        console.error('‚ùå ID invalide:', id);
+        console.error('? ID invalide:', id);
         Alert.alert('Erreur', 'Identifiant de commande invalide');
         return;
       }
       
       const targetUrl = `/orders/${id}`;
-      console.log('üêú Navigation FOURMIZ vers:', targetUrl);
+      console.log('?? Navigation FOURMIZ vers:', targetUrl);
       
       try {
         router.push(targetUrl);
-        console.log('‚úÖ Navigation lanc√©e vers:', targetUrl);
+        console.log('? Navigation lancÈe vers:', targetUrl);
       } catch (error) {
-        console.error('‚ùå Erreur navigation:', error);
+        console.error('? Erreur navigation:', error);
         Alert.alert('Erreur de navigation', `Impossible d'ouvrir la commande ${id}`);
       }
     }
@@ -1560,7 +1566,7 @@ export default function MapScreen() {
   const modeLabel = userMode === UserMode.CLIENT ? 'CLIENT' : 'FOURMIZ';
   const dataLabel = userMode === UserMode.CLIENT ? 'Fourmiz' : 'Demandes';
 
-  console.log(`üó∫Ô∏è Rendu carte ${modeLabel} (COH√âRENT):`, {
+  console.log(`??? Rendu carte ${modeLabel} (COH…RENT):`, {
     totalData: dataCount,
     filteredData: filteredData.length,
     userLocation: !!userLocation,
@@ -1588,7 +1594,7 @@ export default function MapScreen() {
           />
         )}
 
-        {/* MARQUEURS ADAPT√âS AU MODE */}
+        {/* MARQUEURS ADAPT…S AU MODE */}
         {filteredData.map((item: any) => (
           <Marker
             key={item.id}
@@ -1597,7 +1603,7 @@ export default function MapScreen() {
           >
             <View style={[
               styles.markerContainer,
-              { borderColor: item.serviceColor || '#757575' } // Couleur selon la cat√©gorie de service
+              { borderColor: item.serviceColor || '#757575' } // Couleur selon la catÈgorie de service
             ]}>
               <Text style={styles.markerEmoji}>
                 {userMode === UserMode.CLIENT ? FOURMIZ_ICON : CLIENT_ICON}
@@ -1607,7 +1613,7 @@ export default function MapScreen() {
                 <View style={[
                   styles.verifiedBadge,
                   userMode === UserMode.FOURMIZ && item.urgency === 'high' 
-                    ? { backgroundColor: '#FF9800' } // Orange pour l'√©clair
+                    ? { backgroundColor: '#FF9800' } // Orange pour l'Èclair
                     : { backgroundColor: '#4CAF50' }  // Vert pour la certification
                 ]}>
                   <Ionicons 
@@ -1636,7 +1642,7 @@ export default function MapScreen() {
       {isRefreshingLocation && (
         <View style={styles.refreshIndicator}>
           <ActivityIndicator size="small" color="#000" />
-          <Text style={styles.refreshText}>Mise √† jour position...</Text>
+          <Text style={styles.refreshText}>Mise ‡ jour position...</Text>
         </View>
       )}
 
@@ -1683,17 +1689,17 @@ export default function MapScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* DEBUG INFO ADAPT√â AU MODE */}
+      {/* DEBUG INFO ADAPT… AU MODE */}
       <View style={styles.debugInfo}>
         <Text style={styles.debugText}>
-          {modeLabel} | {dataLabel}: {dataCount} | Filtr√©s: {filteredData.length} | Service: {selectedService} | Rayon: {radiusFilter}km
+          {modeLabel} | {dataLabel}: {dataCount} | FiltrÈs: {filteredData.length} | Service: {selectedService} | Rayon: {radiusFilter}km
         </Text>
         <Text style={styles.debugText}>
-          Derni√®re position: {lastLocationRefresh?.toLocaleTimeString() || 'Jamais'} | Refresh: {isRefreshingLocation ? 'En cours' : 'Idle'} | Source: available_orders_filtered
+          DerniËre position: {lastLocationRefresh?.toLocaleTimeString() || 'Jamais'} | Refresh: {isRefreshingLocation ? 'En cours' : 'Idle'} | Source: available_orders_filtered
         </Text>
       </View>
 
-      {/* MODALS ADAPT√âES AU MODE */}
+      {/* MODALS ADAPT…ES AU MODE */}
       <FourmizDetailModal
         fourmiz={selectedFourmiz}
         visible={showFourmizDetail}
@@ -1708,7 +1714,7 @@ export default function MapScreen() {
         onRespondToRequest={handleContactAction}
       />
 
-      {/* MODAL LISTE ADAPT√âE */}
+      {/* MODAL LISTE ADAPT…E */}
       <Modal
         visible={showList}
         animationType="slide"
@@ -1766,12 +1772,12 @@ export default function MapScreen() {
                         <>
                           <Ionicons name="star" size={14} color="#FFD700" />
                           <Text style={styles.listRating}>{item.rating}</Text>
-                          <Text style={styles.listDistance}>‚Ä¢ {item.distance}</Text>
+                          <Text style={styles.listDistance}>ï {item.distance}</Text>
                         </>
                       ) : (
                         <>
                           <Text style={styles.listClient}>par {item.clientName}</Text>
-                          <Text style={styles.listDistance}>‚Ä¢ {item.distance}</Text>
+                          <Text style={styles.listDistance}>ï {item.distance}</Text>
                         </>
                       )}
                     </View>
@@ -1795,7 +1801,7 @@ export default function MapScreen() {
           {filteredData.length === 0 && !loadingData && (
             <View style={styles.emptyState}>
               <Ionicons name="search" size={48} color="#ccc" />
-              <Text style={styles.emptyStateText}>Aucun {dataLabel.toLowerCase()} trouv√©</Text>
+              <Text style={styles.emptyStateText}>Aucun {dataLabel.toLowerCase()} trouvÈ</Text>
               <Text style={styles.emptyStateSubtext}>
                 Essayez d'augmenter le rayon de recherche ou changez de service
               </Text>
@@ -1810,7 +1816,7 @@ export default function MapScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* MODAL FILTRES ADAPT√âE */}
+      {/* MODAL FILTRES ADAPT…E */}
       <Modal
         visible={showFilters}
         transparent
@@ -1826,9 +1832,9 @@ export default function MapScreen() {
             </View>
             
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Cat√©gorie de service</Text>
+              <Text style={styles.filterSectionTitle}>CatÈgorie de service</Text>
               <ScrollView style={styles.categoriesScrollView} showsVerticalScrollIndicator={false}>
-                {/* Option "Toutes les cat√©gories" */}
+                {/* Option "Toutes les catÈgories" */}
                 <TouchableOpacity
                   style={[
                     styles.categoryFilterItem,
@@ -1843,14 +1849,14 @@ export default function MapScreen() {
                     styles.categoryFilterText,
                     selectedService === 'all' && styles.categoryFilterTextSelected
                   ]}>
-                    Toutes les cat√©gories
+                    Toutes les catÈgories
                   </Text>
                   {selectedService === 'all' && (
                     <Ionicons name="checkmark" size={12} color="#000" style={styles.categoryCheckmark} />
                   )}
                 </TouchableOpacity>
 
-                {/* Option "Mes cat√©gories" - SEULEMENT pour les FOURMIZ */}
+                {/* Option "Mes catÈgories" - SEULEMENT pour les FOURMIZ */}
                 {userMode === UserMode.FOURMIZ && (
                   <TouchableOpacity
                     style={[
@@ -1865,7 +1871,7 @@ export default function MapScreen() {
                       styles.categoryFilterEmoji,
                       myCategories.length === 0 && styles.categoryFilterEmojiDisabled
                     ]}>
-                      üéØ
+                      ??
                     </Text>
                     <View style={styles.categoryFilterTextContainer}>
                       <Text style={[
@@ -1873,7 +1879,7 @@ export default function MapScreen() {
                         selectedService === 'my' && styles.categoryFilterTextSelected,
                         myCategories.length === 0 && styles.categoryFilterTextDisabled
                       ]}>
-                        Mes cat√©gories
+                        Mes catÈgories
                       </Text>
                       <Text style={[
                         styles.categoryFilterSubtext,
@@ -1881,8 +1887,8 @@ export default function MapScreen() {
                         myCategories.length === 0 && styles.categoryFilterSubtextDisabled
                       ]}>
                         {myCategories.length === 0 
-                          ? 'Aucune cat√©gorie configur√©e'
-                          : `${myCategories.length} cat√©gorie${myCategories.length > 1 ? 's' : ''} configur√©e${myCategories.length > 1 ? 's' : ''}`
+                          ? 'Aucune catÈgorie configurÈe'
+                          : `${myCategories.length} catÈgorie${myCategories.length > 1 ? 's' : ''} configurÈe${myCategories.length > 1 ? 's' : ''}`
                         }
                       </Text>
                     </View>
@@ -1892,16 +1898,16 @@ export default function MapScreen() {
                   </TouchableOpacity>
                 )}
 
-                {/* S√©parateur - conditionn√© selon le mode */}
+                {/* SÈparateur - conditionnÈ selon le mode */}
                 {userMode === UserMode.FOURMIZ && myCategories.length > 0 && (
                   <View style={styles.categorySeparator}>
                     <View style={styles.categorySeparatorLine} />
-                    <Text style={styles.categorySeparatorText}>Cat√©gories sp√©cifiques</Text>
+                    <Text style={styles.categorySeparatorText}>CatÈgories spÈcifiques</Text>
                     <View style={styles.categorySeparatorLine} />
                   </View>
                 )}
 
-                {/* Liste des cat√©gories individuelles */}
+                {/* Liste des catÈgories individuelles */}
                 {serviceCategories.filter(cat => cat.id !== 'all').map((category) => (
                   <TouchableOpacity
                     key={category.id}
@@ -1927,7 +1933,7 @@ export default function MapScreen() {
                       ]}>
                         {category.name}
                       </Text>
-                      {/* Affichage du nombre de r√©sultats */}
+                      {/* Affichage du nombre de rÈsultats */}
                       <Text style={[
                         styles.categoryFilterSubtext,
                         selectedService === category.id && styles.categoryFilterSubtextSelected
@@ -2160,7 +2166,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // Modal container g√©n√©rique
+  // Modal container gÈnÈrique
   modalContainer: {
     flex: 1,
     backgroundColor: '#fff',
@@ -2353,7 +2359,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Liste g√©n√©rique - Style √©pur√©
+  // Liste gÈnÈrique - Style ÈpurÈ
   listContent: {
     padding: 16,
   },
@@ -2430,7 +2436,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
 
-  // √âtat vide
+  // …tat vide
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -2462,7 +2468,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Modal filtres - Style √©pur√©
+  // Modal filtres - Style ÈpurÈ
   filterModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',

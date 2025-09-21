@@ -9,6 +9,7 @@
 // 🎨 AJOUTÉ: Bordure noire sur le mini switch actif
 // 📄 AJOUTÉ: Exclusion route applications de la redirection automatique
 // 🆕 NOUVEAU: Onglet applications ajouté pour résoudre le routage
+// 🔧 CORRIGÉ: Maintient onglet "orders" actif quand sur page applications
 
 import React, { useEffect, useState, useMemo, useCallback, useRef, createContext, useContext } from 'react';
 import {
@@ -532,7 +533,7 @@ function CustomTabBar({
     return getVisibleTabs(effectiveRole);
   }, [effectiveRole, forceUpdateKey]);
 
-  // 🔧 FIX: DÉTECTION D'ONGLET ACTIF AMÉLIORÉE avec gestion des sous-pages
+  // 🔧 FIX: DÉTECTION D'ONGLET ACTIF AMÉLIORÉE avec gestion des sous-pages - CORRIGÉE POUR APPLICATIONS
   const getCurrentTabIndex = useCallback(() => {
     // 1. Récupérer le nom de la route active depuis React Navigation
     const currentRouteName = state.routeNames[state.index];
@@ -553,7 +554,16 @@ function CustomTabBar({
       }
     }
     
-    // 🔧 PRIORITÉ 2 : Cas spécial pour services-requests - garder calendar actif
+    // 🆕 PRIORITÉ 2 : Cas spécial pour applications - garder orders actif
+    if (pathname.includes('/applications') || pathname.includes('applications')) {
+      console.log('📍 [TabBar] Détection applications, maintien onglet orders actif');
+      const ordersTabIndex = visibleTabs.findIndex(tab => tab.name === 'orders');
+      if (ordersTabIndex !== -1) {
+        return ordersTabIndex;
+      }
+    }
+    
+    // 🔧 PRIORITÉ 3 : Cas spécial pour services-requests - garder calendar actif
     if (pathname.includes('/services-requests') || pathname.includes('services-requests')) {
       console.log('📍 [TabBar] Détection services-requests, maintien onglet calendar actif');
       const calendarTabIndex = visibleTabs.findIndex(tab => tab.name === 'calendar');

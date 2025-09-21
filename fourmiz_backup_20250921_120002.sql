@@ -5,7 +5,7 @@
 -- Dumped from database version 17.4
 -- Dumped by pg_dump version 17.4
 
--- Started on 2025-09-16 12:00:04
+-- Started on 2025-09-21 12:00:03
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -167,7 +167,6 @@ ALTER TABLE ONLY public.user_credits DROP CONSTRAINT user_credits_user_id_fkey;
 ALTER TABLE ONLY public.user_badges DROP CONSTRAINT user_badges_user_id_fkey;
 ALTER TABLE ONLY public.tracking_consent_history DROP CONSTRAINT tracking_consent_history_user_id_fkey;
 ALTER TABLE ONLY public.services_gains DROP CONSTRAINT services_gains_fourmiz_id_fkey;
-ALTER TABLE ONLY public.services DROP CONSTRAINT services_category_id_fkey;
 ALTER TABLE ONLY public.service_assignments DROP CONSTRAINT service_assignments_user_id_fkey;
 ALTER TABLE ONLY public.service_assignments DROP CONSTRAINT service_assignments_service_id_fkey;
 ALTER TABLE ONLY public.rewards DROP CONSTRAINT rewards_user_id_fkey;
@@ -223,7 +222,6 @@ ALTER TABLE ONLY public.fourmiz_criteria DROP CONSTRAINT fourmiz_criteria_user_i
 ALTER TABLE ONLY public.service_assignments DROP CONSTRAINT fk_user;
 ALTER TABLE ONLY public.service_assignments DROP CONSTRAINT fk_service;
 ALTER TABLE ONLY public.push_tokens DROP CONSTRAINT fk_push_tokens_user_id;
-ALTER TABLE ONLY public.profiles DROP CONSTRAINT fk_profiles_service_category;
 ALTER TABLE ONLY public.payments DROP CONSTRAINT fk_payments_user_id;
 ALTER TABLE ONLY public.other_services DROP CONSTRAINT fk_other_services_user;
 ALTER TABLE ONLY public.fourmiz_services DROP CONSTRAINT fk_fourmiz_services_service;
@@ -338,7 +336,6 @@ DROP INDEX public.idx_profiles_fourmiz_geolocation;
 DROP INDEX public.idx_profiles_current_location;
 DROP INDEX public.idx_profiles_criteria_completed;
 DROP INDEX public.idx_profiles_consent;
-DROP INDEX public.idx_profiles_available_category;
 DROP INDEX public.idx_profiles_address_validated_at;
 DROP INDEX public.idx_profiles_address_confidence;
 DROP INDEX public.idx_pre_selection_messages_time;
@@ -444,6 +441,7 @@ DROP INDEX auth.email_change_token_new_idx;
 DROP INDEX auth.email_change_token_current_idx;
 DROP INDEX auth.confirmation_token_idx;
 DROP INDEX auth.audit_logs_instance_id_idx;
+ALTER TABLE ONLY supabase_migrations.seed_files DROP CONSTRAINT seed_files_pkey;
 ALTER TABLE ONLY supabase_migrations.schema_migrations DROP CONSTRAINT schema_migrations_pkey;
 ALTER TABLE ONLY storage.s3_multipart_uploads DROP CONSTRAINT s3_multipart_uploads_pkey;
 ALTER TABLE ONLY storage.s3_multipart_uploads_parts DROP CONSTRAINT s3_multipart_uploads_parts_pkey;
@@ -455,13 +453,13 @@ ALTER TABLE ONLY storage.buckets DROP CONSTRAINT buckets_pkey;
 ALTER TABLE ONLY storage.buckets_analytics DROP CONSTRAINT buckets_analytics_pkey;
 ALTER TABLE ONLY realtime.schema_migrations DROP CONSTRAINT schema_migrations_pkey;
 ALTER TABLE ONLY realtime.subscription DROP CONSTRAINT pk_subscription;
+ALTER TABLE ONLY realtime.messages_2025_09_24 DROP CONSTRAINT messages_2025_09_24_pkey;
+ALTER TABLE ONLY realtime.messages_2025_09_23 DROP CONSTRAINT messages_2025_09_23_pkey;
+ALTER TABLE ONLY realtime.messages_2025_09_22 DROP CONSTRAINT messages_2025_09_22_pkey;
+ALTER TABLE ONLY realtime.messages_2025_09_21 DROP CONSTRAINT messages_2025_09_21_pkey;
+ALTER TABLE ONLY realtime.messages_2025_09_20 DROP CONSTRAINT messages_2025_09_20_pkey;
 ALTER TABLE ONLY realtime.messages_2025_09_19 DROP CONSTRAINT messages_2025_09_19_pkey;
 ALTER TABLE ONLY realtime.messages_2025_09_18 DROP CONSTRAINT messages_2025_09_18_pkey;
-ALTER TABLE ONLY realtime.messages_2025_09_17 DROP CONSTRAINT messages_2025_09_17_pkey;
-ALTER TABLE ONLY realtime.messages_2025_09_16 DROP CONSTRAINT messages_2025_09_16_pkey;
-ALTER TABLE ONLY realtime.messages_2025_09_15 DROP CONSTRAINT messages_2025_09_15_pkey;
-ALTER TABLE ONLY realtime.messages_2025_09_14 DROP CONSTRAINT messages_2025_09_14_pkey;
-ALTER TABLE ONLY realtime.messages_2025_09_13 DROP CONSTRAINT messages_2025_09_13_pkey;
 ALTER TABLE ONLY realtime.messages DROP CONSTRAINT messages_pkey;
 ALTER TABLE ONLY public.wallets DROP CONSTRAINT wallets_pkey;
 ALTER TABLE ONLY public.users DROP CONSTRAINT users_pkey;
@@ -483,6 +481,7 @@ ALTER TABLE ONLY public.pre_selection_chats DROP CONSTRAINT unique_chat_per_appl
 ALTER TABLE ONLY public.order_applications DROP CONSTRAINT unique_application_per_order_fourmiz;
 ALTER TABLE ONLY public.tracking_consent_history DROP CONSTRAINT tracking_consent_history_pkey;
 ALTER TABLE ONLY public.test DROP CONSTRAINT test_pkey;
+ALTER TABLE ONLY public.system_logs DROP CONSTRAINT system_logs_pkey;
 ALTER TABLE ONLY public.settings DROP CONSTRAINT settings_pkey;
 ALTER TABLE ONLY public.services DROP CONSTRAINT services_pkey;
 ALTER TABLE ONLY public.services_gains DROP CONSTRAINT services_gains_pkey;
@@ -541,7 +540,6 @@ ALTER TABLE ONLY public.chat_typing_status DROP CONSTRAINT chat_typing_status_or
 ALTER TABLE ONLY public.chat_participants DROP CONSTRAINT chat_participants_pkey;
 ALTER TABLE ONLY public.chat_participants DROP CONSTRAINT chat_participants_order_id_user_id_key;
 ALTER TABLE ONLY public.chat_messages DROP CONSTRAINT chat_messages_pkey;
-ALTER TABLE ONLY public.categories DROP CONSTRAINT categories_pkey;
 ALTER TABLE ONLY public.badges DROP CONSTRAINT badges_pkey;
 ALTER TABLE ONLY public.badges_catalog DROP CONSTRAINT badges_catalog_pkey;
 ALTER TABLE ONLY public.badge_settings DROP CONSTRAINT badge_settings_pkey;
@@ -575,6 +573,7 @@ ALTER TABLE ONLY auth.flow_state DROP CONSTRAINT flow_state_pkey;
 ALTER TABLE ONLY auth.audit_log_entries DROP CONSTRAINT audit_log_entries_pkey;
 ALTER TABLE ONLY auth.mfa_amr_claims DROP CONSTRAINT amr_id_pk;
 ALTER TABLE public.user_push_tokens ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.system_logs ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE public.security_incidents ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE public.push_tokens ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE public.pre_selection_messages ALTER COLUMN id DROP DEFAULT;
@@ -588,6 +587,7 @@ ALTER TABLE public.chat_typing_status ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE public.chat_participants ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE public.chat_messages ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE auth.refresh_tokens ALTER COLUMN id DROP DEFAULT;
+DROP TABLE supabase_migrations.seed_files;
 DROP TABLE supabase_migrations.schema_migrations;
 DROP TABLE storage.s3_multipart_uploads_parts;
 DROP TABLE storage.s3_multipart_uploads;
@@ -598,13 +598,13 @@ DROP TABLE storage.buckets_analytics;
 DROP TABLE storage.buckets;
 DROP TABLE realtime.subscription;
 DROP TABLE realtime.schema_migrations;
+DROP TABLE realtime.messages_2025_09_24;
+DROP TABLE realtime.messages_2025_09_23;
+DROP TABLE realtime.messages_2025_09_22;
+DROP TABLE realtime.messages_2025_09_21;
+DROP TABLE realtime.messages_2025_09_20;
 DROP TABLE realtime.messages_2025_09_19;
 DROP TABLE realtime.messages_2025_09_18;
-DROP TABLE realtime.messages_2025_09_17;
-DROP TABLE realtime.messages_2025_09_16;
-DROP TABLE realtime.messages_2025_09_15;
-DROP TABLE realtime.messages_2025_09_14;
-DROP TABLE realtime.messages_2025_09_13;
 DROP TABLE realtime.messages;
 DROP TABLE public.wallets;
 DROP VIEW public.v_orders_with_applications;
@@ -626,6 +626,8 @@ DROP VIEW public.urgent_orders;
 DROP VIEW public.unread_notifications;
 DROP TABLE public.tracking_consent_history;
 DROP TABLE public.test;
+DROP SEQUENCE public.system_logs_id_seq;
+DROP TABLE public.system_logs;
 DROP TABLE public.settings;
 DROP TABLE public.services_gains;
 DROP TABLE public.service_tracking_history;
@@ -702,7 +704,6 @@ DROP SEQUENCE public.chat_participants_id_seq;
 DROP TABLE public.chat_participants;
 DROP SEQUENCE public.chat_messages_id_seq;
 DROP TABLE public.chat_messages;
-DROP TABLE public.categories;
 DROP TABLE public.badges_catalog;
 DROP TABLE public.badges;
 DROP TABLE public.badge_settings;
@@ -877,6 +878,7 @@ DROP FUNCTION public.calculate_profil_complet_pourcent(p_rgpd_ok boolean, p_cate
 DROP FUNCTION public.calculate_eta(p_fourmiz_id uuid, p_destination_lat numeric, p_destination_lng numeric);
 DROP FUNCTION public.calculate_distance_km(lat1 numeric, lng1 numeric, lat2 numeric, lng2 numeric);
 DROP FUNCTION public.broadcast_admin_notification_by_role(title text, message text, role_filter text);
+DROP FUNCTION public.auto_cancel_expired_orders();
 DROP FUNCTION public.audit_profile_counters();
 DROP FUNCTION public.are_legal_engagements_required(p_user_id uuid);
 DROP FUNCTION public.archive_completed_tracking();
@@ -923,7 +925,7 @@ DROP SCHEMA graphql;
 DROP SCHEMA extensions;
 DROP SCHEMA auth;
 --
--- TOC entry 33 (class 2615 OID 16492)
+-- TOC entry 138 (class 2615 OID 16492)
 -- Name: auth; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -963,7 +965,7 @@ CREATE SCHEMA pgbouncer;
 
 
 --
--- TOC entry 36 (class 2615 OID 16603)
+-- TOC entry 34 (class 2615 OID 16603)
 -- Name: realtime; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -971,7 +973,7 @@ CREATE SCHEMA realtime;
 
 
 --
--- TOC entry 32 (class 2615 OID 16540)
+-- TOC entry 139 (class 2615 OID 16540)
 -- Name: storage; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -1003,7 +1005,7 @@ CREATE EXTENSION IF NOT EXISTS pg_graphql WITH SCHEMA graphql;
 
 
 --
--- TOC entry 5808 (class 0 OID 0)
+-- TOC entry 5816 (class 0 OID 0)
 -- Dependencies: 8
 -- Name: EXTENSION pg_graphql; Type: COMMENT; Schema: -; Owner: -
 --
@@ -1020,7 +1022,7 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA extensions;
 
 
 --
--- TOC entry 5809 (class 0 OID 0)
+-- TOC entry 5817 (class 0 OID 0)
 -- Dependencies: 6
 -- Name: EXTENSION pg_stat_statements; Type: COMMENT; Schema: -; Owner: -
 --
@@ -1037,7 +1039,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
 
 
 --
--- TOC entry 5810 (class 0 OID 0)
+-- TOC entry 5818 (class 0 OID 0)
 -- Dependencies: 3
 -- Name: EXTENSION pg_trgm; Type: COMMENT; Schema: -; Owner: -
 --
@@ -1054,7 +1056,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 
 --
--- TOC entry 5811 (class 0 OID 0)
+-- TOC entry 5819 (class 0 OID 0)
 -- Dependencies: 4
 -- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: -
 --
@@ -1071,7 +1073,7 @@ CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
 
 
 --
--- TOC entry 5812 (class 0 OID 0)
+-- TOC entry 5820 (class 0 OID 0)
 -- Dependencies: 7
 -- Name: EXTENSION supabase_vault; Type: COMMENT; Schema: -; Owner: -
 --
@@ -1088,7 +1090,7 @@ CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
 
 
 --
--- TOC entry 5813 (class 0 OID 0)
+-- TOC entry 5821 (class 0 OID 0)
 -- Dependencies: 2
 -- Name: EXTENSION unaccent; Type: COMMENT; Schema: -; Owner: -
 --
@@ -1105,7 +1107,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
 
 --
--- TOC entry 5814 (class 0 OID 0)
+-- TOC entry 5822 (class 0 OID 0)
 -- Dependencies: 5
 -- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
 --
@@ -1114,7 +1116,7 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 
 --
--- TOC entry 1454 (class 1247 OID 16780)
+-- TOC entry 1457 (class 1247 OID 16780)
 -- Name: aal_level; Type: TYPE; Schema: auth; Owner: -
 --
 
@@ -1126,7 +1128,7 @@ CREATE TYPE auth.aal_level AS ENUM (
 
 
 --
--- TOC entry 1478 (class 1247 OID 16921)
+-- TOC entry 1481 (class 1247 OID 16921)
 -- Name: code_challenge_method; Type: TYPE; Schema: auth; Owner: -
 --
 
@@ -1137,7 +1139,7 @@ CREATE TYPE auth.code_challenge_method AS ENUM (
 
 
 --
--- TOC entry 1451 (class 1247 OID 16774)
+-- TOC entry 1454 (class 1247 OID 16774)
 -- Name: factor_status; Type: TYPE; Schema: auth; Owner: -
 --
 
@@ -1148,7 +1150,7 @@ CREATE TYPE auth.factor_status AS ENUM (
 
 
 --
--- TOC entry 1448 (class 1247 OID 16769)
+-- TOC entry 1451 (class 1247 OID 16769)
 -- Name: factor_type; Type: TYPE; Schema: auth; Owner: -
 --
 
@@ -1160,7 +1162,7 @@ CREATE TYPE auth.factor_type AS ENUM (
 
 
 --
--- TOC entry 1750 (class 1247 OID 136602)
+-- TOC entry 1756 (class 1247 OID 136602)
 -- Name: oauth_registration_type; Type: TYPE; Schema: auth; Owner: -
 --
 
@@ -1171,7 +1173,7 @@ CREATE TYPE auth.oauth_registration_type AS ENUM (
 
 
 --
--- TOC entry 1484 (class 1247 OID 16963)
+-- TOC entry 1487 (class 1247 OID 16963)
 -- Name: one_time_token_type; Type: TYPE; Schema: auth; Owner: -
 --
 
@@ -1186,7 +1188,7 @@ CREATE TYPE auth.one_time_token_type AS ENUM (
 
 
 --
--- TOC entry 1598 (class 1247 OID 25546)
+-- TOC entry 1601 (class 1247 OID 25546)
 -- Name: vehicle_type_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -1206,7 +1208,7 @@ CREATE TYPE public.vehicle_type_enum AS ENUM (
 
 
 --
--- TOC entry 1499 (class 1247 OID 17130)
+-- TOC entry 1502 (class 1247 OID 17130)
 -- Name: action; Type: TYPE; Schema: realtime; Owner: -
 --
 
@@ -1220,7 +1222,7 @@ CREATE TYPE realtime.action AS ENUM (
 
 
 --
--- TOC entry 1507 (class 1247 OID 17090)
+-- TOC entry 1510 (class 1247 OID 17090)
 -- Name: equality_op; Type: TYPE; Schema: realtime; Owner: -
 --
 
@@ -1236,7 +1238,7 @@ CREATE TYPE realtime.equality_op AS ENUM (
 
 
 --
--- TOC entry 1510 (class 1247 OID 17105)
+-- TOC entry 1513 (class 1247 OID 17105)
 -- Name: user_defined_filter; Type: TYPE; Schema: realtime; Owner: -
 --
 
@@ -1248,7 +1250,7 @@ CREATE TYPE realtime.user_defined_filter AS (
 
 
 --
--- TOC entry 1505 (class 1247 OID 17176)
+-- TOC entry 1508 (class 1247 OID 17176)
 -- Name: wal_column; Type: TYPE; Schema: realtime; Owner: -
 --
 
@@ -1263,7 +1265,7 @@ CREATE TYPE realtime.wal_column AS (
 
 
 --
--- TOC entry 1502 (class 1247 OID 17143)
+-- TOC entry 1505 (class 1247 OID 17143)
 -- Name: wal_rls; Type: TYPE; Schema: realtime; Owner: -
 --
 
@@ -1276,7 +1278,7 @@ CREATE TYPE realtime.wal_rls AS (
 
 
 --
--- TOC entry 1685 (class 1247 OID 120749)
+-- TOC entry 1691 (class 1247 OID 120749)
 -- Name: buckettype; Type: TYPE; Schema: storage; Owner: -
 --
 
@@ -1287,7 +1289,7 @@ CREATE TYPE storage.buckettype AS ENUM (
 
 
 --
--- TOC entry 579 (class 1255 OID 16538)
+-- TOC entry 581 (class 1255 OID 16538)
 -- Name: email(); Type: FUNCTION; Schema: auth; Owner: -
 --
 
@@ -1303,8 +1305,8 @@ $$;
 
 
 --
--- TOC entry 5815 (class 0 OID 0)
--- Dependencies: 579
+-- TOC entry 5823 (class 0 OID 0)
+-- Dependencies: 581
 -- Name: FUNCTION email(); Type: COMMENT; Schema: auth; Owner: -
 --
 
@@ -1312,7 +1314,7 @@ COMMENT ON FUNCTION auth.email() IS 'Deprecated. Use auth.jwt() -> ''email'' ins
 
 
 --
--- TOC entry 639 (class 1255 OID 16751)
+-- TOC entry 641 (class 1255 OID 16751)
 -- Name: jwt(); Type: FUNCTION; Schema: auth; Owner: -
 --
 
@@ -1328,7 +1330,7 @@ $$;
 
 
 --
--- TOC entry 769 (class 1255 OID 16537)
+-- TOC entry 772 (class 1255 OID 16537)
 -- Name: role(); Type: FUNCTION; Schema: auth; Owner: -
 --
 
@@ -1344,8 +1346,8 @@ $$;
 
 
 --
--- TOC entry 5816 (class 0 OID 0)
--- Dependencies: 769
+-- TOC entry 5824 (class 0 OID 0)
+-- Dependencies: 772
 -- Name: FUNCTION role(); Type: COMMENT; Schema: auth; Owner: -
 --
 
@@ -1353,7 +1355,7 @@ COMMENT ON FUNCTION auth.role() IS 'Deprecated. Use auth.jwt() -> ''role'' inste
 
 
 --
--- TOC entry 753 (class 1255 OID 16536)
+-- TOC entry 756 (class 1255 OID 16536)
 -- Name: uid(); Type: FUNCTION; Schema: auth; Owner: -
 --
 
@@ -1369,8 +1371,8 @@ $$;
 
 
 --
--- TOC entry 5817 (class 0 OID 0)
--- Dependencies: 753
+-- TOC entry 5825 (class 0 OID 0)
+-- Dependencies: 756
 -- Name: FUNCTION uid(); Type: COMMENT; Schema: auth; Owner: -
 --
 
@@ -1378,7 +1380,7 @@ COMMENT ON FUNCTION auth.uid() IS 'Deprecated. Use auth.jwt() -> ''sub'' instead
 
 
 --
--- TOC entry 540 (class 1255 OID 16595)
+-- TOC entry 542 (class 1255 OID 16595)
 -- Name: grant_pg_cron_access(); Type: FUNCTION; Schema: extensions; Owner: -
 --
 
@@ -1416,8 +1418,8 @@ $$;
 
 
 --
--- TOC entry 5818 (class 0 OID 0)
--- Dependencies: 540
+-- TOC entry 5826 (class 0 OID 0)
+-- Dependencies: 542
 -- Name: FUNCTION grant_pg_cron_access(); Type: COMMENT; Schema: extensions; Owner: -
 --
 
@@ -1425,7 +1427,7 @@ COMMENT ON FUNCTION extensions.grant_pg_cron_access() IS 'Grants access to pg_cr
 
 
 --
--- TOC entry 774 (class 1255 OID 16616)
+-- TOC entry 777 (class 1255 OID 16616)
 -- Name: grant_pg_graphql_access(); Type: FUNCTION; Schema: extensions; Owner: -
 --
 
@@ -1484,8 +1486,8 @@ $_$;
 
 
 --
--- TOC entry 5819 (class 0 OID 0)
--- Dependencies: 774
+-- TOC entry 5827 (class 0 OID 0)
+-- Dependencies: 777
 -- Name: FUNCTION grant_pg_graphql_access(); Type: COMMENT; Schema: extensions; Owner: -
 --
 
@@ -1493,7 +1495,7 @@ COMMENT ON FUNCTION extensions.grant_pg_graphql_access() IS 'Grants access to pg
 
 
 --
--- TOC entry 687 (class 1255 OID 16597)
+-- TOC entry 689 (class 1255 OID 16597)
 -- Name: grant_pg_net_access(); Type: FUNCTION; Schema: extensions; Owner: -
 --
 
@@ -1545,8 +1547,8 @@ $$;
 
 
 --
--- TOC entry 5820 (class 0 OID 0)
--- Dependencies: 687
+-- TOC entry 5828 (class 0 OID 0)
+-- Dependencies: 689
 -- Name: FUNCTION grant_pg_net_access(); Type: COMMENT; Schema: extensions; Owner: -
 --
 
@@ -1554,7 +1556,7 @@ COMMENT ON FUNCTION extensions.grant_pg_net_access() IS 'Grants access to pg_net
 
 
 --
--- TOC entry 535 (class 1255 OID 16607)
+-- TOC entry 537 (class 1255 OID 16607)
 -- Name: pgrst_ddl_watch(); Type: FUNCTION; Schema: extensions; Owner: -
 --
 
@@ -1588,7 +1590,7 @@ END; $$;
 
 
 --
--- TOC entry 658 (class 1255 OID 16608)
+-- TOC entry 660 (class 1255 OID 16608)
 -- Name: pgrst_drop_watch(); Type: FUNCTION; Schema: extensions; Owner: -
 --
 
@@ -1620,7 +1622,7 @@ END; $$;
 
 
 --
--- TOC entry 656 (class 1255 OID 16618)
+-- TOC entry 658 (class 1255 OID 16618)
 -- Name: set_graphql_placeholder(); Type: FUNCTION; Schema: extensions; Owner: -
 --
 
@@ -1678,8 +1680,8 @@ $_$;
 
 
 --
--- TOC entry 5821 (class 0 OID 0)
--- Dependencies: 656
+-- TOC entry 5829 (class 0 OID 0)
+-- Dependencies: 658
 -- Name: FUNCTION set_graphql_placeholder(); Type: COMMENT; Schema: extensions; Owner: -
 --
 
@@ -1687,7 +1689,7 @@ COMMENT ON FUNCTION extensions.set_graphql_placeholder() IS 'Reintroduces placeh
 
 
 --
--- TOC entry 626 (class 1255 OID 16387)
+-- TOC entry 628 (class 1255 OID 16387)
 -- Name: get_auth(text); Type: FUNCTION; Schema: pgbouncer; Owner: -
 --
 
@@ -1711,7 +1713,7 @@ $_$;
 
 
 --
--- TOC entry 725 (class 1255 OID 114738)
+-- TOC entry 728 (class 1255 OID 114738)
 -- Name: add_rating(bigint, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1758,7 +1760,7 @@ $$;
 
 
 --
--- TOC entry 682 (class 1255 OID 112038)
+-- TOC entry 684 (class 1255 OID 112038)
 -- Name: add_real_rating(bigint, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1787,7 +1789,7 @@ $$;
 
 
 --
--- TOC entry 651 (class 1255 OID 160258)
+-- TOC entry 653 (class 1255 OID 160258)
 -- Name: archive_completed_tracking(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1832,7 +1834,7 @@ $$;
 
 
 --
--- TOC entry 696 (class 1255 OID 147706)
+-- TOC entry 698 (class 1255 OID 147706)
 -- Name: are_legal_engagements_required(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1869,7 +1871,7 @@ $$;
 
 
 --
--- TOC entry 734 (class 1255 OID 123287)
+-- TOC entry 737 (class 1255 OID 123287)
 -- Name: audit_profile_counters(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1909,7 +1911,88 @@ $$;
 
 
 --
--- TOC entry 594 (class 1255 OID 30234)
+-- TOC entry 717 (class 1255 OID 169840)
+-- Name: auto_cancel_expired_orders(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.auto_cancel_expired_orders() RETURNS TABLE(cancelled_order_id bigint, total_cancelled integer)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    expired_order RECORD;
+    cancelled_count INTEGER := 0;
+BEGIN
+    -- Parcourir les commandes expirées
+    FOR expired_order IN
+        SELECT 
+            o.id,
+            o.client_id,
+            o.service_title,
+            o.date,
+            o.start_time,
+            o.created_at
+        FROM orders o
+        WHERE 
+            o.status = 'en_attente'
+            AND (
+                -- Service prévu dans le passé
+                (o.date + COALESCE(o.start_time, '09:00:00'::time)) < NOW()
+                -- Grace period de 30 minutes après création
+                AND o.created_at < NOW() - INTERVAL '30 minutes'
+            )
+    LOOP
+        -- Annuler la commande
+        UPDATE orders 
+        SET 
+            status = 'annulee',
+            cancelled_at = NOW(),
+            cancelled_by = expired_order.client_id,
+            updated_at = NOW(),
+            cancellation_reason = 'auto_cancel_expired'
+        WHERE id = expired_order.id;
+        
+        cancelled_count := cancelled_count + 1;
+        cancelled_order_id := expired_order.id;
+        total_cancelled := cancelled_count;
+        
+        -- Log chaque annulation
+        INSERT INTO system_logs (action, details, order_id, created_at)
+        VALUES (
+            'auto_cancel_expired',
+            format('Auto-cancelled order %s for client %s (service was %s at %s)', 
+                   expired_order.id, 
+                   expired_order.client_id,
+                   expired_order.date,
+                   COALESCE(expired_order.start_time::text, '09:00:00')),
+            expired_order.id,
+            NOW()
+        );
+        
+        RETURN NEXT;
+        
+    END LOOP;
+    
+    -- Log récapitulatif
+    INSERT INTO system_logs (action, details, created_at)
+    VALUES (
+        'auto_cancel_summary', 
+        format('Auto-cancellation run completed: %s orders cancelled', cancelled_count),
+        NOW()
+    );
+    
+    -- Retourner un résumé si aucune commande annulée
+    IF cancelled_count = 0 THEN
+        cancelled_order_id := 0;
+        total_cancelled := 0;
+        RETURN NEXT;
+    END IF;
+    
+END;
+$$;
+
+
+--
+-- TOC entry 596 (class 1255 OID 30234)
 -- Name: broadcast_admin_notification_by_role(text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1950,7 +2033,7 @@ $$;
 
 
 --
--- TOC entry 694 (class 1255 OID 160004)
+-- TOC entry 696 (class 1255 OID 160004)
 -- Name: calculate_distance_km(numeric, numeric, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1981,8 +2064,8 @@ $$;
 
 
 --
--- TOC entry 5822 (class 0 OID 0)
--- Dependencies: 694
+-- TOC entry 5830 (class 0 OID 0)
+-- Dependencies: 696
 -- Name: FUNCTION calculate_distance_km(lat1 numeric, lng1 numeric, lat2 numeric, lng2 numeric); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -1990,7 +2073,7 @@ COMMENT ON FUNCTION public.calculate_distance_km(lat1 numeric, lng1 numeric, lat
 
 
 --
--- TOC entry 766 (class 1255 OID 160746)
+-- TOC entry 769 (class 1255 OID 160746)
 -- Name: calculate_eta(uuid, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2037,7 +2120,7 @@ $$;
 
 
 --
--- TOC entry 628 (class 1255 OID 59937)
+-- TOC entry 630 (class 1255 OID 59937)
 -- Name: calculate_profil_complet_pourcent(boolean, text[], integer[], text[], text[], numeric, text, text, text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2076,7 +2159,7 @@ $$;
 
 
 --
--- TOC entry 574 (class 1255 OID 143783)
+-- TOC entry 576 (class 1255 OID 143783)
 -- Name: calculate_profile_completion(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2113,7 +2196,7 @@ $$;
 
 
 --
--- TOC entry 713 (class 1255 OID 132528)
+-- TOC entry 715 (class 1255 OID 132528)
 -- Name: calculate_wallet_balance(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2133,7 +2216,7 @@ $$;
 
 
 --
--- TOC entry 539 (class 1255 OID 76837)
+-- TOC entry 541 (class 1255 OID 76837)
 -- Name: can_be_referred(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2177,7 +2260,7 @@ $$;
 
 
 --
--- TOC entry 572 (class 1255 OID 53206)
+-- TOC entry 574 (class 1255 OID 53206)
 -- Name: cancel_order(integer, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2230,7 +2313,7 @@ $$;
 
 
 --
--- TOC entry 674 (class 1255 OID 67814)
+-- TOC entry 676 (class 1255 OID 67814)
 -- Name: check_referral_code(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2256,7 +2339,7 @@ $$;
 
 
 --
--- TOC entry 547 (class 1255 OID 123286)
+-- TOC entry 549 (class 1255 OID 123286)
 -- Name: check_trigger_activity(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2278,7 +2361,7 @@ $$;
 
 
 --
--- TOC entry 622 (class 1255 OID 147679)
+-- TOC entry 624 (class 1255 OID 147679)
 -- Name: check_user_fourmiz_engagements(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2305,7 +2388,7 @@ $$;
 
 
 --
--- TOC entry 771 (class 1255 OID 160752)
+-- TOC entry 774 (class 1255 OID 160752)
 -- Name: cleanup_location_history(integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2326,7 +2409,7 @@ $$;
 
 
 --
--- TOC entry 736 (class 1255 OID 55252)
+-- TOC entry 739 (class 1255 OID 55252)
 -- Name: cleanup_notification_history(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2346,7 +2429,7 @@ $$;
 
 
 --
--- TOC entry 715 (class 1255 OID 55240)
+-- TOC entry 718 (class 1255 OID 55240)
 -- Name: cleanup_old_push_tokens(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2367,7 +2450,7 @@ $$;
 
 
 --
--- TOC entry 568 (class 1255 OID 143781)
+-- TOC entry 570 (class 1255 OID 143781)
 -- Name: copy_service_workflow(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2393,7 +2476,7 @@ $$;
 
 
 --
--- TOC entry 757 (class 1255 OID 53205)
+-- TOC entry 760 (class 1255 OID 53205)
 -- Name: create_order(uuid, integer, numeric, text, character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2429,7 +2512,7 @@ $$;
 
 
 --
--- TOC entry 780 (class 1255 OID 54877)
+-- TOC entry 783 (class 1255 OID 54877)
 -- Name: create_order_accepted_message(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2454,7 +2537,7 @@ $$;
 
 
 --
--- TOC entry 605 (class 1255 OID 84532)
+-- TOC entry 607 (class 1255 OID 84532)
 -- Name: create_order_with_details(uuid, integer, text, numeric, text, character varying, character varying, character varying, boolean, character varying, boolean, date, time without time zone, text, text, character varying, character varying, text, text, character varying, integer, text, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2531,7 +2614,7 @@ $$;
 
 
 --
--- TOC entry 603 (class 1255 OID 76340)
+-- TOC entry 605 (class 1255 OID 76340)
 -- Name: create_referral_commission(bigint, bigint, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2601,7 +2684,7 @@ $$;
 
 
 --
--- TOC entry 664 (class 1255 OID 76341)
+-- TOC entry 666 (class 1255 OID 76341)
 -- Name: create_referral_commission_simple(uuid, uuid, bigint, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2645,7 +2728,7 @@ $$;
 
 
 --
--- TOC entry 731 (class 1255 OID 77042)
+-- TOC entry 734 (class 1255 OID 77042)
 -- Name: create_referral_dynamic_with_role_check(uuid, uuid, character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2782,7 +2865,7 @@ $$;
 
 
 --
--- TOC entry 732 (class 1255 OID 76596)
+-- TOC entry 735 (class 1255 OID 76596)
 -- Name: create_referral_gain_real(uuid, uuid, numeric, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2828,7 +2911,7 @@ $$;
 
 
 --
--- TOC entry 745 (class 1255 OID 76447)
+-- TOC entry 748 (class 1255 OID 76447)
 -- Name: create_user_referral_code_safe(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2875,7 +2958,7 @@ $$;
 
 
 --
--- TOC entry 542 (class 1255 OID 76494)
+-- TOC entry 544 (class 1255 OID 76494)
 -- Name: create_user_referral_code_simple(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2947,7 +3030,7 @@ $$;
 
 
 --
--- TOC entry 647 (class 1255 OID 132529)
+-- TOC entry 649 (class 1255 OID 132529)
 -- Name: credit_wallet(uuid, numeric, character varying, character varying, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2971,7 +3054,7 @@ $$;
 
 
 --
--- TOC entry 546 (class 1255 OID 132530)
+-- TOC entry 548 (class 1255 OID 132530)
 -- Name: debit_wallet(uuid, numeric, character varying, character varying, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3004,7 +3087,7 @@ $$;
 
 
 --
--- TOC entry 709 (class 1255 OID 76492)
+-- TOC entry 711 (class 1255 OID 76492)
 -- Name: detect_user_table_structure(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3063,7 +3146,7 @@ $$;
 
 
 --
--- TOC entry 783 (class 1255 OID 160745)
+-- TOC entry 786 (class 1255 OID 160745)
 -- Name: find_available_fourmiz(numeric, numeric, numeric, uuid, boolean, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3122,7 +3205,7 @@ $$;
 
 
 --
--- TOC entry 578 (class 1255 OID 160096)
+-- TOC entry 580 (class 1255 OID 160096)
 -- Name: find_fourmiz_nearby_basic(numeric, numeric, numeric, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3157,7 +3240,7 @@ $$;
 
 
 --
--- TOC entry 685 (class 1255 OID 160160)
+-- TOC entry 687 (class 1255 OID 160160)
 -- Name: find_fourmiz_nearby_complete(numeric, numeric, numeric, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3206,7 +3289,7 @@ $$;
 
 
 --
--- TOC entry 700 (class 1255 OID 160118)
+-- TOC entry 702 (class 1255 OID 160118)
 -- Name: find_fourmiz_nearby_filtered(numeric, numeric, numeric, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3251,7 +3334,7 @@ $$;
 
 
 --
--- TOC entry 537 (class 1255 OID 160723)
+-- TOC entry 539 (class 1255 OID 160723)
 -- Name: find_fourmiz_nearby_simple(numeric, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3291,7 +3374,7 @@ $$;
 
 
 --
--- TOC entry 544 (class 1255 OID 160005)
+-- TOC entry 546 (class 1255 OID 160005)
 -- Name: find_profiles_within_radius(numeric, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3329,8 +3412,8 @@ $$;
 
 
 --
--- TOC entry 5823 (class 0 OID 0)
--- Dependencies: 544
+-- TOC entry 5831 (class 0 OID 0)
+-- Dependencies: 546
 -- Name: FUNCTION find_profiles_within_radius(center_lat numeric, center_lng numeric, radius_km numeric, profile_type text); Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -3338,7 +3421,7 @@ COMMENT ON FUNCTION public.find_profiles_within_radius(center_lat numeric, cente
 
 
 --
--- TOC entry 566 (class 1255 OID 76310)
+-- TOC entry 568 (class 1255 OID 76310)
 -- Name: generate_referral_code(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3377,7 +3460,7 @@ $$;
 
 
 --
--- TOC entry 575 (class 1255 OID 76421)
+-- TOC entry 577 (class 1255 OID 76421)
 -- Name: generate_referral_code_fallback(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3428,7 +3511,7 @@ $$;
 
 
 --
--- TOC entry 606 (class 1255 OID 76422)
+-- TOC entry 608 (class 1255 OID 76422)
 -- Name: generate_referral_code_simple(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3468,7 +3551,7 @@ $$;
 
 
 --
--- TOC entry 645 (class 1255 OID 43660)
+-- TOC entry 647 (class 1255 OID 43660)
 -- Name: generate_service_slug(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3496,7 +3579,7 @@ $$;
 
 
 --
--- TOC entry 770 (class 1255 OID 43864)
+-- TOC entry 773 (class 1255 OID 43864)
 -- Name: generate_slug(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3517,7 +3600,7 @@ $_$;
 
 
 --
--- TOC entry 749 (class 1255 OID 43986)
+-- TOC entry 752 (class 1255 OID 43986)
 -- Name: generate_unique_slug(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3539,7 +3622,7 @@ $$;
 
 
 --
--- TOC entry 654 (class 1255 OID 54869)
+-- TOC entry 656 (class 1255 OID 54869)
 -- Name: get_latest_messages_for_user(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3609,7 +3692,7 @@ $$;
 
 
 --
--- TOC entry 621 (class 1255 OID 151168)
+-- TOC entry 623 (class 1255 OID 151168)
 -- Name: get_nearby_fourmiz(numeric, numeric, integer, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3659,7 +3742,7 @@ $$;
 
 
 --
--- TOC entry 763 (class 1255 OID 76493)
+-- TOC entry 766 (class 1255 OID 76493)
 -- Name: get_real_user_ids_simple(integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3721,7 +3804,7 @@ $$;
 
 
 --
--- TOC entry 723 (class 1255 OID 53204)
+-- TOC entry 726 (class 1255 OID 53204)
 -- Name: get_recommended_price(integer, character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3769,7 +3852,7 @@ $$;
 
 
 --
--- TOC entry 556 (class 1255 OID 76867)
+-- TOC entry 558 (class 1255 OID 76867)
 -- Name: get_referral_config(text, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3790,7 +3873,7 @@ $$;
 
 
 --
--- TOC entry 551 (class 1255 OID 151688)
+-- TOC entry 553 (class 1255 OID 151688)
 -- Name: get_service_categories(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3853,7 +3936,7 @@ $$;
 
 
 --
--- TOC entry 726 (class 1255 OID 160241)
+-- TOC entry 729 (class 1255 OID 160241)
 -- Name: get_service_current_position(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3882,7 +3965,7 @@ $$;
 
 
 --
--- TOC entry 730 (class 1255 OID 160242)
+-- TOC entry 733 (class 1255 OID 160242)
 -- Name: get_service_route_history(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3903,7 +3986,7 @@ $$;
 
 
 --
--- TOC entry 576 (class 1255 OID 54444)
+-- TOC entry 578 (class 1255 OID 54444)
 -- Name: get_suggested_price(integer, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3929,7 +4012,7 @@ $$;
 
 
 --
--- TOC entry 705 (class 1255 OID 54867)
+-- TOC entry 707 (class 1255 OID 54867)
 -- Name: get_unread_messages_count(uuid, bigint); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3955,7 +4038,7 @@ $$;
 
 
 --
--- TOC entry 587 (class 1255 OID 81121)
+-- TOC entry 589 (class 1255 OID 81121)
 -- Name: get_user_by_id(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -3990,7 +4073,7 @@ $$;
 
 
 --
--- TOC entry 708 (class 1255 OID 81122)
+-- TOC entry 710 (class 1255 OID 81122)
 -- Name: get_user_display_name(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4080,7 +4163,7 @@ $$;
 
 
 --
--- TOC entry 767 (class 1255 OID 81264)
+-- TOC entry 770 (class 1255 OID 81264)
 -- Name: get_user_display_name_from_profiles(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4143,7 +4226,7 @@ $$;
 
 
 --
--- TOC entry 611 (class 1255 OID 81120)
+-- TOC entry 613 (class 1255 OID 81120)
 -- Name: get_user_metadata(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4174,7 +4257,7 @@ $$;
 
 
 --
--- TOC entry 564 (class 1255 OID 55241)
+-- TOC entry 566 (class 1255 OID 55241)
 -- Name: get_user_push_tokens(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4193,7 +4276,7 @@ $$;
 
 
 --
--- TOC entry 653 (class 1255 OID 67836)
+-- TOC entry 655 (class 1255 OID 67836)
 -- Name: get_user_referral_earnings(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4227,7 +4310,7 @@ $$;
 
 
 --
--- TOC entry 702 (class 1255 OID 76835)
+-- TOC entry 704 (class 1255 OID 76835)
 -- Name: get_user_roles(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4247,7 +4330,7 @@ $$;
 
 
 --
--- TOC entry 678 (class 1255 OID 136948)
+-- TOC entry 680 (class 1255 OID 136948)
 -- Name: handle_first_mission_referral(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4291,7 +4374,7 @@ $$;
 
 
 --
--- TOC entry 668 (class 1255 OID 67880)
+-- TOC entry 670 (class 1255 OID 67880)
 -- Name: handle_first_order_referral(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4341,7 +4424,7 @@ $$;
 
 
 --
--- TOC entry 553 (class 1255 OID 50368)
+-- TOC entry 555 (class 1255 OID 50368)
 -- Name: handle_new_user(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4370,7 +4453,7 @@ $$;
 
 
 --
--- TOC entry 617 (class 1255 OID 25961)
+-- TOC entry 619 (class 1255 OID 25961)
 -- Name: handle_referral_commission(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4385,7 +4468,7 @@ $$;
 
 
 --
--- TOC entry 707 (class 1255 OID 55243)
+-- TOC entry 709 (class 1255 OID 55243)
 -- Name: log_notification(uuid, character varying, text, text, jsonb, bigint, bigint); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4407,7 +4490,7 @@ $$;
 
 
 --
--- TOC entry 701 (class 1255 OID 54868)
+-- TOC entry 703 (class 1255 OID 54868)
 -- Name: mark_messages_as_read(uuid, bigint); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4431,7 +4514,7 @@ $$;
 
 
 --
--- TOC entry 615 (class 1255 OID 76870)
+-- TOC entry 617 (class 1255 OID 76870)
 -- Name: migrate_existing_users_roles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4481,7 +4564,7 @@ $$;
 
 
 --
--- TOC entry 659 (class 1255 OID 34468)
+-- TOC entry 661 (class 1255 OID 34468)
 -- Name: monthly_user_stats(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4504,7 +4587,7 @@ $$;
 
 
 --
--- TOC entry 688 (class 1255 OID 138342)
+-- TOC entry 690 (class 1255 OID 138342)
 -- Name: process_referral_for_order(bigint); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4552,7 +4635,7 @@ $$;
 
 
 --
--- TOC entry 661 (class 1255 OID 67858)
+-- TOC entry 663 (class 1255 OID 67858)
 -- Name: process_referral_signup(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4591,7 +4674,7 @@ $$;
 
 
 --
--- TOC entry 571 (class 1255 OID 160830)
+-- TOC entry 573 (class 1255 OID 160830)
 -- Name: record_tracking_consent(uuid, boolean, boolean, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4627,7 +4710,7 @@ $$;
 
 
 --
--- TOC entry 671 (class 1255 OID 123283)
+-- TOC entry 673 (class 1255 OID 123283)
 -- Name: refresh_all_profile_counters(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4658,7 +4741,7 @@ $$;
 
 
 --
--- TOC entry 526 (class 1255 OID 76869)
+-- TOC entry 528 (class 1255 OID 76869)
 -- Name: save_referral_settings_batch(jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4698,7 +4781,7 @@ $$;
 
 
 --
--- TOC entry 533 (class 1255 OID 59938)
+-- TOC entry 535 (class 1255 OID 59938)
 -- Name: search_fourmiz_simple(text[], integer, numeric, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4729,7 +4812,7 @@ $$;
 
 
 --
--- TOC entry 720 (class 1255 OID 76868)
+-- TOC entry 723 (class 1255 OID 76868)
 -- Name: set_referral_config(text, numeric, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4769,7 +4852,7 @@ $$;
 
 
 --
--- TOC entry 591 (class 1255 OID 44056)
+-- TOC entry 593 (class 1255 OID 44056)
 -- Name: set_slug_on_insert(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4786,7 +4869,7 @@ $$;
 
 
 --
--- TOC entry 660 (class 1255 OID 44120)
+-- TOC entry 662 (class 1255 OID 44120)
 -- Name: set_slug_on_insert_or_update(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4811,7 +4894,7 @@ $$;
 
 
 --
--- TOC entry 593 (class 1255 OID 55242)
+-- TOC entry 595 (class 1255 OID 55242)
 -- Name: should_send_notification(uuid, character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4875,7 +4958,7 @@ $$;
 
 
 --
--- TOC entry 719 (class 1255 OID 160238)
+-- TOC entry 722 (class 1255 OID 160238)
 -- Name: start_service_tracking(uuid, uuid, uuid, text, numeric, numeric, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4910,7 +4993,7 @@ $$;
 
 
 --
--- TOC entry 565 (class 1255 OID 160240)
+-- TOC entry 567 (class 1255 OID 160240)
 -- Name: stop_service_tracking(uuid, numeric, numeric); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4932,7 +5015,7 @@ $$;
 
 
 --
--- TOC entry 657 (class 1255 OID 153090)
+-- TOC entry 659 (class 1255 OID 153090)
 -- Name: sync_referral_code_to_profiles(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -4983,7 +5066,7 @@ $$;
 
 
 --
--- TOC entry 746 (class 1255 OID 143796)
+-- TOC entry 749 (class 1255 OID 143796)
 -- Name: test_migration_success(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5029,7 +5112,7 @@ $$;
 
 
 --
--- TOC entry 779 (class 1255 OID 76382)
+-- TOC entry 782 (class 1255 OID 76382)
 -- Name: test_referral_system(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5092,7 +5175,7 @@ $$;
 
 
 --
--- TOC entry 773 (class 1255 OID 160744)
+-- TOC entry 776 (class 1255 OID 160744)
 -- Name: toggle_fourmiz_tracking(uuid, boolean); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5117,7 +5200,7 @@ $$;
 
 
 --
--- TOC entry 598 (class 1255 OID 55244)
+-- TOC entry 600 (class 1255 OID 55244)
 -- Name: trigger_chat_notification(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5190,7 +5273,7 @@ $$;
 
 
 --
--- TOC entry 607 (class 1255 OID 55245)
+-- TOC entry 609 (class 1255 OID 55245)
 -- Name: trigger_order_notification(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5255,7 +5338,7 @@ $$;
 
 
 --
--- TOC entry 530 (class 1255 OID 123281)
+-- TOC entry 532 (class 1255 OID 123281)
 -- Name: trigger_update_profile_counters(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5336,7 +5419,7 @@ $$;
 
 
 --
--- TOC entry 663 (class 1255 OID 114739)
+-- TOC entry 665 (class 1255 OID 114739)
 -- Name: trigger_update_ratings(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5369,7 +5452,7 @@ $$;
 
 
 --
--- TOC entry 561 (class 1255 OID 59939)
+-- TOC entry 563 (class 1255 OID 59939)
 -- Name: update_fourmiz_simple(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5399,7 +5482,7 @@ $$;
 
 
 --
--- TOC entry 585 (class 1255 OID 160239)
+-- TOC entry 587 (class 1255 OID 160239)
 -- Name: update_gps_position(uuid, numeric, numeric, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5464,7 +5547,7 @@ $$;
 
 
 --
--- TOC entry 528 (class 1255 OID 160831)
+-- TOC entry 530 (class 1255 OID 160831)
 -- Name: update_mission_status(uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5506,7 +5589,7 @@ $$;
 
 
 --
--- TOC entry 785 (class 1255 OID 84485)
+-- TOC entry 788 (class 1255 OID 84485)
 -- Name: update_order_details_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5521,7 +5604,7 @@ $$;
 
 
 --
--- TOC entry 646 (class 1255 OID 133755)
+-- TOC entry 648 (class 1255 OID 133755)
 -- Name: update_payments_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5536,7 +5619,7 @@ $$;
 
 
 --
--- TOC entry 543 (class 1255 OID 143784)
+-- TOC entry 545 (class 1255 OID 143784)
 -- Name: update_profile_completion(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5551,7 +5634,7 @@ $$;
 
 
 --
--- TOC entry 711 (class 1255 OID 123280)
+-- TOC entry 713 (class 1255 OID 123280)
 -- Name: update_profile_counters(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5614,7 +5697,7 @@ $$;
 
 
 --
--- TOC entry 635 (class 1255 OID 123284)
+-- TOC entry 637 (class 1255 OID 123284)
 -- Name: update_profile_timestamp(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5629,7 +5712,7 @@ $$;
 
 
 --
--- TOC entry 758 (class 1255 OID 160236)
+-- TOC entry 761 (class 1255 OID 160236)
 -- Name: update_tracking_timestamp(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5644,7 +5727,7 @@ $$;
 
 
 --
--- TOC entry 644 (class 1255 OID 49490)
+-- TOC entry 646 (class 1255 OID 49490)
 -- Name: update_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5659,7 +5742,7 @@ $$;
 
 
 --
--- TOC entry 741 (class 1255 OID 36306)
+-- TOC entry 744 (class 1255 OID 36306)
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5674,7 +5757,7 @@ $$;
 
 
 --
--- TOC entry 637 (class 1255 OID 160722)
+-- TOC entry 639 (class 1255 OID 160722)
 -- Name: update_user_location(uuid, numeric, numeric, numeric, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5725,7 +5808,7 @@ $$;
 
 
 --
--- TOC entry 531 (class 1255 OID 114737)
+-- TOC entry 533 (class 1255 OID 114737)
 -- Name: update_user_rating(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5758,7 +5841,7 @@ $$;
 
 
 --
--- TOC entry 583 (class 1255 OID 76834)
+-- TOC entry 585 (class 1255 OID 76834)
 -- Name: update_user_roles(uuid, text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5785,7 +5868,7 @@ $$;
 
 
 --
--- TOC entry 728 (class 1255 OID 76836)
+-- TOC entry 731 (class 1255 OID 76836)
 -- Name: user_has_role(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5802,7 +5885,7 @@ $$;
 
 
 --
--- TOC entry 747 (class 1255 OID 76448)
+-- TOC entry 750 (class 1255 OID 76448)
 -- Name: validate_referral_code_safe(character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5832,7 +5915,7 @@ $$;
 
 
 --
--- TOC entry 737 (class 1255 OID 81265)
+-- TOC entry 740 (class 1255 OID 81265)
 -- Name: validate_referral_code_simple(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5896,7 +5979,7 @@ $$;
 
 
 --
--- TOC entry 752 (class 1255 OID 76495)
+-- TOC entry 755 (class 1255 OID 76495)
 -- Name: validate_referral_code_simple(character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5934,7 +6017,7 @@ $$;
 
 
 --
--- TOC entry 754 (class 1255 OID 81123)
+-- TOC entry 757 (class 1255 OID 81123)
 -- Name: validate_referral_code_with_name(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5999,7 +6082,7 @@ $$;
 
 
 --
--- TOC entry 712 (class 1255 OID 76833)
+-- TOC entry 714 (class 1255 OID 76833)
 -- Name: validate_user_roles(text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -6027,7 +6110,7 @@ $$;
 
 
 --
--- TOC entry 555 (class 1255 OID 17169)
+-- TOC entry 557 (class 1255 OID 17169)
 -- Name: apply_rls(jsonb, integer); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6333,7 +6416,7 @@ $$;
 
 
 --
--- TOC entry 604 (class 1255 OID 17250)
+-- TOC entry 606 (class 1255 OID 17250)
 -- Name: broadcast_changes(text, text, text, text, text, record, record, text); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6363,7 +6446,7 @@ $$;
 
 
 --
--- TOC entry 772 (class 1255 OID 17181)
+-- TOC entry 775 (class 1255 OID 17181)
 -- Name: build_prepared_statement_sql(text, regclass, realtime.wal_column[]); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6397,7 +6480,7 @@ CREATE FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name te
 
 
 --
--- TOC entry 776 (class 1255 OID 17127)
+-- TOC entry 779 (class 1255 OID 17127)
 -- Name: cast(text, regtype); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6414,7 +6497,7 @@ CREATE FUNCTION realtime."cast"(val text, type_ regtype) RETURNS jsonb
 
 
 --
--- TOC entry 760 (class 1255 OID 17122)
+-- TOC entry 763 (class 1255 OID 17122)
 -- Name: check_equality_op(realtime.equality_op, regtype, text, text); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6454,7 +6537,7 @@ CREATE FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtyp
 
 
 --
--- TOC entry 567 (class 1255 OID 17177)
+-- TOC entry 569 (class 1255 OID 17177)
 -- Name: is_visible_through_filters(realtime.wal_column[], realtime.user_defined_filter[]); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6491,7 +6574,7 @@ CREATE FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[
 
 
 --
--- TOC entry 672 (class 1255 OID 17190)
+-- TOC entry 674 (class 1255 OID 17190)
 -- Name: list_changes(name, name, integer, integer); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6558,7 +6641,7 @@ CREATE FUNCTION realtime.list_changes(publication name, slot_name name, max_chan
 
 
 --
--- TOC entry 569 (class 1255 OID 17121)
+-- TOC entry 571 (class 1255 OID 17121)
 -- Name: quote_wal2json(regclass); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6597,7 +6680,7 @@ CREATE FUNCTION realtime.quote_wal2json(entity regclass) RETURNS text
 
 
 --
--- TOC entry 592 (class 1255 OID 17249)
+-- TOC entry 594 (class 1255 OID 17249)
 -- Name: send(jsonb, text, text, boolean); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6622,7 +6705,7 @@ $$;
 
 
 --
--- TOC entry 631 (class 1255 OID 17119)
+-- TOC entry 633 (class 1255 OID 17119)
 -- Name: subscription_check_filters(); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6697,7 +6780,7 @@ CREATE FUNCTION realtime.subscription_check_filters() RETURNS trigger
 
 
 --
--- TOC entry 596 (class 1255 OID 17158)
+-- TOC entry 598 (class 1255 OID 17158)
 -- Name: to_regrole(text); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6707,7 +6790,7 @@ CREATE FUNCTION realtime.to_regrole(role_name text) RETURNS regrole
 
 
 --
--- TOC entry 629 (class 1255 OID 17243)
+-- TOC entry 631 (class 1255 OID 17243)
 -- Name: topic(); Type: FUNCTION; Schema: realtime; Owner: -
 --
 
@@ -6719,7 +6802,7 @@ $$;
 
 
 --
--- TOC entry 609 (class 1255 OID 120727)
+-- TOC entry 611 (class 1255 OID 120727)
 -- Name: add_prefixes(text, text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6740,7 +6823,7 @@ $$;
 
 
 --
--- TOC entry 525 (class 1255 OID 17033)
+-- TOC entry 527 (class 1255 OID 17033)
 -- Name: can_insert_object(text, text, uuid, jsonb); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6758,7 +6841,7 @@ $$;
 
 
 --
--- TOC entry 638 (class 1255 OID 120728)
+-- TOC entry 640 (class 1255 OID 120728)
 -- Name: delete_prefix(text, text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6795,7 +6878,7 @@ $$;
 
 
 --
--- TOC entry 589 (class 1255 OID 120731)
+-- TOC entry 591 (class 1255 OID 120731)
 -- Name: delete_prefix_hierarchy_trigger(); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6817,7 +6900,7 @@ $$;
 
 
 --
--- TOC entry 761 (class 1255 OID 120746)
+-- TOC entry 764 (class 1255 OID 120746)
 -- Name: enforce_bucket_name_length(); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6834,7 +6917,7 @@ $$;
 
 
 --
--- TOC entry 614 (class 1255 OID 17007)
+-- TOC entry 616 (class 1255 OID 17007)
 -- Name: extension(text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6853,7 +6936,7 @@ $$;
 
 
 --
--- TOC entry 704 (class 1255 OID 17006)
+-- TOC entry 706 (class 1255 OID 17006)
 -- Name: filename(text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6870,7 +6953,7 @@ $$;
 
 
 --
--- TOC entry 727 (class 1255 OID 17005)
+-- TOC entry 730 (class 1255 OID 17005)
 -- Name: foldername(text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6889,7 +6972,7 @@ $$;
 
 
 --
--- TOC entry 620 (class 1255 OID 120709)
+-- TOC entry 622 (class 1255 OID 120709)
 -- Name: get_level(text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6901,7 +6984,7 @@ $$;
 
 
 --
--- TOC entry 634 (class 1255 OID 120725)
+-- TOC entry 636 (class 1255 OID 120725)
 -- Name: get_prefix(text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6918,7 +7001,7 @@ $_$;
 
 
 --
--- TOC entry 733 (class 1255 OID 120726)
+-- TOC entry 736 (class 1255 OID 120726)
 -- Name: get_prefixes(text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6946,7 +7029,7 @@ $$;
 
 
 --
--- TOC entry 650 (class 1255 OID 120744)
+-- TOC entry 652 (class 1255 OID 120744)
 -- Name: get_size_by_bucket(); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -6963,7 +7046,7 @@ $$;
 
 
 --
--- TOC entry 584 (class 1255 OID 17072)
+-- TOC entry 586 (class 1255 OID 17072)
 -- Name: list_multipart_uploads_with_delimiter(text, text, text, integer, text, text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7010,7 +7093,7 @@ $_$;
 
 
 --
--- TOC entry 648 (class 1255 OID 17035)
+-- TOC entry 650 (class 1255 OID 17035)
 -- Name: list_objects_with_delimiter(text, text, text, integer, text, text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7055,7 +7138,7 @@ $_$;
 
 
 --
--- TOC entry 697 (class 1255 OID 120730)
+-- TOC entry 699 (class 1255 OID 120730)
 -- Name: objects_insert_prefix_trigger(); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7072,7 +7155,7 @@ $$;
 
 
 --
--- TOC entry 641 (class 1255 OID 120745)
+-- TOC entry 643 (class 1255 OID 120745)
 -- Name: objects_update_prefix_trigger(); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7115,7 +7198,7 @@ $$;
 
 
 --
--- TOC entry 534 (class 1255 OID 17088)
+-- TOC entry 536 (class 1255 OID 17088)
 -- Name: operation(); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7129,7 +7212,7 @@ $$;
 
 
 --
--- TOC entry 536 (class 1255 OID 120729)
+-- TOC entry 538 (class 1255 OID 120729)
 -- Name: prefixes_insert_trigger(); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7144,7 +7227,7 @@ $$;
 
 
 --
--- TOC entry 560 (class 1255 OID 17022)
+-- TOC entry 562 (class 1255 OID 17022)
 -- Name: search(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7169,7 +7252,7 @@ $$;
 
 
 --
--- TOC entry 675 (class 1255 OID 120742)
+-- TOC entry 677 (class 1255 OID 120742)
 -- Name: search_legacy_v1(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7239,7 +7322,7 @@ $_$;
 
 
 --
--- TOC entry 722 (class 1255 OID 120741)
+-- TOC entry 725 (class 1255 OID 120741)
 -- Name: search_v1_optimised(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7308,7 +7391,7 @@ $_$;
 
 
 --
--- TOC entry 562 (class 1255 OID 120736)
+-- TOC entry 564 (class 1255 OID 120736)
 -- Name: search_v2(text, text, integer, integer, text); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7356,7 +7439,7 @@ $_$;
 
 
 --
--- TOC entry 690 (class 1255 OID 17023)
+-- TOC entry 692 (class 1255 OID 17023)
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: storage; Owner: -
 --
 
@@ -7389,7 +7472,7 @@ CREATE TABLE auth.audit_log_entries (
 
 
 --
--- TOC entry 5824 (class 0 OID 0)
+-- TOC entry 5832 (class 0 OID 0)
 -- Dependencies: 357
 -- Name: TABLE audit_log_entries; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7419,7 +7502,7 @@ CREATE TABLE auth.flow_state (
 
 
 --
--- TOC entry 5825 (class 0 OID 0)
+-- TOC entry 5833 (class 0 OID 0)
 -- Dependencies: 374
 -- Name: TABLE flow_state; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7446,7 +7529,7 @@ CREATE TABLE auth.identities (
 
 
 --
--- TOC entry 5826 (class 0 OID 0)
+-- TOC entry 5834 (class 0 OID 0)
 -- Dependencies: 365
 -- Name: TABLE identities; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7455,7 +7538,7 @@ COMMENT ON TABLE auth.identities IS 'Auth: Stores identities associated to a use
 
 
 --
--- TOC entry 5827 (class 0 OID 0)
+-- TOC entry 5835 (class 0 OID 0)
 -- Dependencies: 365
 -- Name: COLUMN identities.email; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7478,7 +7561,7 @@ CREATE TABLE auth.instances (
 
 
 --
--- TOC entry 5828 (class 0 OID 0)
+-- TOC entry 5836 (class 0 OID 0)
 -- Dependencies: 356
 -- Name: TABLE instances; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7501,7 +7584,7 @@ CREATE TABLE auth.mfa_amr_claims (
 
 
 --
--- TOC entry 5829 (class 0 OID 0)
+-- TOC entry 5837 (class 0 OID 0)
 -- Dependencies: 369
 -- Name: TABLE mfa_amr_claims; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7526,7 +7609,7 @@ CREATE TABLE auth.mfa_challenges (
 
 
 --
--- TOC entry 5830 (class 0 OID 0)
+-- TOC entry 5838 (class 0 OID 0)
 -- Dependencies: 368
 -- Name: TABLE mfa_challenges; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7556,7 +7639,7 @@ CREATE TABLE auth.mfa_factors (
 
 
 --
--- TOC entry 5831 (class 0 OID 0)
+-- TOC entry 5839 (class 0 OID 0)
 -- Dependencies: 367
 -- Name: TABLE mfa_factors; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7565,7 +7648,7 @@ COMMENT ON TABLE auth.mfa_factors IS 'auth: stores metadata about factors';
 
 
 --
--- TOC entry 492 (class 1259 OID 136607)
+-- TOC entry 491 (class 1259 OID 136607)
 -- Name: oauth_clients; Type: TABLE; Schema: auth; Owner: -
 --
 
@@ -7624,7 +7707,7 @@ CREATE TABLE auth.refresh_tokens (
 
 
 --
--- TOC entry 5832 (class 0 OID 0)
+-- TOC entry 5840 (class 0 OID 0)
 -- Dependencies: 355
 -- Name: TABLE refresh_tokens; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7646,7 +7729,7 @@ CREATE SEQUENCE auth.refresh_tokens_id_seq
 
 
 --
--- TOC entry 5833 (class 0 OID 0)
+-- TOC entry 5841 (class 0 OID 0)
 -- Dependencies: 354
 -- Name: refresh_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: auth; Owner: -
 --
@@ -7676,7 +7759,7 @@ CREATE TABLE auth.saml_providers (
 
 
 --
--- TOC entry 5834 (class 0 OID 0)
+-- TOC entry 5842 (class 0 OID 0)
 -- Dependencies: 372
 -- Name: TABLE saml_providers; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7703,7 +7786,7 @@ CREATE TABLE auth.saml_relay_states (
 
 
 --
--- TOC entry 5835 (class 0 OID 0)
+-- TOC entry 5843 (class 0 OID 0)
 -- Dependencies: 373
 -- Name: TABLE saml_relay_states; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7722,7 +7805,7 @@ CREATE TABLE auth.schema_migrations (
 
 
 --
--- TOC entry 5836 (class 0 OID 0)
+-- TOC entry 5844 (class 0 OID 0)
 -- Dependencies: 358
 -- Name: TABLE schema_migrations; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7751,7 +7834,7 @@ CREATE TABLE auth.sessions (
 
 
 --
--- TOC entry 5837 (class 0 OID 0)
+-- TOC entry 5845 (class 0 OID 0)
 -- Dependencies: 366
 -- Name: TABLE sessions; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7760,7 +7843,7 @@ COMMENT ON TABLE auth.sessions IS 'Auth: Stores session data associated to a use
 
 
 --
--- TOC entry 5838 (class 0 OID 0)
+-- TOC entry 5846 (class 0 OID 0)
 -- Dependencies: 366
 -- Name: COLUMN sessions.not_after; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7784,7 +7867,7 @@ CREATE TABLE auth.sso_domains (
 
 
 --
--- TOC entry 5839 (class 0 OID 0)
+-- TOC entry 5847 (class 0 OID 0)
 -- Dependencies: 371
 -- Name: TABLE sso_domains; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7808,7 +7891,7 @@ CREATE TABLE auth.sso_providers (
 
 
 --
--- TOC entry 5840 (class 0 OID 0)
+-- TOC entry 5848 (class 0 OID 0)
 -- Dependencies: 370
 -- Name: TABLE sso_providers; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7817,7 +7900,7 @@ COMMENT ON TABLE auth.sso_providers IS 'Auth: Manages SSO identity provider info
 
 
 --
--- TOC entry 5841 (class 0 OID 0)
+-- TOC entry 5849 (class 0 OID 0)
 -- Dependencies: 370
 -- Name: COLUMN sso_providers.resource_id; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7871,7 +7954,7 @@ CREATE TABLE auth.users (
 
 
 --
--- TOC entry 5842 (class 0 OID 0)
+-- TOC entry 5850 (class 0 OID 0)
 -- Dependencies: 353
 -- Name: TABLE users; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7880,7 +7963,7 @@ COMMENT ON TABLE auth.users IS 'Auth: Stores user login data within a secure sch
 
 
 --
--- TOC entry 5843 (class 0 OID 0)
+-- TOC entry 5851 (class 0 OID 0)
 -- Dependencies: 353
 -- Name: COLUMN users.is_sso_user; Type: COMMENT; Schema: auth; Owner: -
 --
@@ -7889,7 +7972,7 @@ COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when 
 
 
 --
--- TOC entry 516 (class 1259 OID 160202)
+-- TOC entry 510 (class 1259 OID 160202)
 -- Name: active_service_tracking; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7981,7 +8064,6 @@ CREATE TABLE public.profiles (
     response_time_minutes integer DEFAULT 30,
     service_radius_km integer DEFAULT 5,
     last_location_update timestamp with time zone,
-    service_category_id uuid,
     criteria_completed boolean DEFAULT false,
     formatted_address text,
     address_confidence numeric(4,3) DEFAULT NULL::numeric,
@@ -8002,6 +8084,7 @@ CREATE TABLE public.profiles (
     tracking_consent_date timestamp with time zone,
     tracking_consent_ip text,
     data_retention_days integer DEFAULT 30,
+    service_category_text character varying(255),
     CONSTRAINT chk_address_confidence_range CHECK (((address_confidence IS NULL) OR ((address_confidence >= 0.0) AND (address_confidence <= 1.0)))),
     CONSTRAINT chk_coordinates_consistency CHECK ((((latitude IS NULL) AND (longitude IS NULL)) OR ((latitude IS NOT NULL) AND (longitude IS NOT NULL)))),
     CONSTRAINT chk_latitude_range CHECK (((latitude IS NULL) OR ((latitude >= 41.0) AND (latitude <= 52.0)))),
@@ -8015,7 +8098,7 @@ CREATE TABLE public.profiles (
 
 
 --
--- TOC entry 5844 (class 0 OID 0)
+-- TOC entry 5852 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.legal_engagements_required; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8024,7 +8107,7 @@ COMMENT ON COLUMN public.profiles.legal_engagements_required IS 'Indique si les 
 
 
 --
--- TOC entry 5845 (class 0 OID 0)
+-- TOC entry 5853 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.grandfathered_fourmiz; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8033,7 +8116,7 @@ COMMENT ON COLUMN public.profiles.grandfathered_fourmiz IS 'Profils Fourmiz exis
 
 
 --
--- TOC entry 5846 (class 0 OID 0)
+-- TOC entry 5854 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.latitude; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8042,7 +8125,7 @@ COMMENT ON COLUMN public.profiles.latitude IS 'Latitude GPS de l''adresse (WGS84
 
 
 --
--- TOC entry 5847 (class 0 OID 0)
+-- TOC entry 5855 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.longitude; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8051,7 +8134,7 @@ COMMENT ON COLUMN public.profiles.longitude IS 'Longitude GPS de l''adresse (WGS
 
 
 --
--- TOC entry 5848 (class 0 OID 0)
+-- TOC entry 5856 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.formatted_address; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8060,7 +8143,7 @@ COMMENT ON COLUMN public.profiles.formatted_address IS 'Adresse formatée retour
 
 
 --
--- TOC entry 5849 (class 0 OID 0)
+-- TOC entry 5857 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.address_confidence; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8069,7 +8152,7 @@ COMMENT ON COLUMN public.profiles.address_confidence IS 'Score de confiance de l
 
 
 --
--- TOC entry 5850 (class 0 OID 0)
+-- TOC entry 5858 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.address_validated_at; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8078,7 +8161,7 @@ COMMENT ON COLUMN public.profiles.address_validated_at IS 'Date/heure de derniè
 
 
 --
--- TOC entry 5851 (class 0 OID 0)
+-- TOC entry 5859 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.address_validation_source; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8087,7 +8170,7 @@ COMMENT ON COLUMN public.profiles.address_validation_source IS 'Source de valida
 
 
 --
--- TOC entry 5852 (class 0 OID 0)
+-- TOC entry 5860 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.address_validation_attempted_at; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8096,7 +8179,7 @@ COMMENT ON COLUMN public.profiles.address_validation_attempted_at IS 'Date/heure
 
 
 --
--- TOC entry 5853 (class 0 OID 0)
+-- TOC entry 5861 (class 0 OID 0)
 -- Dependencies: 413
 -- Name: COLUMN profiles.address_validation_error; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8105,7 +8188,7 @@ COMMENT ON COLUMN public.profiles.address_validation_error IS 'Message d''erreur
 
 
 --
--- TOC entry 517 (class 1259 OID 160243)
+-- TOC entry 511 (class 1259 OID 160243)
 -- Name: active_services_with_position; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -8184,7 +8267,7 @@ CREATE TABLE public.referrals (
 
 
 --
--- TOC entry 475 (class 1259 OID 76876)
+-- TOC entry 474 (class 1259 OID 76876)
 -- Name: admin_referral_overview; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -8214,7 +8297,7 @@ CREATE VIEW public.admin_referral_overview AS
 
 
 --
--- TOC entry 462 (class 1259 OID 67695)
+-- TOC entry 461 (class 1259 OID 67695)
 -- Name: admin_settings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8244,7 +8327,7 @@ CREATE TABLE public.rewards (
 
 
 --
--- TOC entry 438 (class 1259 OID 47064)
+-- TOC entry 437 (class 1259 OID 47064)
 -- Name: annual_revenue_by_user; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -8274,7 +8357,7 @@ CREATE TABLE public.app_settings (
 
 
 --
--- TOC entry 442 (class 1259 OID 53051)
+-- TOC entry 441 (class 1259 OID 53051)
 -- Name: orders; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8348,8 +8431,8 @@ CREATE TABLE public.orders (
 
 
 --
--- TOC entry 5854 (class 0 OID 0)
--- Dependencies: 442
+-- TOC entry 5862 (class 0 OID 0)
+-- Dependencies: 441
 -- Name: COLUMN orders.duration; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8371,7 +8454,6 @@ CREATE TABLE public.services (
     "estimatedDuration" numeric,
     "isEligibleTaxCredit" boolean,
     slug text,
-    category_id uuid,
     icon text,
     workflow_type character varying(20) DEFAULT 'direct'::character varying,
     CONSTRAINT services_workflow_type_check CHECK (((workflow_type)::text = ANY ((ARRAY['direct'::character varying, 'candidatures'::character varying])::text[])))
@@ -8379,7 +8461,7 @@ CREATE TABLE public.services (
 
 
 --
--- TOC entry 5855 (class 0 OID 0)
+-- TOC entry 5863 (class 0 OID 0)
 -- Dependencies: 388
 -- Name: COLUMN services.id; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8388,7 +8470,7 @@ COMMENT ON COLUMN public.services.id IS 'Primary key, auto-increment';
 
 
 --
--- TOC entry 5856 (class 0 OID 0)
+-- TOC entry 5864 (class 0 OID 0)
 -- Dependencies: 388
 -- Name: COLUMN services.title; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8397,7 +8479,7 @@ COMMENT ON COLUMN public.services.title IS 'Nom du service';
 
 
 --
--- TOC entry 5857 (class 0 OID 0)
+-- TOC entry 5865 (class 0 OID 0)
 -- Dependencies: 388
 -- Name: COLUMN services.description; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8406,7 +8488,7 @@ COMMENT ON COLUMN public.services.description IS 'Description du service';
 
 
 --
--- TOC entry 5858 (class 0 OID 0)
+-- TOC entry 5866 (class 0 OID 0)
 -- Dependencies: 388
 -- Name: COLUMN services.categorie; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8415,7 +8497,7 @@ COMMENT ON COLUMN public.services.categorie IS 'Catégorie du service';
 
 
 --
--- TOC entry 5859 (class 0 OID 0)
+-- TOC entry 5867 (class 0 OID 0)
 -- Dependencies: 388
 -- Name: COLUMN services.user_id; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8424,7 +8506,7 @@ COMMENT ON COLUMN public.services.user_id IS 'Lien avec l''utilisateur (foreign 
 
 
 --
--- TOC entry 5860 (class 0 OID 0)
+-- TOC entry 5868 (class 0 OID 0)
 -- Dependencies: 388
 -- Name: COLUMN services.created_at; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8433,7 +8515,7 @@ COMMENT ON COLUMN public.services.created_at IS 'Par defaut = now()';
 
 
 --
--- TOC entry 5861 (class 0 OID 0)
+-- TOC entry 5869 (class 0 OID 0)
 -- Dependencies: 388
 -- Name: COLUMN services."estimatedDuration"; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8442,7 +8524,7 @@ COMMENT ON COLUMN public.services."estimatedDuration" IS 'Durée estimée en min
 
 
 --
--- TOC entry 5862 (class 0 OID 0)
+-- TOC entry 5870 (class 0 OID 0)
 -- Dependencies: 388
 -- Name: COLUMN services."isEligibleTaxCredit"; Type: COMMENT; Schema: public; Owner: -
 --
@@ -8451,7 +8533,7 @@ COMMENT ON COLUMN public.services."isEligibleTaxCredit" IS 'Eligible au crédit 
 
 
 --
--- TOC entry 509 (class 1259 OID 156778)
+-- TOC entry 504 (class 1259 OID 156778)
 -- Name: available_orders_filtered; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -8558,7 +8640,7 @@ CREATE TABLE public.badges (
 
 
 --
--- TOC entry 467 (class 1259 OID 69516)
+-- TOC entry 466 (class 1259 OID 69516)
 -- Name: badges_catalog; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8584,22 +8666,7 @@ CREATE TABLE public.badges_catalog (
 
 
 --
--- TOC entry 434 (class 1259 OID 44268)
--- Name: categories; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.categories (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    name text NOT NULL,
-    description text,
-    created_at timestamp without time zone DEFAULT now(),
-    color text,
-    icon text
-);
-
-
---
--- TOC entry 446 (class 1259 OID 54789)
+-- TOC entry 445 (class 1259 OID 54789)
 -- Name: chat_messages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8620,8 +8687,8 @@ CREATE TABLE public.chat_messages (
 
 
 --
--- TOC entry 5863 (class 0 OID 0)
--- Dependencies: 446
+-- TOC entry 5871 (class 0 OID 0)
+-- Dependencies: 445
 -- Name: TABLE chat_messages; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8629,8 +8696,8 @@ COMMENT ON TABLE public.chat_messages IS 'Messages échangés entre clients et f
 
 
 --
--- TOC entry 5864 (class 0 OID 0)
--- Dependencies: 446
+-- TOC entry 5872 (class 0 OID 0)
+-- Dependencies: 445
 -- Name: COLUMN chat_messages.message_type; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8638,8 +8705,8 @@ COMMENT ON COLUMN public.chat_messages.message_type IS 'Type de message: text, i
 
 
 --
--- TOC entry 5865 (class 0 OID 0)
--- Dependencies: 446
+-- TOC entry 5873 (class 0 OID 0)
+-- Dependencies: 445
 -- Name: COLUMN chat_messages.metadata; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8647,8 +8714,8 @@ COMMENT ON COLUMN public.chat_messages.metadata IS 'Données additionnelles JSON
 
 
 --
--- TOC entry 5866 (class 0 OID 0)
--- Dependencies: 446
+-- TOC entry 5874 (class 0 OID 0)
+-- Dependencies: 445
 -- Name: COLUMN chat_messages.read_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8656,8 +8723,8 @@ COMMENT ON COLUMN public.chat_messages.read_at IS 'Timestamp de lecture du messa
 
 
 --
--- TOC entry 5867 (class 0 OID 0)
--- Dependencies: 446
+-- TOC entry 5875 (class 0 OID 0)
+-- Dependencies: 445
 -- Name: COLUMN chat_messages.deleted_at; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8665,7 +8732,7 @@ COMMENT ON COLUMN public.chat_messages.deleted_at IS 'Suppression logique du mes
 
 
 --
--- TOC entry 445 (class 1259 OID 54788)
+-- TOC entry 444 (class 1259 OID 54788)
 -- Name: chat_messages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -8678,8 +8745,8 @@ CREATE SEQUENCE public.chat_messages_id_seq
 
 
 --
--- TOC entry 5868 (class 0 OID 0)
--- Dependencies: 445
+-- TOC entry 5876 (class 0 OID 0)
+-- Dependencies: 444
 -- Name: chat_messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -8687,7 +8754,7 @@ ALTER SEQUENCE public.chat_messages_id_seq OWNED BY public.chat_messages.id;
 
 
 --
--- TOC entry 448 (class 1259 OID 54816)
+-- TOC entry 447 (class 1259 OID 54816)
 -- Name: chat_participants; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8706,8 +8773,8 @@ CREATE TABLE public.chat_participants (
 
 
 --
--- TOC entry 5869 (class 0 OID 0)
--- Dependencies: 448
+-- TOC entry 5877 (class 0 OID 0)
+-- Dependencies: 447
 -- Name: TABLE chat_participants; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8715,7 +8782,7 @@ COMMENT ON TABLE public.chat_participants IS 'Participants aux conversations (po
 
 
 --
--- TOC entry 447 (class 1259 OID 54815)
+-- TOC entry 446 (class 1259 OID 54815)
 -- Name: chat_participants_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -8728,8 +8795,8 @@ CREATE SEQUENCE public.chat_participants_id_seq
 
 
 --
--- TOC entry 5870 (class 0 OID 0)
--- Dependencies: 447
+-- TOC entry 5878 (class 0 OID 0)
+-- Dependencies: 446
 -- Name: chat_participants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -8737,7 +8804,7 @@ ALTER SEQUENCE public.chat_participants_id_seq OWNED BY public.chat_participants
 
 
 --
--- TOC entry 450 (class 1259 OID 54843)
+-- TOC entry 449 (class 1259 OID 54843)
 -- Name: chat_typing_status; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8751,8 +8818,8 @@ CREATE TABLE public.chat_typing_status (
 
 
 --
--- TOC entry 5871 (class 0 OID 0)
--- Dependencies: 450
+-- TOC entry 5879 (class 0 OID 0)
+-- Dependencies: 449
 -- Name: TABLE chat_typing_status; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -8760,7 +8827,7 @@ COMMENT ON TABLE public.chat_typing_status IS 'Statut "en train d''écrire" en t
 
 
 --
--- TOC entry 449 (class 1259 OID 54842)
+-- TOC entry 448 (class 1259 OID 54842)
 -- Name: chat_typing_status_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -8773,8 +8840,8 @@ CREATE SEQUENCE public.chat_typing_status_id_seq
 
 
 --
--- TOC entry 5872 (class 0 OID 0)
--- Dependencies: 449
+-- TOC entry 5880 (class 0 OID 0)
+-- Dependencies: 448
 -- Name: chat_typing_status_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -8782,7 +8849,7 @@ ALTER SEQUENCE public.chat_typing_status_id_seq OWNED BY public.chat_typing_stat
 
 
 --
--- TOC entry 465 (class 1259 OID 69430)
+-- TOC entry 464 (class 1259 OID 69430)
 -- Name: client_badges; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8882,7 +8949,7 @@ CREATE SEQUENCE public.criteria_id_seq
 
 
 --
--- TOC entry 5873 (class 0 OID 0)
+-- TOC entry 5881 (class 0 OID 0)
 -- Dependencies: 431
 -- Name: criteria_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -8891,7 +8958,7 @@ ALTER SEQUENCE public.criteria_id_seq OWNED BY public.criteria.id;
 
 
 --
--- TOC entry 489 (class 1259 OID 126742)
+-- TOC entry 488 (class 1259 OID 126742)
 -- Name: enum_values_view; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -8919,7 +8986,7 @@ CREATE TABLE public.favorite_orders (
 
 
 --
--- TOC entry 466 (class 1259 OID 69439)
+-- TOC entry 465 (class 1259 OID 69439)
 -- Name: fourmiz_badges; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8990,7 +9057,7 @@ CREATE TABLE public.fourmiz_criteria (
 
 
 --
--- TOC entry 459 (class 1259 OID 59268)
+-- TOC entry 458 (class 1259 OID 59268)
 -- Name: fourmiz_criteria_backup; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9029,7 +9096,7 @@ ALTER TABLE public.fourmiz_criteria ALTER COLUMN id ADD GENERATED BY DEFAULT AS 
 
 
 --
--- TOC entry 461 (class 1259 OID 59941)
+-- TOC entry 460 (class 1259 OID 59941)
 -- Name: fourmiz_criteria_simple; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9051,7 +9118,7 @@ CREATE VIEW public.fourmiz_criteria_simple AS
 
 
 --
--- TOC entry 460 (class 1259 OID 59297)
+-- TOC entry 459 (class 1259 OID 59297)
 -- Name: fourmiz_criteria_summary; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9071,7 +9138,7 @@ CREATE VIEW public.fourmiz_criteria_summary AS
 
 
 --
--- TOC entry 520 (class 1259 OID 160747)
+-- TOC entry 520 (class 1259 OID 166044)
 -- Name: fourmiz_dashboard; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9084,7 +9151,7 @@ CREATE VIEW public.fourmiz_dashboard AS
     current_latitude,
     current_longitude,
     is_available,
-    service_category_id,
+    service_category_text AS service_category_id,
     ((EXTRACT(epoch FROM (now() - current_location_updated_at)))::integer / 60) AS minutes_since_update,
         CASE
             WHEN (current_location_updated_at > (now() - '00:05:00'::interval)) THEN 'online'::text
@@ -9099,7 +9166,7 @@ CREATE VIEW public.fourmiz_dashboard AS
 
 
 --
--- TOC entry 522 (class 1259 OID 160812)
+-- TOC entry 515 (class 1259 OID 160812)
 -- Name: fourmiz_mission_status; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9159,7 +9226,7 @@ ALTER TABLE public.fourmiz_services ALTER COLUMN id ADD GENERATED BY DEFAULT AS 
 
 
 --
--- TOC entry 515 (class 1259 OID 160011)
+-- TOC entry 509 (class 1259 OID 160011)
 -- Name: geolocation_stats; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9187,8 +9254,8 @@ CREATE VIEW public.geolocation_stats AS
 
 
 --
--- TOC entry 5874 (class 0 OID 0)
--- Dependencies: 515
+-- TOC entry 5882 (class 0 OID 0)
+-- Dependencies: 509
 -- Name: VIEW geolocation_stats; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -9229,7 +9296,7 @@ ALTER TABLE public.iban_requests ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDE
 
 
 --
--- TOC entry 502 (class 1259 OID 147628)
+-- TOC entry 501 (class 1259 OID 147628)
 -- Name: legal_engagement_types; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9248,7 +9315,7 @@ CREATE TABLE public.legal_engagement_types (
 
 
 --
--- TOC entry 513 (class 1259 OID 159926)
+-- TOC entry 507 (class 1259 OID 159926)
 -- Name: location_cache; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9262,7 +9329,7 @@ CREATE TABLE public.location_cache (
 
 
 --
--- TOC entry 519 (class 1259 OID 160682)
+-- TOC entry 513 (class 1259 OID 160682)
 -- Name: location_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9341,7 +9408,7 @@ ALTER TABLE public.missions ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY
 
 
 --
--- TOC entry 437 (class 1259 OID 47038)
+-- TOC entry 436 (class 1259 OID 47038)
 -- Name: monthly_revenue_by_role; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9362,7 +9429,7 @@ CREATE VIEW public.monthly_revenue_by_role AS
 
 
 --
--- TOC entry 439 (class 1259 OID 47090)
+-- TOC entry 438 (class 1259 OID 47090)
 -- Name: monthly_revenue_by_title; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9378,7 +9445,7 @@ CREATE VIEW public.monthly_revenue_by_title AS
 
 
 --
--- TOC entry 436 (class 1259 OID 47012)
+-- TOC entry 435 (class 1259 OID 47012)
 -- Name: monthly_revenue_by_user; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9397,7 +9464,7 @@ CREATE VIEW public.monthly_revenue_by_user AS
 
 
 --
--- TOC entry 454 (class 1259 OID 55183)
+-- TOC entry 453 (class 1259 OID 55183)
 -- Name: notification_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9420,8 +9487,8 @@ CREATE TABLE public.notification_history (
 
 
 --
--- TOC entry 5875 (class 0 OID 0)
--- Dependencies: 454
+-- TOC entry 5883 (class 0 OID 0)
+-- Dependencies: 453
 -- Name: TABLE notification_history; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -9429,7 +9496,7 @@ COMMENT ON TABLE public.notification_history IS 'Historique de toutes les notifi
 
 
 --
--- TOC entry 453 (class 1259 OID 55182)
+-- TOC entry 452 (class 1259 OID 55182)
 -- Name: notification_history_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -9442,8 +9509,8 @@ CREATE SEQUENCE public.notification_history_id_seq
 
 
 --
--- TOC entry 5876 (class 0 OID 0)
--- Dependencies: 453
+-- TOC entry 5884 (class 0 OID 0)
+-- Dependencies: 452
 -- Name: notification_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -9451,7 +9518,7 @@ ALTER SEQUENCE public.notification_history_id_seq OWNED BY public.notification_h
 
 
 --
--- TOC entry 456 (class 1259 OID 55210)
+-- TOC entry 455 (class 1259 OID 55210)
 -- Name: notification_preferences; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9473,8 +9540,8 @@ CREATE TABLE public.notification_preferences (
 
 
 --
--- TOC entry 5877 (class 0 OID 0)
--- Dependencies: 456
+-- TOC entry 5885 (class 0 OID 0)
+-- Dependencies: 455
 -- Name: TABLE notification_preferences; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -9482,7 +9549,7 @@ COMMENT ON TABLE public.notification_preferences IS 'Préférences de notificati
 
 
 --
--- TOC entry 455 (class 1259 OID 55209)
+-- TOC entry 454 (class 1259 OID 55209)
 -- Name: notification_preferences_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -9495,8 +9562,8 @@ CREATE SEQUENCE public.notification_preferences_id_seq
 
 
 --
--- TOC entry 5878 (class 0 OID 0)
--- Dependencies: 455
+-- TOC entry 5886 (class 0 OID 0)
+-- Dependencies: 454
 -- Name: notification_preferences_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -9504,7 +9571,7 @@ ALTER SEQUENCE public.notification_preferences_id_seq OWNED BY public.notificati
 
 
 --
--- TOC entry 457 (class 1259 OID 55253)
+-- TOC entry 456 (class 1259 OID 55253)
 -- Name: notification_stats; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9538,7 +9605,7 @@ CREATE TABLE public.notifications (
 
 
 --
--- TOC entry 494 (class 1259 OID 143687)
+-- TOC entry 493 (class 1259 OID 143687)
 -- Name: order_applications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9561,7 +9628,7 @@ CREATE TABLE public.order_applications (
 
 
 --
--- TOC entry 493 (class 1259 OID 143686)
+-- TOC entry 492 (class 1259 OID 143686)
 -- Name: order_applications_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -9574,8 +9641,8 @@ CREATE SEQUENCE public.order_applications_id_seq
 
 
 --
--- TOC entry 5879 (class 0 OID 0)
--- Dependencies: 493
+-- TOC entry 5887 (class 0 OID 0)
+-- Dependencies: 492
 -- Name: order_applications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -9583,7 +9650,7 @@ ALTER SEQUENCE public.order_applications_id_seq OWNED BY public.order_applicatio
 
 
 --
--- TOC entry 480 (class 1259 OID 84465)
+-- TOC entry 479 (class 1259 OID 84465)
 -- Name: order_details; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9604,7 +9671,7 @@ CREATE TABLE public.order_details (
 
 
 --
--- TOC entry 479 (class 1259 OID 84464)
+-- TOC entry 478 (class 1259 OID 84464)
 -- Name: order_details_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -9618,8 +9685,8 @@ CREATE SEQUENCE public.order_details_id_seq
 
 
 --
--- TOC entry 5880 (class 0 OID 0)
--- Dependencies: 479
+-- TOC entry 5888 (class 0 OID 0)
+-- Dependencies: 478
 -- Name: order_details_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -9641,7 +9708,7 @@ CREATE TABLE public.order_steps (
 
 
 --
--- TOC entry 443 (class 1259 OID 53207)
+-- TOC entry 442 (class 1259 OID 53207)
 -- Name: orders_detailed; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9685,7 +9752,7 @@ CREATE VIEW public.orders_detailed AS
 
 
 --
--- TOC entry 481 (class 1259 OID 84487)
+-- TOC entry 480 (class 1259 OID 84487)
 -- Name: orders_full; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9745,7 +9812,7 @@ CREATE VIEW public.orders_full AS
 
 
 --
--- TOC entry 441 (class 1259 OID 53050)
+-- TOC entry 440 (class 1259 OID 53050)
 -- Name: orders_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -9790,7 +9857,7 @@ ALTER TABLE public.other_services ALTER COLUMN id ADD GENERATED BY DEFAULT AS ID
 
 
 --
--- TOC entry 491 (class 1259 OID 133726)
+-- TOC entry 490 (class 1259 OID 133726)
 -- Name: payments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9816,7 +9883,7 @@ CREATE TABLE public.payments (
 
 
 --
--- TOC entry 490 (class 1259 OID 132496)
+-- TOC entry 489 (class 1259 OID 132496)
 -- Name: payout_requests; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9839,7 +9906,7 @@ CREATE TABLE public.payout_requests (
 
 
 --
--- TOC entry 476 (class 1259 OID 81071)
+-- TOC entry 475 (class 1259 OID 81071)
 -- Name: pending_uploads; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9860,7 +9927,7 @@ CREATE TABLE public.pending_uploads (
 
 
 --
--- TOC entry 496 (class 1259 OID 143722)
+-- TOC entry 495 (class 1259 OID 143722)
 -- Name: pre_selection_chats; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9878,7 +9945,7 @@ CREATE TABLE public.pre_selection_chats (
 
 
 --
--- TOC entry 495 (class 1259 OID 143721)
+-- TOC entry 494 (class 1259 OID 143721)
 -- Name: pre_selection_chats_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -9891,8 +9958,8 @@ CREATE SEQUENCE public.pre_selection_chats_id_seq
 
 
 --
--- TOC entry 5881 (class 0 OID 0)
--- Dependencies: 495
+-- TOC entry 5889 (class 0 OID 0)
+-- Dependencies: 494
 -- Name: pre_selection_chats_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -9900,7 +9967,7 @@ ALTER SEQUENCE public.pre_selection_chats_id_seq OWNED BY public.pre_selection_c
 
 
 --
--- TOC entry 498 (class 1259 OID 143754)
+-- TOC entry 497 (class 1259 OID 143754)
 -- Name: pre_selection_messages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9920,7 +9987,7 @@ CREATE TABLE public.pre_selection_messages (
 
 
 --
--- TOC entry 497 (class 1259 OID 143753)
+-- TOC entry 496 (class 1259 OID 143753)
 -- Name: pre_selection_messages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -9933,8 +10000,8 @@ CREATE SEQUENCE public.pre_selection_messages_id_seq
 
 
 --
--- TOC entry 5882 (class 0 OID 0)
--- Dependencies: 497
+-- TOC entry 5890 (class 0 OID 0)
+-- Dependencies: 496
 -- Name: pre_selection_messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -9942,7 +10009,7 @@ ALTER SEQUENCE public.pre_selection_messages_id_seq OWNED BY public.pre_selectio
 
 
 --
--- TOC entry 523 (class 1259 OID 160832)
+-- TOC entry 516 (class 1259 OID 160832)
 -- Name: privacy_dashboard; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -9971,7 +10038,7 @@ CREATE VIEW public.privacy_dashboard AS
 
 
 --
--- TOC entry 512 (class 1259 OID 159636)
+-- TOC entry 506 (class 1259 OID 159636)
 -- Name: profiles_backup; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10039,7 +10106,7 @@ CREATE TABLE public.profiles_backup (
 
 
 --
--- TOC entry 514 (class 1259 OID 160006)
+-- TOC entry 508 (class 1259 OID 160006)
 -- Name: profiles_geolocalized; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10072,8 +10139,8 @@ CREATE VIEW public.profiles_geolocalized AS
 
 
 --
--- TOC entry 5883 (class 0 OID 0)
--- Dependencies: 514
+-- TOC entry 5891 (class 0 OID 0)
+-- Dependencies: 508
 -- Name: VIEW profiles_geolocalized; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -10081,7 +10148,7 @@ COMMENT ON VIEW public.profiles_geolocalized IS 'Vue des profils avec coordonné
 
 
 --
--- TOC entry 452 (class 1259 OID 55162)
+-- TOC entry 451 (class 1259 OID 55162)
 -- Name: push_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10102,8 +10169,8 @@ CREATE TABLE public.push_tokens (
 
 
 --
--- TOC entry 5884 (class 0 OID 0)
--- Dependencies: 452
+-- TOC entry 5892 (class 0 OID 0)
+-- Dependencies: 451
 -- Name: TABLE push_tokens; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -10111,7 +10178,7 @@ COMMENT ON TABLE public.push_tokens IS 'Tokens de notification push pour chaque 
 
 
 --
--- TOC entry 451 (class 1259 OID 55161)
+-- TOC entry 450 (class 1259 OID 55161)
 -- Name: push_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -10124,8 +10191,8 @@ CREATE SEQUENCE public.push_tokens_id_seq
 
 
 --
--- TOC entry 5885 (class 0 OID 0)
--- Dependencies: 451
+-- TOC entry 5893 (class 0 OID 0)
+-- Dependencies: 450
 -- Name: push_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -10185,7 +10252,7 @@ CREATE TABLE public.referral_commissions (
 
 
 --
--- TOC entry 463 (class 1259 OID 67707)
+-- TOC entry 462 (class 1259 OID 67707)
 -- Name: user_referral_codes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10203,7 +10270,7 @@ CREATE TABLE public.user_referral_codes (
 
 
 --
--- TOC entry 469 (class 1259 OID 76367)
+-- TOC entry 468 (class 1259 OID 76367)
 -- Name: referral_commissions_detailed; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10230,8 +10297,8 @@ CREATE VIEW public.referral_commissions_detailed AS
 
 
 --
--- TOC entry 5886 (class 0 OID 0)
--- Dependencies: 469
+-- TOC entry 5894 (class 0 OID 0)
+-- Dependencies: 468
 -- Name: VIEW referral_commissions_detailed; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -10254,7 +10321,7 @@ ALTER TABLE public.referral_commissions ALTER COLUMN id ADD GENERATED BY DEFAULT
 
 
 --
--- TOC entry 471 (class 1259 OID 76377)
+-- TOC entry 470 (class 1259 OID 76377)
 -- Name: referral_commissions_simple; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10279,7 +10346,7 @@ CREATE VIEW public.referral_commissions_simple AS
 
 
 --
--- TOC entry 473 (class 1259 OID 76839)
+-- TOC entry 472 (class 1259 OID 76839)
 -- Name: referral_config; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10297,13 +10364,14 @@ CREATE TABLE public.referral_config (
     updated_by uuid,
     min_value numeric DEFAULT 0,
     max_value numeric DEFAULT 1000,
+    fourmiz_commission_rates jsonb DEFAULT '{"default": 0.00}'::jsonb,
     CONSTRAINT valid_category CHECK ((category = ANY (ARRAY['bonus'::text, 'commission'::text, 'limits'::text, 'general'::text]))),
     CONSTRAINT valid_values CHECK ((((value_numeric IS NOT NULL) AND (value_text IS NULL)) OR ((value_numeric IS NULL) AND (value_text IS NOT NULL))))
 );
 
 
 --
--- TOC entry 472 (class 1259 OID 76838)
+-- TOC entry 471 (class 1259 OID 76838)
 -- Name: referral_config_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -10318,7 +10386,7 @@ ALTER TABLE public.referral_config ALTER COLUMN id ADD GENERATED ALWAYS AS IDENT
 
 
 --
--- TOC entry 468 (class 1259 OID 76362)
+-- TOC entry 467 (class 1259 OID 76362)
 -- Name: referral_gains_detailed; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10344,8 +10412,8 @@ CREATE VIEW public.referral_gains_detailed AS
 
 
 --
--- TOC entry 5887 (class 0 OID 0)
--- Dependencies: 468
+-- TOC entry 5895 (class 0 OID 0)
+-- Dependencies: 467
 -- Name: VIEW referral_gains_detailed; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -10383,7 +10451,7 @@ ALTER TABLE public.referrals ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTIT
 
 
 --
--- TOC entry 435 (class 1259 OID 46986)
+-- TOC entry 434 (class 1259 OID 46986)
 -- Name: revenue_details; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10436,7 +10504,7 @@ CREATE TABLE public.revenus (
 
 
 --
--- TOC entry 440 (class 1259 OID 47114)
+-- TOC entry 439 (class 1259 OID 47114)
 -- Name: rewards_detail; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10472,7 +10540,7 @@ ALTER TABLE public.rewards ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY 
 
 
 --
--- TOC entry 474 (class 1259 OID 76871)
+-- TOC entry 473 (class 1259 OID 76871)
 -- Name: roles_statistics; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10488,7 +10556,7 @@ CREATE VIEW public.roles_statistics AS
 
 
 --
--- TOC entry 485 (class 1259 OID 102791)
+-- TOC entry 484 (class 1259 OID 102791)
 -- Name: security_incidents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10503,7 +10571,7 @@ CREATE TABLE public.security_incidents (
 
 
 --
--- TOC entry 484 (class 1259 OID 102790)
+-- TOC entry 483 (class 1259 OID 102790)
 -- Name: security_incidents_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -10517,8 +10585,8 @@ CREATE SEQUENCE public.security_incidents_id_seq
 
 
 --
--- TOC entry 5888 (class 0 OID 0)
--- Dependencies: 484
+-- TOC entry 5896 (class 0 OID 0)
+-- Dependencies: 483
 -- Name: security_incidents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -10541,7 +10609,7 @@ CREATE TABLE public.service_assignments (
 
 
 --
--- TOC entry 518 (class 1259 OID 160250)
+-- TOC entry 512 (class 1259 OID 160250)
 -- Name: service_tracking_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10616,6 +10684,43 @@ CREATE TABLE public.settings (
 
 
 --
+-- TOC entry 525 (class 1259 OID 169789)
+-- Name: system_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.system_logs (
+    id integer NOT NULL,
+    action character varying(100) NOT NULL,
+    details text,
+    order_id integer,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+--
+-- TOC entry 524 (class 1259 OID 169788)
+-- Name: system_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.system_logs_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 5897 (class 0 OID 0)
+-- Dependencies: 524
+-- Name: system_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.system_logs_id_seq OWNED BY public.system_logs.id;
+
+
+--
 -- TOC entry 386 (class 1259 OID 22992)
 -- Name: test; Type: TABLE; Schema: public; Owner: -
 --
@@ -10643,7 +10748,7 @@ ALTER TABLE public.test ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
 
 
 --
--- TOC entry 521 (class 1259 OID 160797)
+-- TOC entry 514 (class 1259 OID 160797)
 -- Name: tracking_consent_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10660,7 +10765,7 @@ CREATE TABLE public.tracking_consent_history (
 
 
 --
--- TOC entry 458 (class 1259 OID 55258)
+-- TOC entry 457 (class 1259 OID 55258)
 -- Name: unread_notifications; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10687,7 +10792,7 @@ CREATE VIEW public.unread_notifications AS
 
 
 --
--- TOC entry 444 (class 1259 OID 53212)
+-- TOC entry 443 (class 1259 OID 53212)
 -- Name: urgent_orders; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10749,7 +10854,7 @@ CREATE TABLE public.user_badges (
 
 
 --
--- TOC entry 477 (class 1259 OID 81442)
+-- TOC entry 476 (class 1259 OID 81442)
 -- Name: user_credits; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10767,7 +10872,7 @@ CREATE TABLE public.user_credits (
 
 
 --
--- TOC entry 470 (class 1259 OID 76372)
+-- TOC entry 469 (class 1259 OID 76372)
 -- Name: user_earnings_stats; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10806,8 +10911,8 @@ CREATE VIEW public.user_earnings_stats AS
 
 
 --
--- TOC entry 5889 (class 0 OID 0)
--- Dependencies: 470
+-- TOC entry 5898 (class 0 OID 0)
+-- Dependencies: 469
 -- Name: VIEW user_earnings_stats; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -10815,7 +10920,7 @@ COMMENT ON VIEW public.user_earnings_stats IS 'Statistiques des gains par utilis
 
 
 --
--- TOC entry 503 (class 1259 OID 147643)
+-- TOC entry 502 (class 1259 OID 147643)
 -- Name: user_legal_engagements; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10837,7 +10942,7 @@ CREATE TABLE public.user_legal_engagements (
 
 
 --
--- TOC entry 504 (class 1259 OID 147674)
+-- TOC entry 503 (class 1259 OID 147674)
 -- Name: user_engagement_status; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10879,7 +10984,7 @@ CREATE VIEW public.user_notifications_view AS
 
 
 --
--- TOC entry 483 (class 1259 OID 90493)
+-- TOC entry 482 (class 1259 OID 90493)
 -- Name: user_push_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10894,7 +10999,7 @@ CREATE TABLE public.user_push_tokens (
 
 
 --
--- TOC entry 482 (class 1259 OID 90492)
+-- TOC entry 481 (class 1259 OID 90492)
 -- Name: user_push_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -10908,8 +11013,8 @@ CREATE SEQUENCE public.user_push_tokens_id_seq
 
 
 --
--- TOC entry 5890 (class 0 OID 0)
--- Dependencies: 482
+-- TOC entry 5899 (class 0 OID 0)
+-- Dependencies: 481
 -- Name: user_push_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -10917,7 +11022,7 @@ ALTER SEQUENCE public.user_push_tokens_id_seq OWNED BY public.user_push_tokens.i
 
 
 --
--- TOC entry 486 (class 1259 OID 114822)
+-- TOC entry 485 (class 1259 OID 114822)
 -- Name: user_ratings; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -10935,7 +11040,7 @@ CREATE VIEW public.user_ratings AS
 
 
 --
--- TOC entry 501 (class 1259 OID 144140)
+-- TOC entry 500 (class 1259 OID 144140)
 -- Name: user_references; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10954,7 +11059,7 @@ CREATE TABLE public.user_references (
 
 
 --
--- TOC entry 464 (class 1259 OID 67723)
+-- TOC entry 463 (class 1259 OID 67723)
 -- Name: user_referrals; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10977,7 +11082,7 @@ CREATE TABLE public.user_referrals (
 
 
 --
--- TOC entry 478 (class 1259 OID 83036)
+-- TOC entry 477 (class 1259 OID 83036)
 -- Name: user_revenue_summary; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -11028,7 +11133,7 @@ CREATE TABLE public.users (
 
 
 --
--- TOC entry 499 (class 1259 OID 143786)
+-- TOC entry 498 (class 1259 OID 143786)
 -- Name: v_order_applications_detailed; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -11082,7 +11187,7 @@ CREATE VIEW public.v_order_applications_detailed AS
 
 
 --
--- TOC entry 500 (class 1259 OID 143791)
+-- TOC entry 499 (class 1259 OID 143791)
 -- Name: v_orders_with_applications; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -11188,92 +11293,7 @@ PARTITION BY RANGE (inserted_at);
 
 
 --
--- TOC entry 505 (class 1259 OID 152893)
--- Name: messages_2025_09_13; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2025_09_13 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- TOC entry 506 (class 1259 OID 154267)
--- Name: messages_2025_09_14; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2025_09_14 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- TOC entry 507 (class 1259 OID 155421)
--- Name: messages_2025_09_15; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2025_09_15 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- TOC entry 508 (class 1259 OID 156681)
--- Name: messages_2025_09_16; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2025_09_16 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- TOC entry 510 (class 1259 OID 158429)
--- Name: messages_2025_09_17; Type: TABLE; Schema: realtime; Owner: -
---
-
-CREATE TABLE realtime.messages_2025_09_17 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
-);
-
-
---
--- TOC entry 511 (class 1259 OID 159543)
+-- TOC entry 505 (class 1259 OID 159543)
 -- Name: messages_2025_09_18; Type: TABLE; Schema: realtime; Owner: -
 --
 
@@ -11290,11 +11310,96 @@ CREATE TABLE realtime.messages_2025_09_18 (
 
 
 --
--- TOC entry 524 (class 1259 OID 160938)
+-- TOC entry 517 (class 1259 OID 160938)
 -- Name: messages_2025_09_19; Type: TABLE; Schema: realtime; Owner: -
 --
 
 CREATE TABLE realtime.messages_2025_09_19 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- TOC entry 518 (class 1259 OID 163481)
+-- Name: messages_2025_09_20; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2025_09_20 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- TOC entry 519 (class 1259 OID 165095)
+-- Name: messages_2025_09_21; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2025_09_21 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- TOC entry 521 (class 1259 OID 167345)
+-- Name: messages_2025_09_22; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2025_09_22 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- TOC entry 522 (class 1259 OID 167356)
+-- Name: messages_2025_09_23; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2025_09_23 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
+-- TOC entry 523 (class 1259 OID 168674)
+-- Name: messages_2025_09_24; Type: TABLE; Schema: realtime; Owner: -
+--
+
+CREATE TABLE realtime.messages_2025_09_24 (
     topic text NOT NULL,
     extension text NOT NULL,
     payload jsonb,
@@ -11369,7 +11474,7 @@ CREATE TABLE storage.buckets (
 
 
 --
--- TOC entry 5891 (class 0 OID 0)
+-- TOC entry 5900 (class 0 OID 0)
 -- Dependencies: 359
 -- Name: COLUMN buckets.owner; Type: COMMENT; Schema: storage; Owner: -
 --
@@ -11378,7 +11483,7 @@ COMMENT ON COLUMN storage.buckets.owner IS 'Field is deprecated, use owner_id in
 
 
 --
--- TOC entry 488 (class 1259 OID 120754)
+-- TOC entry 487 (class 1259 OID 120754)
 -- Name: buckets_analytics; Type: TABLE; Schema: storage; Owner: -
 --
 
@@ -11427,7 +11532,7 @@ CREATE TABLE storage.objects (
 
 
 --
--- TOC entry 5892 (class 0 OID 0)
+-- TOC entry 5901 (class 0 OID 0)
 -- Dependencies: 360
 -- Name: COLUMN objects.owner; Type: COMMENT; Schema: storage; Owner: -
 --
@@ -11436,7 +11541,7 @@ COMMENT ON COLUMN storage.objects.owner IS 'Field is deprecated, use owner_id in
 
 
 --
--- TOC entry 487 (class 1259 OID 120710)
+-- TOC entry 486 (class 1259 OID 120710)
 -- Name: prefixes; Type: TABLE; Schema: storage; Owner: -
 --
 
@@ -11499,47 +11604,18 @@ CREATE TABLE supabase_migrations.schema_migrations (
 
 
 --
--- TOC entry 4269 (class 0 OID 0)
--- Name: messages_2025_09_13; Type: TABLE ATTACH; Schema: realtime; Owner: -
+-- TOC entry 526 (class 1259 OID 169884)
+-- Name: seed_files; Type: TABLE; Schema: supabase_migrations; Owner: -
 --
 
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_13 FOR VALUES FROM ('2025-09-13 00:00:00') TO ('2025-09-14 00:00:00');
-
-
---
--- TOC entry 4270 (class 0 OID 0)
--- Name: messages_2025_09_14; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_14 FOR VALUES FROM ('2025-09-14 00:00:00') TO ('2025-09-15 00:00:00');
+CREATE TABLE supabase_migrations.seed_files (
+    path text NOT NULL,
+    hash text NOT NULL
+);
 
 
 --
--- TOC entry 4271 (class 0 OID 0)
--- Name: messages_2025_09_15; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_15 FOR VALUES FROM ('2025-09-15 00:00:00') TO ('2025-09-16 00:00:00');
-
-
---
--- TOC entry 4272 (class 0 OID 0)
--- Name: messages_2025_09_16; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_16 FOR VALUES FROM ('2025-09-16 00:00:00') TO ('2025-09-17 00:00:00');
-
-
---
--- TOC entry 4273 (class 0 OID 0)
--- Name: messages_2025_09_17; Type: TABLE ATTACH; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_17 FOR VALUES FROM ('2025-09-17 00:00:00') TO ('2025-09-18 00:00:00');
-
-
---
--- TOC entry 4274 (class 0 OID 0)
+-- TOC entry 4275 (class 0 OID 0)
 -- Name: messages_2025_09_18; Type: TABLE ATTACH; Schema: realtime; Owner: -
 --
 
@@ -11547,7 +11623,7 @@ ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_18
 
 
 --
--- TOC entry 4275 (class 0 OID 0)
+-- TOC entry 4276 (class 0 OID 0)
 -- Name: messages_2025_09_19; Type: TABLE ATTACH; Schema: realtime; Owner: -
 --
 
@@ -11555,7 +11631,47 @@ ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_19
 
 
 --
--- TOC entry 4285 (class 2604 OID 16508)
+-- TOC entry 4277 (class 0 OID 0)
+-- Name: messages_2025_09_20; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_20 FOR VALUES FROM ('2025-09-20 00:00:00') TO ('2025-09-21 00:00:00');
+
+
+--
+-- TOC entry 4278 (class 0 OID 0)
+-- Name: messages_2025_09_21; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_21 FOR VALUES FROM ('2025-09-21 00:00:00') TO ('2025-09-22 00:00:00');
+
+
+--
+-- TOC entry 4279 (class 0 OID 0)
+-- Name: messages_2025_09_22; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_22 FOR VALUES FROM ('2025-09-22 00:00:00') TO ('2025-09-23 00:00:00');
+
+
+--
+-- TOC entry 4280 (class 0 OID 0)
+-- Name: messages_2025_09_23; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_23 FOR VALUES FROM ('2025-09-23 00:00:00') TO ('2025-09-24 00:00:00');
+
+
+--
+-- TOC entry 4281 (class 0 OID 0)
+-- Name: messages_2025_09_24; Type: TABLE ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2025_09_24 FOR VALUES FROM ('2025-09-24 00:00:00') TO ('2025-09-25 00:00:00');
+
+
+--
+-- TOC entry 4291 (class 2604 OID 16508)
 -- Name: refresh_tokens id; Type: DEFAULT; Schema: auth; Owner: -
 --
 
@@ -11563,7 +11679,7 @@ ALTER TABLE ONLY auth.refresh_tokens ALTER COLUMN id SET DEFAULT nextval('auth.r
 
 
 --
--- TOC entry 4492 (class 2604 OID 54792)
+-- TOC entry 4496 (class 2604 OID 54792)
 -- Name: chat_messages id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11571,7 +11687,7 @@ ALTER TABLE ONLY public.chat_messages ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
--- TOC entry 4497 (class 2604 OID 54819)
+-- TOC entry 4501 (class 2604 OID 54819)
 -- Name: chat_participants id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11579,7 +11695,7 @@ ALTER TABLE ONLY public.chat_participants ALTER COLUMN id SET DEFAULT nextval('p
 
 
 --
--- TOC entry 4503 (class 2604 OID 54846)
+-- TOC entry 4507 (class 2604 OID 54846)
 -- Name: chat_typing_status id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11587,7 +11703,7 @@ ALTER TABLE ONLY public.chat_typing_status ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
--- TOC entry 4445 (class 2604 OID 37698)
+-- TOC entry 4451 (class 2604 OID 37698)
 -- Name: criteria id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11595,7 +11711,7 @@ ALTER TABLE ONLY public.criteria ALTER COLUMN id SET DEFAULT nextval('public.cri
 
 
 --
--- TOC entry 4511 (class 2604 OID 55186)
+-- TOC entry 4515 (class 2604 OID 55186)
 -- Name: notification_history id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11603,7 +11719,7 @@ ALTER TABLE ONLY public.notification_history ALTER COLUMN id SET DEFAULT nextval
 
 
 --
--- TOC entry 4514 (class 2604 OID 55213)
+-- TOC entry 4518 (class 2604 OID 55213)
 -- Name: notification_preferences id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11611,7 +11727,7 @@ ALTER TABLE ONLY public.notification_preferences ALTER COLUMN id SET DEFAULT nex
 
 
 --
--- TOC entry 4602 (class 2604 OID 143690)
+-- TOC entry 4607 (class 2604 OID 143690)
 -- Name: order_applications id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11619,7 +11735,7 @@ ALTER TABLE ONLY public.order_applications ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
--- TOC entry 4572 (class 2604 OID 84468)
+-- TOC entry 4577 (class 2604 OID 84468)
 -- Name: order_details id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11627,7 +11743,7 @@ ALTER TABLE ONLY public.order_details ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
--- TOC entry 4607 (class 2604 OID 143725)
+-- TOC entry 4612 (class 2604 OID 143725)
 -- Name: pre_selection_chats id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11635,7 +11751,7 @@ ALTER TABLE ONLY public.pre_selection_chats ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
--- TOC entry 4610 (class 2604 OID 143757)
+-- TOC entry 4615 (class 2604 OID 143757)
 -- Name: pre_selection_messages id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11643,7 +11759,7 @@ ALTER TABLE ONLY public.pre_selection_messages ALTER COLUMN id SET DEFAULT nextv
 
 
 --
--- TOC entry 4506 (class 2604 OID 55165)
+-- TOC entry 4510 (class 2604 OID 55165)
 -- Name: push_tokens id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11651,7 +11767,7 @@ ALTER TABLE ONLY public.push_tokens ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
--- TOC entry 4579 (class 2604 OID 102794)
+-- TOC entry 4584 (class 2604 OID 102794)
 -- Name: security_incidents id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11659,7 +11775,15 @@ ALTER TABLE ONLY public.security_incidents ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
--- TOC entry 4576 (class 2604 OID 90496)
+-- TOC entry 4682 (class 2604 OID 169792)
+-- Name: system_logs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.system_logs ALTER COLUMN id SET DEFAULT nextval('public.system_logs_id_seq'::regclass);
+
+
+--
+-- TOC entry 4581 (class 2604 OID 90496)
 -- Name: user_push_tokens id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -11667,7 +11791,7 @@ ALTER TABLE ONLY public.user_push_tokens ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
--- TOC entry 5674 (class 0 OID 16523)
+-- TOC entry 5680 (class 0 OID 16523)
 -- Dependencies: 357
 -- Data for Name: audit_log_entries; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13120,11 +13244,95 @@ COPY auth.audit_log_entries (instance_id, id, payload, created_at, ip_address) F
 00000000-0000-0000-0000-000000000000	3adffbf5-3e0a-4415-b9b3-af729cfe52ee	{"action":"token_revoked","actor_id":"8c5e4fc0-12f2-4181-8408-32c18693f7e3","actor_username":"test42@fourmiz.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 07:49:25.808793+00	
 00000000-0000-0000-0000-000000000000	85e62b12-a886-4dc8-b5bd-d8e8f28deed1	{"action":"token_refreshed","actor_id":"8c5e4fc0-12f2-4181-8408-32c18693f7e3","actor_username":"test42@fourmiz.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 08:47:44.65751+00	
 00000000-0000-0000-0000-000000000000	140a0588-fb46-4e5e-85ee-e1da2a4238d8	{"action":"token_revoked","actor_id":"8c5e4fc0-12f2-4181-8408-32c18693f7e3","actor_username":"test42@fourmiz.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 08:47:44.672947+00	
+00000000-0000-0000-0000-000000000000	6b9c8bb1-e77c-4250-9b95-9e52f71ea096	{"action":"token_refreshed","actor_id":"8c5e4fc0-12f2-4181-8408-32c18693f7e3","actor_username":"test42@fourmiz.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 10:11:34.183836+00	
+00000000-0000-0000-0000-000000000000	0a9f39a5-26c2-40d7-be73-c21473ff6402	{"action":"token_revoked","actor_id":"8c5e4fc0-12f2-4181-8408-32c18693f7e3","actor_username":"test42@fourmiz.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 10:11:34.209567+00	
+00000000-0000-0000-0000-000000000000	1a846b7c-c444-4f52-9aa7-1ae1d4748bfb	{"action":"logout","actor_id":"8c5e4fc0-12f2-4181-8408-32c18693f7e3","actor_username":"test42@fourmiz.com","actor_via_sso":false,"log_type":"account"}	2025-09-16 10:52:35.215859+00	
+00000000-0000-0000-0000-000000000000	9241ead4-4587-4d62-8c47-e868cae9edde	{"action":"login","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-16 10:52:51.846845+00	
+00000000-0000-0000-0000-000000000000	04dd3899-b313-44b6-be6f-36bc8c8dd11a	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 12:59:03.992014+00	
+00000000-0000-0000-0000-000000000000	237e847e-dcd7-4df7-92fd-2e82d65267cb	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 12:59:04.020378+00	
+00000000-0000-0000-0000-000000000000	f3cd9442-87a6-4e28-9695-d048ed8ff344	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 13:57:33.649308+00	
+00000000-0000-0000-0000-000000000000	ce0b6453-f2a9-4a5a-9cf5-a98d191cea70	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 13:57:33.66953+00	
+00000000-0000-0000-0000-000000000000	51d46053-b44e-49ff-bb45-4e6b33ab957d	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 14:55:34.60649+00	
+00000000-0000-0000-0000-000000000000	ecb72a13-40ee-4b8b-a33e-c7c5510402f9	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 14:55:34.626322+00	
+00000000-0000-0000-0000-000000000000	51f34641-4484-423f-a553-e017d0557170	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 16:12:07.365944+00	
+00000000-0000-0000-0000-000000000000	f6049e19-20a2-4b1b-b653-abbd085ea302	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-16 16:12:07.378485+00	
+00000000-0000-0000-0000-000000000000	3f6eb105-ac06-40a4-b83b-7796f1a1abd9	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 10:56:28.655496+00	
+00000000-0000-0000-0000-000000000000	391ae57e-1a39-4da8-b1f4-ec90c4afaa4e	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 10:56:28.682456+00	
+00000000-0000-0000-0000-000000000000	666c224c-0344-4793-9c1e-e5afaa58b3b1	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 12:07:36.616231+00	
+00000000-0000-0000-0000-000000000000	1a31f248-2739-431a-90dd-e4030575c509	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 12:07:36.642389+00	
+00000000-0000-0000-0000-000000000000	ffa47731-850f-4366-9382-34bbdb942459	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 13:05:36.435085+00	
+00000000-0000-0000-0000-000000000000	ab87bf4d-e62e-4002-a662-f3f382ac8ac4	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 13:05:36.457485+00	
+00000000-0000-0000-0000-000000000000	dd46dbbd-fb1a-469d-9230-bbb4d44a0aaf	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 14:04:03.396312+00	
+00000000-0000-0000-0000-000000000000	c7000559-c58a-4dfc-8116-dbe45e868fdb	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 14:04:03.414911+00	
+00000000-0000-0000-0000-000000000000	8a128fa9-fcba-48de-bf83-8b247f29efa5	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 15:27:51.367497+00	
+00000000-0000-0000-0000-000000000000	c7cbb146-4cae-4e3c-a6c6-cd8d7573f752	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 15:27:51.39921+00	
+00000000-0000-0000-0000-000000000000	92c97c97-ecf7-4ae8-b970-b4a734d38838	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 16:25:59.435803+00	
+00000000-0000-0000-0000-000000000000	176c3450-d755-4fcc-a7c4-0b6aa5dafd60	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 16:25:59.450896+00	
+00000000-0000-0000-0000-000000000000	ff5a7f51-1819-43e8-bcc0-d7f460ab69b2	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 17:28:45.428839+00	
+00000000-0000-0000-0000-000000000000	4d03b352-a495-4004-915c-63e84180bc1f	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-17 17:28:45.447508+00	
+00000000-0000-0000-0000-000000000000	afcb8d71-0a8c-4ed1-b9c9-d2d8c0788a42	{"action":"token_refreshed","actor_id":"f75491ee-2d9a-4392-ac58-9de97b55cc90","actor_username":"emilieboiteau@yahoo.fr","actor_via_sso":false,"log_type":"token"}	2025-09-17 18:52:57.812319+00	
+00000000-0000-0000-0000-000000000000	cd8ee127-1be9-4445-b3a6-df6249a5030a	{"action":"token_revoked","actor_id":"f75491ee-2d9a-4392-ac58-9de97b55cc90","actor_username":"emilieboiteau@yahoo.fr","actor_via_sso":false,"log_type":"token"}	2025-09-17 18:52:57.839364+00	
+00000000-0000-0000-0000-000000000000	8b31b3d2-64ee-4dac-8b0a-ef97f691d42d	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 08:14:51.578521+00	
+00000000-0000-0000-0000-000000000000	a9a1a5a3-155e-47e0-9139-2937e4e94e56	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 08:14:51.605851+00	
+00000000-0000-0000-0000-000000000000	c630d917-c5b4-4610-9857-a56f3c552857	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 09:13:14.46181+00	
+00000000-0000-0000-0000-000000000000	6c5637ce-9182-4e8e-8533-4bb65bd47e91	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 09:13:14.4864+00	
+00000000-0000-0000-0000-000000000000	0017d63e-edbe-4138-a3b0-c67a1bded166	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 10:28:34.682209+00	
+00000000-0000-0000-0000-000000000000	1b98c6e7-96a8-4fbc-a72b-a954a4851ecc	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 10:28:34.704357+00	
+00000000-0000-0000-0000-000000000000	8420decf-3fe0-4ebd-b4b4-d6f6082ff929	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 14:03:58.114748+00	
+00000000-0000-0000-0000-000000000000	95f58b29-8e13-484e-a596-4c172c5ed698	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 14:03:58.141269+00	
+00000000-0000-0000-0000-000000000000	7c82f058-31b7-4db0-8e08-420d6660212d	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 15:02:25.4989+00	
+00000000-0000-0000-0000-000000000000	86084038-b02c-45d8-8a6f-da74ac4fcdd4	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 15:02:25.514671+00	
+00000000-0000-0000-0000-000000000000	cd463e41-06f1-437b-a0d1-07659c8ef110	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 16:34:39.497747+00	
+00000000-0000-0000-0000-000000000000	05d1171e-267a-4840-a8b9-39565b34d36d	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-18 16:34:39.530834+00	
+00000000-0000-0000-0000-000000000000	67a7a33b-3a6c-495d-9d49-42fb8475237d	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-19 07:32:24.84626+00	
+00000000-0000-0000-0000-000000000000	7918a7fc-2a66-4d04-ac51-747cc73cc1f5	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-19 07:32:24.877955+00	
+00000000-0000-0000-0000-000000000000	c96ed4f0-8ef8-40b1-9af3-cd92aa6b851f	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-19 10:39:25.022156+00	
+00000000-0000-0000-0000-000000000000	1ba0ad26-2c50-49a8-8e48-86bd40da5194	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-19 10:39:25.062654+00	
+00000000-0000-0000-0000-000000000000	54ec12a9-7dcd-4622-8707-a4f293f35347	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-19 11:47:00.599552+00	
+00000000-0000-0000-0000-000000000000	bbd4c9cd-9550-43b9-85c3-76aeb516f1f3	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-19 11:47:00.633167+00	
+00000000-0000-0000-0000-000000000000	54043f39-c171-4d8e-8ef7-38a0e251f726	{"action":"token_refreshed","actor_id":"f75491ee-2d9a-4392-ac58-9de97b55cc90","actor_username":"emilieboiteau@yahoo.fr","actor_via_sso":false,"log_type":"token"}	2025-09-19 12:02:34.060233+00	
+00000000-0000-0000-0000-000000000000	cd36351d-da27-43bf-be85-c68f31ef3ad6	{"action":"token_revoked","actor_id":"f75491ee-2d9a-4392-ac58-9de97b55cc90","actor_username":"emilieboiteau@yahoo.fr","actor_via_sso":false,"log_type":"token"}	2025-09-19 12:02:34.069353+00	
+00000000-0000-0000-0000-000000000000	94d9dc0b-3861-42c4-9866-5d14754e8da7	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 07:53:51.023799+00	
+00000000-0000-0000-0000-000000000000	ca22d819-bc55-4607-9fa8-7482b2e81e9c	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 07:53:51.056478+00	
+00000000-0000-0000-0000-000000000000	0bdced49-455c-4793-aedb-6d5202496cd5	{"action":"logout","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"account"}	2025-09-20 08:01:34.07586+00	
+00000000-0000-0000-0000-000000000000	8d8b83b4-e398-43f0-97f3-aba80ea1292c	{"action":"login","actor_id":"4b766453-4eb7-4138-9bb4-8cdf7508d0b3","actor_username":"test32@fourmiz.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 08:01:50.268725+00	
+00000000-0000-0000-0000-000000000000	8a74b256-f437-49dd-9393-26e9dd74928b	{"action":"logout","actor_id":"4b766453-4eb7-4138-9bb4-8cdf7508d0b3","actor_username":"test32@fourmiz.com","actor_via_sso":false,"log_type":"account"}	2025-09-20 08:06:06.795365+00	
+00000000-0000-0000-0000-000000000000	1c78808d-c9b3-4a55-99d3-42f721ec3f62	{"action":"login","actor_id":"6067031a-00bf-43c4-a7d0-783c02d7fb5a","actor_username":"test33@fourmiz.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 08:06:23.08114+00	
+00000000-0000-0000-0000-000000000000	38619315-bf9d-4e4e-8ffc-7fec69dea877	{"action":"logout","actor_id":"6067031a-00bf-43c4-a7d0-783c02d7fb5a","actor_username":"test33@fourmiz.com","actor_via_sso":false,"log_type":"account"}	2025-09-20 08:10:47.06495+00	
+00000000-0000-0000-0000-000000000000	aacf7504-df44-4dbd-95ee-225edb53a13c	{"action":"login","actor_id":"4b766453-4eb7-4138-9bb4-8cdf7508d0b3","actor_username":"test32@fourmiz.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 08:11:04.317888+00	
+00000000-0000-0000-0000-000000000000	75793d2a-73d6-4460-9f42-4866465862f6	{"action":"logout","actor_id":"4b766453-4eb7-4138-9bb4-8cdf7508d0b3","actor_username":"test32@fourmiz.com","actor_via_sso":false,"log_type":"account"}	2025-09-20 09:03:09.588083+00	
+00000000-0000-0000-0000-000000000000	cd435416-67d3-4d10-803c-8cdfee652efb	{"action":"login","actor_id":"6067031a-00bf-43c4-a7d0-783c02d7fb5a","actor_username":"test33@fourmiz.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 09:03:33.571946+00	
+00000000-0000-0000-0000-000000000000	b1f4b5f7-1f05-4a10-ba62-b333af85b1df	{"action":"logout","actor_id":"6067031a-00bf-43c4-a7d0-783c02d7fb5a","actor_username":"test33@fourmiz.com","actor_via_sso":false,"log_type":"account"}	2025-09-20 09:26:03.160169+00	
+00000000-0000-0000-0000-000000000000	952c9215-4771-47dc-b507-78acd8c21556	{"action":"login","actor_id":"6067031a-00bf-43c4-a7d0-783c02d7fb5a","actor_username":"test33@fourmiz.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 09:26:25.428467+00	
+00000000-0000-0000-0000-000000000000	0b659cec-7905-4c65-bd56-de70df457d94	{"action":"logout","actor_id":"6067031a-00bf-43c4-a7d0-783c02d7fb5a","actor_username":"test33@fourmiz.com","actor_via_sso":false,"log_type":"account"}	2025-09-20 09:34:50.876708+00	
+00000000-0000-0000-0000-000000000000	19596753-55ab-4ced-99d0-e5b823b191b2	{"action":"login","actor_id":"4b766453-4eb7-4138-9bb4-8cdf7508d0b3","actor_username":"test32@fourmiz.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 09:35:06.813917+00	
+00000000-0000-0000-0000-000000000000	0a1af46b-da96-44db-8ba6-dbb341324516	{"action":"logout","actor_id":"4b766453-4eb7-4138-9bb4-8cdf7508d0b3","actor_username":"test32@fourmiz.com","actor_via_sso":false,"log_type":"account"}	2025-09-20 09:55:24.104806+00	
+00000000-0000-0000-0000-000000000000	fd5e218e-31f5-43e1-a0ef-3f14cd28cb91	{"action":"login","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 10:25:42.233502+00	
+00000000-0000-0000-0000-000000000000	91eaf958-2312-484c-b01b-c742026606f5	{"action":"login","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 10:52:30.194138+00	
+00000000-0000-0000-0000-000000000000	c93b7642-a3a7-491e-b032-dcddf31113d7	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 12:07:48.073963+00	
+00000000-0000-0000-0000-000000000000	9992dbbb-8adb-4999-8927-222a689bc808	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 12:07:48.109432+00	
+00000000-0000-0000-0000-000000000000	ebc37069-6077-4fe9-a971-458b0b376502	{"action":"login","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2025-09-20 12:30:19.754301+00	
+00000000-0000-0000-0000-000000000000	aa018e36-5765-4152-a839-9aee95637dbc	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 13:28:25.336626+00	
+00000000-0000-0000-0000-000000000000	461e946a-47e2-4101-810b-311cf9509745	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 13:28:25.350091+00	
+00000000-0000-0000-0000-000000000000	592b1fb4-cd2c-4a13-9e1d-9918d8188e9c	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 16:08:44.332319+00	
+00000000-0000-0000-0000-000000000000	bebb87e6-de94-4d2c-a79a-3f852e4a7fad	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 16:08:44.355278+00	
+00000000-0000-0000-0000-000000000000	101862df-48e5-432b-a119-c367415e5063	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 17:07:14.621804+00	
+00000000-0000-0000-0000-000000000000	eb77660c-da84-4d5d-9685-a6f997ee139c	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 17:07:14.640748+00	
+00000000-0000-0000-0000-000000000000	7cfc38b4-a053-4b33-a5a4-739c4a9ac9bd	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 18:05:31.867764+00	
+00000000-0000-0000-0000-000000000000	50d540b3-7ab6-48ad-9761-f46addef653c	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 18:05:31.878041+00	
+00000000-0000-0000-0000-000000000000	be922e6d-e36b-4c7b-b589-0d1b0ab3e736	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 19:03:57.569583+00	
+00000000-0000-0000-0000-000000000000	c87c66b7-5ba2-4850-b1b9-ee4d240c7fed	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 19:03:57.589439+00	
+00000000-0000-0000-0000-000000000000	79dbd93e-1005-4453-8ed1-87cfdd53323d	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 23:48:13.060091+00	
+00000000-0000-0000-0000-000000000000	5596bf3e-9a42-4eb2-a019-b1b28f0ad790	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-20 23:48:13.093076+00	
+00000000-0000-0000-0000-000000000000	3e85a613-7f14-4bb3-b1d6-aa6d4bda2e93	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-21 08:58:17.799496+00	
+00000000-0000-0000-0000-000000000000	b1016617-ad11-4552-b159-6d3b1f48bc9b	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-21 08:58:17.823391+00	
+00000000-0000-0000-0000-000000000000	3215adf0-1bf7-4c53-8915-fce0fca27a5e	{"action":"token_refreshed","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-21 09:56:18.606531+00	
+00000000-0000-0000-0000-000000000000	e3af05c3-e7dd-4bfa-804f-b5c43cd7196e	{"action":"token_revoked","actor_id":"3a974bf5-a0df-44fe-be9e-603910ef9a4e","actor_username":"garrec.gildas@gmail.com","actor_via_sso":false,"log_type":"token"}	2025-09-21 09:56:18.631561+00	
 \.
 
 
 --
--- TOC entry 5688 (class 0 OID 16925)
+-- TOC entry 5694 (class 0 OID 16925)
 -- Dependencies: 374
 -- Data for Name: flow_state; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13134,7 +13342,7 @@ COPY auth.flow_state (id, user_id, auth_code, code_challenge_method, code_challe
 
 
 --
--- TOC entry 5679 (class 0 OID 16723)
+-- TOC entry 5685 (class 0 OID 16723)
 -- Dependencies: 365
 -- Data for Name: identities; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13184,7 +13392,7 @@ cc1bd840-a1d9-4b99-bb70-2c312fc895e9	cc1bd840-a1d9-4b99-bb70-2c312fc895e9	{"sub"
 
 
 --
--- TOC entry 5673 (class 0 OID 16516)
+-- TOC entry 5679 (class 0 OID 16516)
 -- Dependencies: 356
 -- Data for Name: instances; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13194,15 +13402,17 @@ COPY auth.instances (id, uuid, raw_base_config, created_at, updated_at) FROM std
 
 
 --
--- TOC entry 5683 (class 0 OID 16812)
+-- TOC entry 5689 (class 0 OID 16812)
 -- Dependencies: 369
 -- Data for Name: mfa_amr_claims; Type: TABLE DATA; Schema: auth; Owner: -
 --
 
 COPY auth.mfa_amr_claims (session_id, created_at, updated_at, authentication_method, id) FROM stdin;
 9c33501d-6e7d-4063-9681-543c5eccb512	2025-07-12 12:12:18.569614+00	2025-07-12 12:12:18.569614+00	password	8592570d-985c-42bb-be86-c68f628729f5
+3e98f3f6-89e4-417c-868f-26b2edc5d79e	2025-09-20 12:30:19.816424+00	2025-09-20 12:30:19.816424+00	password	fb8e2304-ccfd-4aed-bf11-f9112bdf5ccc
 27b665a9-4ad3-4727-9190-be9cd6f51760	2025-07-14 17:56:36.858333+00	2025-07-14 17:56:36.858333+00	password	f9295d3b-c723-48db-9b3d-133808a71709
-f6e1ea2d-55bd-4adf-b1bc-beb0200f5db9	2025-09-15 09:10:13.510505+00	2025-09-15 09:10:13.510505+00	password	a2292ef7-a29e-4af0-aa69-fc27a82e9713
+8fe1bddf-2cea-4904-89bd-687e602d3194	2025-09-20 10:25:42.329248+00	2025-09-20 10:25:42.329248+00	password	75066990-e10a-45b4-b163-e9a377e76a69
+d364accb-dc61-46d1-a9e3-117bcb90e3ae	2025-09-20 10:52:30.253508+00	2025-09-20 10:52:30.253508+00	password	26159e54-61a2-4a8f-a64c-ca95eeed77c6
 c4a06f08-b58b-4150-9778-519fe3923d9c	2025-07-29 09:03:28.444355+00	2025-07-29 09:03:28.444355+00	password	9ed4b6e9-a3aa-40ae-87e1-5856b42308d7
 98d4c11c-5890-4bd0-bd4a-8477311d66cb	2025-07-29 12:41:45.262933+00	2025-07-29 12:41:45.262933+00	password	bbf586cd-446b-44b4-9d8f-368038d32c9d
 4f62ad26-fb4f-4c62-aa85-25c17b2f1110	2025-07-29 15:27:20.762379+00	2025-07-29 15:27:20.762379+00	password	33fe48de-3f33-4faf-a726-26bc2b2b1fa1
@@ -13215,7 +13425,7 @@ cafd34f1-e5ad-4082-a85c-9b902b3b8b53	2025-07-29 17:50:18.588982+00	2025-07-29 17
 
 
 --
--- TOC entry 5682 (class 0 OID 16800)
+-- TOC entry 5688 (class 0 OID 16800)
 -- Dependencies: 368
 -- Data for Name: mfa_challenges; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13225,7 +13435,7 @@ COPY auth.mfa_challenges (id, factor_id, created_at, verified_at, ip_address, ot
 
 
 --
--- TOC entry 5681 (class 0 OID 16787)
+-- TOC entry 5687 (class 0 OID 16787)
 -- Dependencies: 367
 -- Data for Name: mfa_factors; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13235,8 +13445,8 @@ COPY auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_
 
 
 --
--- TOC entry 5779 (class 0 OID 136607)
--- Dependencies: 492
+-- TOC entry 5784 (class 0 OID 136607)
+-- Dependencies: 491
 -- Data for Name: oauth_clients; Type: TABLE DATA; Schema: auth; Owner: -
 --
 
@@ -13245,7 +13455,7 @@ COPY auth.oauth_clients (id, client_id, client_secret_hash, registration_type, r
 
 
 --
--- TOC entry 5689 (class 0 OID 16975)
+-- TOC entry 5695 (class 0 OID 16975)
 -- Dependencies: 375
 -- Data for Name: one_time_tokens; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13255,21 +13465,31 @@ COPY auth.one_time_tokens (id, user_id, token_type, token_hash, relates_to, crea
 
 
 --
--- TOC entry 5672 (class 0 OID 16505)
+-- TOC entry 5678 (class 0 OID 16505)
 -- Dependencies: 355
 -- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: auth; Owner: -
 --
 
 COPY auth.refresh_tokens (instance_id, id, token, user_id, revoked, created_at, updated_at, parent, session_id) FROM stdin;
-00000000-0000-0000-0000-000000000000	988	cox33wi5rrmo	8c5e4fc0-12f2-4181-8408-32c18693f7e3	f	2025-09-16 08:47:44.682785+00	2025-09-16 08:47:44.682785+00	v7zdkplbo7kt	f6e1ea2d-55bd-4adf-b1bc-beb0200f5db9
+00000000-0000-0000-0000-000000000000	1020	tefskbchytvx	3a974bf5-a0df-44fe-be9e-603910ef9a4e	f	2025-09-20 10:25:42.288299+00	2025-09-20 10:25:42.288299+00	\N	8fe1bddf-2cea-4904-89bd-687e602d3194
 00000000-0000-0000-0000-000000000000	163	wn23xznenjyv	9e6f2eef-b93d-4662-92cf-1250403e0fe8	f	2025-07-12 12:12:18.567516+00	2025-07-12 12:12:18.567516+00	\N	9c33501d-6e7d-4063-9681-543c5eccb512
+00000000-0000-0000-0000-000000000000	1025	yd3l3dncb6o5	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-20 16:08:44.386617+00	2025-09-20 17:07:14.645423+00	nbink5fugyth	3e98f3f6-89e4-417c-868f-26b2edc5d79e
+00000000-0000-0000-0000-000000000000	1030	4qphtyyncp23	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-21 08:58:17.849939+00	2025-09-21 09:56:18.637911+00	w3l3ugloirak	3e98f3f6-89e4-417c-868f-26b2edc5d79e
 00000000-0000-0000-0000-000000000000	931	2v4g56kgq25h	f75491ee-2d9a-4392-ac58-9de97b55cc90	t	2025-09-10 10:02:32.777194+00	2025-09-10 13:59:10.568753+00	\N	76d1342a-6f63-472e-a9dc-45aff36c2cd6
 00000000-0000-0000-0000-000000000000	199	3lykbogmnkpt	649f6274-cecb-464f-9a52-9a989bd7f0dd	f	2025-07-14 17:56:36.855337+00	2025-07-14 17:56:36.855337+00	\N	27b665a9-4ad3-4727-9190-be9cd6f51760
+00000000-0000-0000-0000-000000000000	1021	asvizqrnrkf2	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-20 10:52:30.232463+00	2025-09-20 12:07:48.112593+00	\N	d364accb-dc61-46d1-a9e3-117bcb90e3ae
+00000000-0000-0000-0000-000000000000	1026	ijq7cvdoq2ha	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-20 17:07:14.656957+00	2025-09-20 18:05:31.884419+00	yd3l3dncb6o5	3e98f3f6-89e4-417c-868f-26b2edc5d79e
+00000000-0000-0000-0000-000000000000	1031	5f63ft2zj3hi	3a974bf5-a0df-44fe-be9e-603910ef9a4e	f	2025-09-21 09:56:18.653787+00	2025-09-21 09:56:18.653787+00	4qphtyyncp23	3e98f3f6-89e4-417c-868f-26b2edc5d79e
+00000000-0000-0000-0000-000000000000	980	x3ox4eq5qcdo	f75491ee-2d9a-4392-ac58-9de97b55cc90	t	2025-09-14 14:31:41.118494+00	2025-09-17 18:52:57.841215+00	bi4a35tycz7l	76d1342a-6f63-472e-a9dc-45aff36c2cd6
 00000000-0000-0000-0000-000000000000	937	bi4a35tycz7l	f75491ee-2d9a-4392-ac58-9de97b55cc90	t	2025-09-10 13:59:10.573922+00	2025-09-14 14:31:41.088462+00	2v4g56kgq25h	76d1342a-6f63-472e-a9dc-45aff36c2cd6
-00000000-0000-0000-0000-000000000000	980	x3ox4eq5qcdo	f75491ee-2d9a-4392-ac58-9de97b55cc90	f	2025-09-14 14:31:41.118494+00	2025-09-14 14:31:41.118494+00	bi4a35tycz7l	76d1342a-6f63-472e-a9dc-45aff36c2cd6
-00000000-0000-0000-0000-000000000000	985	xnq7swmrxtrz	8c5e4fc0-12f2-4181-8408-32c18693f7e3	t	2025-09-15 09:10:13.502798+00	2025-09-15 16:21:58.759327+00	\N	f6e1ea2d-55bd-4adf-b1bc-beb0200f5db9
-00000000-0000-0000-0000-000000000000	986	3vtmszgumtqz	8c5e4fc0-12f2-4181-8408-32c18693f7e3	t	2025-09-15 16:21:58.788422+00	2025-09-16 07:49:25.810642+00	xnq7swmrxtrz	f6e1ea2d-55bd-4adf-b1bc-beb0200f5db9
-00000000-0000-0000-0000-000000000000	987	v7zdkplbo7kt	8c5e4fc0-12f2-4181-8408-32c18693f7e3	t	2025-09-16 07:49:25.832392+00	2025-09-16 08:47:44.675181+00	3vtmszgumtqz	f6e1ea2d-55bd-4adf-b1bc-beb0200f5db9
+00000000-0000-0000-0000-000000000000	1022	vx5c6bbych4b	3a974bf5-a0df-44fe-be9e-603910ef9a4e	f	2025-09-20 12:07:48.144232+00	2025-09-20 12:07:48.144232+00	asvizqrnrkf2	d364accb-dc61-46d1-a9e3-117bcb90e3ae
+00000000-0000-0000-0000-000000000000	1027	sk3qjeqkn6h7	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-20 18:05:31.894366+00	2025-09-20 19:03:57.59132+00	ijq7cvdoq2ha	3e98f3f6-89e4-417c-868f-26b2edc5d79e
+00000000-0000-0000-0000-000000000000	1023	ivpbsunjgkr7	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-20 12:30:19.79534+00	2025-09-20 13:28:25.351971+00	\N	3e98f3f6-89e4-417c-868f-26b2edc5d79e
+00000000-0000-0000-0000-000000000000	1028	gu4izbrm343m	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-20 19:03:57.604018+00	2025-09-20 23:48:13.096549+00	sk3qjeqkn6h7	3e98f3f6-89e4-417c-868f-26b2edc5d79e
+00000000-0000-0000-0000-000000000000	1024	nbink5fugyth	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-20 13:28:25.358546+00	2025-09-20 16:08:44.359423+00	ivpbsunjgkr7	3e98f3f6-89e4-417c-868f-26b2edc5d79e
+00000000-0000-0000-0000-000000000000	1029	w3l3ugloirak	3a974bf5-a0df-44fe-be9e-603910ef9a4e	t	2025-09-20 23:48:13.121347+00	2025-09-21 08:58:17.826939+00	gu4izbrm343m	3e98f3f6-89e4-417c-868f-26b2edc5d79e
+00000000-0000-0000-0000-000000000000	1002	nfbqq62nboz7	f75491ee-2d9a-4392-ac58-9de97b55cc90	t	2025-09-17 18:52:57.865571+00	2025-09-19 12:02:34.070464+00	x3ox4eq5qcdo	76d1342a-6f63-472e-a9dc-45aff36c2cd6
+00000000-0000-0000-0000-000000000000	1012	mov4qvwoaaic	f75491ee-2d9a-4392-ac58-9de97b55cc90	f	2025-09-19 12:02:34.079766+00	2025-09-19 12:02:34.079766+00	nfbqq62nboz7	76d1342a-6f63-472e-a9dc-45aff36c2cd6
 00000000-0000-0000-0000-000000000000	384	3vvg267ugzw5	649f6274-cecb-464f-9a52-9a989bd7f0dd	t	2025-07-29 09:03:28.441078+00	2025-07-29 10:01:57.344984+00	\N	c4a06f08-b58b-4150-9778-519fe3923d9c
 00000000-0000-0000-0000-000000000000	385	hdeeacsxaqfo	649f6274-cecb-464f-9a52-9a989bd7f0dd	t	2025-07-29 10:01:57.346203+00	2025-07-29 11:02:15.722313+00	3vvg267ugzw5	c4a06f08-b58b-4150-9778-519fe3923d9c
 00000000-0000-0000-0000-000000000000	386	n7kjci3eeslr	649f6274-cecb-464f-9a52-9a989bd7f0dd	t	2025-07-29 11:02:15.727325+00	2025-07-29 12:08:43.770617+00	hdeeacsxaqfo	c4a06f08-b58b-4150-9778-519fe3923d9c
@@ -13286,7 +13506,7 @@ COPY auth.refresh_tokens (instance_id, id, token, user_id, revoked, created_at, 
 
 
 --
--- TOC entry 5686 (class 0 OID 16854)
+-- TOC entry 5692 (class 0 OID 16854)
 -- Dependencies: 372
 -- Data for Name: saml_providers; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13296,7 +13516,7 @@ COPY auth.saml_providers (id, sso_provider_id, entity_id, metadata_xml, metadata
 
 
 --
--- TOC entry 5687 (class 0 OID 16872)
+-- TOC entry 5693 (class 0 OID 16872)
 -- Dependencies: 373
 -- Data for Name: saml_relay_states; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13306,7 +13526,7 @@ COPY auth.saml_relay_states (id, sso_provider_id, request_id, for_email, redirec
 
 
 --
--- TOC entry 5675 (class 0 OID 16531)
+-- TOC entry 5681 (class 0 OID 16531)
 -- Dependencies: 358
 -- Data for Name: schema_migrations; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13379,16 +13599,18 @@ COPY auth.schema_migrations (version) FROM stdin;
 
 
 --
--- TOC entry 5680 (class 0 OID 16753)
+-- TOC entry 5686 (class 0 OID 16753)
 -- Dependencies: 366
 -- Data for Name: sessions; Type: TABLE DATA; Schema: auth; Owner: -
 --
 
 COPY auth.sessions (id, user_id, created_at, updated_at, factor_id, aal, not_after, refreshed_at, user_agent, ip, tag) FROM stdin;
 9c33501d-6e7d-4063-9681-543c5eccb512	9e6f2eef-b93d-4662-92cf-1250403e0fe8	2025-07-12 12:12:18.566796+00	2025-07-12 12:12:18.566796+00	\N	aal1	\N	\N	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.99.154	\N
+3e98f3f6-89e4-417c-868f-26b2edc5d79e	3a974bf5-a0df-44fe-be9e-603910ef9a4e	2025-09-20 12:30:19.778013+00	2025-09-21 09:56:18.689318+00	\N	aal1	\N	2025-09-21 09:56:18.688641	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.119.205	\N
 27b665a9-4ad3-4727-9190-be9cd6f51760	649f6274-cecb-464f-9a52-9a989bd7f0dd	2025-07-14 17:56:36.854345+00	2025-07-14 17:56:36.854345+00	\N	aal1	\N	\N	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.99.156	\N
-76d1342a-6f63-472e-a9dc-45aff36c2cd6	f75491ee-2d9a-4392-ac58-9de97b55cc90	2025-09-10 10:02:32.762637+00	2025-09-14 14:31:41.171655+00	\N	aal1	\N	2025-09-14 14:31:41.17101	Fourmiz/1 CFNetwork/3826.600.41 Darwin/24.6.0	92.169.178.227	\N
-f6e1ea2d-55bd-4adf-b1bc-beb0200f5db9	8c5e4fc0-12f2-4181-8408-32c18693f7e3	2025-09-15 09:10:13.49159+00	2025-09-16 08:47:44.697153+00	\N	aal1	\N	2025-09-16 08:47:44.695917	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.119.181	\N
+76d1342a-6f63-472e-a9dc-45aff36c2cd6	f75491ee-2d9a-4392-ac58-9de97b55cc90	2025-09-10 10:02:32.762637+00	2025-09-19 12:02:34.098666+00	\N	aal1	\N	2025-09-19 12:02:34.097865	Fourmiz/1 CFNetwork/3826.600.41 Darwin/24.6.0	92.169.178.227	\N
+8fe1bddf-2cea-4904-89bd-687e602d3194	3a974bf5-a0df-44fe-be9e-603910ef9a4e	2025-09-20 10:25:42.268817+00	2025-09-20 10:25:42.268817+00	\N	aal1	\N	\N	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.119.204	\N
+d364accb-dc61-46d1-a9e3-117bcb90e3ae	3a974bf5-a0df-44fe-be9e-603910ef9a4e	2025-09-20 10:52:30.223304+00	2025-09-20 12:07:48.19079+00	\N	aal1	\N	2025-09-20 12:07:48.189977	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.119.202	\N
 4f62ad26-fb4f-4c62-aa85-25c17b2f1110	3e028fb2-ff67-482b-ad2b-4b44fee69724	2025-07-29 15:27:20.746612+00	2025-07-29 16:52:56.644479+00	\N	aal1	\N	2025-07-29 16:52:56.644408	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.99.179	\N
 254dad45-7d3d-4884-a27e-d091aed82fb2	59222692-3639-4bda-8caa-aa7ce19cc1ca	2025-07-29 16:56:55.876262+00	2025-07-29 16:56:55.876262+00	\N	aal1	\N	\N	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.99.179	\N
 e03ae785-4569-4dda-bdde-f35c9708d4f0	916b0e50-5093-462b-9bf0-a51e3dcdaf1d	2025-07-29 17:31:05.25541+00	2025-07-29 17:31:05.25541+00	\N	aal1	\N	\N	Fourmiz/1 CFNetwork/3826.500.131 Darwin/24.5.0	92.184.99.179	\N
@@ -13400,7 +13622,7 @@ c4a06f08-b58b-4150-9778-519fe3923d9c	649f6274-cecb-464f-9a52-9a989bd7f0dd	2025-0
 
 
 --
--- TOC entry 5685 (class 0 OID 16839)
+-- TOC entry 5691 (class 0 OID 16839)
 -- Dependencies: 371
 -- Data for Name: sso_domains; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13410,7 +13632,7 @@ COPY auth.sso_domains (id, sso_provider_id, domain, created_at, updated_at) FROM
 
 
 --
--- TOC entry 5684 (class 0 OID 16830)
+-- TOC entry 5690 (class 0 OID 16830)
 -- Dependencies: 370
 -- Data for Name: sso_providers; Type: TABLE DATA; Schema: auth; Owner: -
 --
@@ -13420,14 +13642,14 @@ COPY auth.sso_providers (id, resource_id, created_at, updated_at, disabled) FROM
 
 
 --
--- TOC entry 5670 (class 0 OID 16493)
+-- TOC entry 5676 (class 0 OID 16493)
 -- Dependencies: 353
 -- Data for Name: users; Type: TABLE DATA; Schema: auth; Owner: -
 --
 
 COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, invited_at, confirmation_token, confirmation_sent_at, recovery_token, recovery_sent_at, email_change_token_new, email_change, email_change_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, created_at, updated_at, phone, phone_confirmed_at, phone_change, phone_change_token, phone_change_sent_at, email_change_token_current, email_change_confirm_status, banned_until, reauthentication_token, reauthentication_sent_at, is_sso_user, deleted_at, is_anonymous) FROM stdin;
-00000000-0000-0000-0000-000000000000	3a974bf5-a0df-44fe-be9e-603910ef9a4e	authenticated	authenticated	garrec.gildas@gmail.com	$2a$10$QAkumY5F9NdZ21G.nTvGOe7RC1zfgxhy0X0CRPBCNDnmNWznc.NJq	2025-06-21 12:20:29.768806+00	\N		\N		\N			\N	2025-09-15 06:03:36.810939+00	{"provider": "email", "providers": ["email"]}	{"email_verified": true}	\N	2025-06-21 12:20:29.73056+00	2025-09-15 09:00:44.280493+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	aac7ef75-48e9-49b2-971e-00fe0cf2402a	authenticated	authenticated	test5@fourmiz.com	$2a$10$aB6g2qc3GnMGnih24PpJHOA9LpsvD9PvP66mgE2PoWkMsYh3eXOtu	2025-07-28 17:27:41.860232+00	\N		\N		\N			\N	2025-09-07 19:48:47.916097+00	{"provider": "email", "providers": ["email"]}	{"sub": "aac7ef75-48e9-49b2-971e-00fe0cf2402a", "email": "test5@fourmiz.com", "lastname": "Testtest5", "firstname": "Test5", "email_verified": true, "phone_verified": false}	\N	2025-07-28 17:27:41.833672+00	2025-09-07 19:48:47.935273+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	3a974bf5-a0df-44fe-be9e-603910ef9a4e	authenticated	authenticated	garrec.gildas@gmail.com	$2a$10$QAkumY5F9NdZ21G.nTvGOe7RC1zfgxhy0X0CRPBCNDnmNWznc.NJq	2025-06-21 12:20:29.768806+00	\N		\N		\N			\N	2025-09-20 12:30:19.777904+00	{"provider": "email", "providers": ["email"]}	{"email_verified": true}	\N	2025-06-21 12:20:29.73056+00	2025-09-21 09:56:18.670813+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	4bfd3b62-1633-48d0-9411-59da075553f2	authenticated	authenticated	emiliejolie@gmail.com	$2a$10$HQKsqnrBVx61gLHMGWOvjOz5dDajmbAzn69GxFjulpLPIoDmoBCtu	2025-06-21 13:37:26.887484+00	\N		\N		\N			\N	\N	{"provider": "email", "providers": ["email"]}	{"email_verified": true}	\N	2025-06-21 13:37:26.884835+00	2025-06-21 13:37:26.888141+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	9e6f2eef-b93d-4662-92cf-1250403e0fe8	authenticated	authenticated	test3@fourmiz.com	$2a$10$29ejhfGXTIq8k8Osy24kveompva.akhG6fIlno2uKO/PUWTWUvoTy	2025-07-12 12:12:18.560663+00	\N		\N		\N			\N	2025-07-12 12:12:18.566727+00	{"provider": "email", "providers": ["email"]}	{"sub": "9e6f2eef-b93d-4662-92cf-1250403e0fe8", "email": "test3@fourmiz.com", "firstname": "Test3", "email_verified": true, "phone_verified": false}	\N	2025-07-12 12:12:18.552278+00	2025-07-12 12:12:18.569186+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	318a3e37-2c08-4ac0-befd-1ebce343292a	authenticated	authenticated	test1@fourmiz.com	$2a$10$RkjTIPo8Jwh.1r1v44L44.xhn17zIAe71yjXt.l3BemleiCyOvNGa	2025-07-12 11:49:31.893292+00	\N		\N		\N			\N	\N	{"provider": "email", "providers": ["email"]}	{"email_verified": true}	\N	2025-07-12 11:49:31.882529+00	2025-07-12 11:49:31.894245+00	\N	\N			\N		0	\N		\N	f	\N	f
@@ -13440,6 +13662,7 @@ COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_co
 00000000-0000-0000-0000-000000000000	3e028fb2-ff67-482b-ad2b-4b44fee69724	authenticated	authenticated	test8@fourmiz.com	$2a$10$.CI9fzJFw/OBs2W9LBjc..t0mungg0Bpm4SHHNtjcEyQs4FbdmRSi	2025-07-29 15:27:20.742216+00	\N		\N		\N			\N	2025-07-29 15:27:20.746539+00	{"provider": "email", "providers": ["email"]}	{"sub": "3e028fb2-ff67-482b-ad2b-4b44fee69724", "email": "test8@fourmiz.com", "phone": "0671342225", "lastname": "Test8", "firstname": "T8", "email_verified": true, "phone_verified": false}	\N	2025-07-29 15:27:20.73128+00	2025-07-29 16:52:56.641805+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	59222692-3639-4bda-8caa-aa7ce19cc1ca	authenticated	authenticated	test9@fourmiz.com	$2a$10$dR.XnrHXcdFpGoYuqtDZ5Oqv2lx2YRBEiLQKPiwMRBRRGm2glQpky	2025-07-29 16:56:55.868042+00	\N		\N		\N			\N	2025-07-29 16:56:55.87618+00	{"provider": "email", "providers": ["email"]}	{"sub": "59222692-3639-4bda-8caa-aa7ce19cc1ca", "email": "test9@fourmiz.com", "phone": "0671342225", "lastname": "Test9", "firstname": "T9", "email_verified": true, "phone_verified": false}	\N	2025-07-29 16:56:55.85132+00	2025-07-29 16:56:55.891327+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	authenticated	authenticated	test11@fourmiz.com	$2a$10$/CyN7HlhxieMarjy2e9UA.fGiw81gc/0k2aRXFw1eY9CWAD2aHlee	2025-07-29 17:50:18.570432+00	\N		\N		\N			\N	2025-07-29 17:50:18.576223+00	{"provider": "email", "providers": ["email"]}	{"sub": "64dc0d0a-57e0-4a53-b0a7-7dd9a074216b", "email": "test11@fourmiz.com", "phone": "0671342225", "lastname": "Test11", "firstname": "T11", "email_verified": true, "phone_verified": false}	\N	2025-07-29 17:50:18.557964+00	2025-07-29 17:50:18.588447+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	f75491ee-2d9a-4392-ac58-9de97b55cc90	authenticated	authenticated	emilieboiteau@yahoo.fr	$2a$10$wosLvG5qNRr/ygjrZstLAeh81yxvUFLj4WYBYczga8cKp.2ivS1iW	2025-09-10 10:02:32.742887+00	\N		\N		\N			\N	2025-09-10 10:02:32.761959+00	{"provider": "email", "providers": ["email"]}	{"sub": "f75491ee-2d9a-4392-ac58-9de97b55cc90", "email": "emilieboiteau@yahoo.fr", "phone": "0613504390", "lastname": "", "firstname": "Emilie", "email_verified": true, "phone_verified": false}	\N	2025-09-10 10:02:32.624455+00	2025-09-19 12:02:34.083712+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	808432b9-da8b-4663-ad37-0cc14ba33e38	authenticated	authenticated	test20@fourmiz.com	$2a$10$m8QnuGAm5OsV.mp7rLJTeen.30470EhNqFN9eYlfcBV00i8eORWJi	2025-09-10 10:05:44.76911+00	\N		\N		\N			\N	2025-09-10 10:05:44.778566+00	{"provider": "email", "providers": ["email"]}	{"sub": "808432b9-da8b-4663-ad37-0cc14ba33e38", "email": "test20@fourmiz.com", "phone": "0671342225", "lastname": "T20", "firstname": "T20", "email_verified": true, "phone_verified": false}	\N	2025-09-10 10:05:44.75202+00	2025-09-10 10:05:44.783158+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	88969662-72db-4aa7-88e0-94e768b15e6a	authenticated	authenticated	test16@fourmiz.com	$2a$10$rAz0Vd3lW.S8Pt7dKO2.ced73qr3slgc0Lx5GFIw1XOdjN9Er2J9K	2025-08-31 18:58:18.458158+00	\N		\N		\N			\N	2025-08-31 18:58:18.475323+00	{"provider": "email", "providers": ["email"]}	{"sub": "88969662-72db-4aa7-88e0-94e768b15e6a", "email": "test16@fourmiz.com", "phone": "0671342225", "lastname": "T16", "firstname": "T16", "email_verified": true, "phone_verified": false}	\N	2025-08-31 18:58:18.416815+00	2025-08-31 18:58:18.517071+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	e3a9145b-ad86-4068-b1d3-cd2097a755ee	authenticated	authenticated	test12@fourmiz.com	$2a$10$IRo0Q1ATkNuvvIJapEtQTuOFyDMNR1KTdBj/sbItuMeNGn2m0.QBi	2025-07-29 18:37:18.790864+00	\N		\N		\N			\N	2025-07-29 18:37:18.797064+00	{"provider": "email", "providers": ["email"]}	{"sub": "e3a9145b-ad86-4068-b1d3-cd2097a755ee", "email": "test12@fourmiz.com", "phone": "0671342225", "lastname": "test12", "firstname": "T12", "email_verified": true, "phone_verified": false}	\N	2025-07-29 18:37:18.782787+00	2025-07-29 18:37:18.804934+00	\N	\N			\N		0	\N		\N	f	\N	f
@@ -13449,9 +13672,7 @@ COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_co
 00000000-0000-0000-0000-000000000000	b2d2d127-d12f-4db0-80c2-638d62986cbb	authenticated	authenticated	test25@fourmiz.com	$2a$10$0Ssh77jAPnN//h8hDSYZVuhG6Ewg/2moVt9gcUvHyIvtHPfmC0kZm	2025-09-10 18:19:18.100905+00	\N		\N		\N			\N	2025-09-10 18:19:18.113235+00	{"provider": "email", "providers": ["email"]}	{"sub": "b2d2d127-d12f-4db0-80c2-638d62986cbb", "email": "test25@fourmiz.com", "phone": "0671342225", "lastname": "T25", "firstname": "T25", "email_verified": true, "phone_verified": false}	\N	2025-09-10 18:19:18.024649+00	2025-09-10 18:19:18.137857+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	44a528b6-f6f9-4460-a874-a72aad2dd55b	authenticated	authenticated	test24@fourmiz.com	$2a$10$kIArDon3lA1x8h55JrZoDuqu4mRsQ8rbxe3OGo/NbgcCy4vafU.N2	2025-09-10 15:06:38.483511+00	\N		\N		\N			\N	2025-09-10 15:06:38.49952+00	{"provider": "email", "providers": ["email"]}	{"sub": "44a528b6-f6f9-4460-a874-a72aad2dd55b", "email": "test24@fourmiz.com", "phone": "0671342225", "lastname": "T24", "firstname": "T24", "email_verified": true, "phone_verified": false}	\N	2025-09-10 15:06:38.400707+00	2025-09-10 17:41:58.984641+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	b9821771-9882-4505-a198-78eeedecc42e	authenticated	authenticated	test22@gmail.com	$2a$10$zIcSfcO0Pwlt39CUkK1FF.T.409MSCCtmNSw9vtq1zDpMt3RX9Kge	2025-09-10 10:54:06.8497+00	\N		\N		\N			\N	2025-09-10 10:54:06.863916+00	{"provider": "email", "providers": ["email"]}	{"sub": "b9821771-9882-4505-a198-78eeedecc42e", "email": "test22@gmail.com", "phone": "0671342225", "lastname": "T22", "firstname": "T22", "email_verified": true, "phone_verified": false}	\N	2025-09-10 10:54:06.778562+00	2025-09-10 11:54:08.219301+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	f75491ee-2d9a-4392-ac58-9de97b55cc90	authenticated	authenticated	emilieboiteau@yahoo.fr	$2a$10$wosLvG5qNRr/ygjrZstLAeh81yxvUFLj4WYBYczga8cKp.2ivS1iW	2025-09-10 10:02:32.742887+00	\N		\N		\N			\N	2025-09-10 10:02:32.761959+00	{"provider": "email", "providers": ["email"]}	{"sub": "f75491ee-2d9a-4392-ac58-9de97b55cc90", "email": "emilieboiteau@yahoo.fr", "phone": "0613504390", "lastname": "", "firstname": "Emilie", "email_verified": true, "phone_verified": false}	\N	2025-09-10 10:02:32.624455+00	2025-09-14 14:31:41.137541+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	407e4c14-6976-44bb-9307-bc8e83f15c83	authenticated	authenticated	test17@fourmiz.com	$2a$10$K7kV5eVRLef37U9axD4Pb.fWz6Iu0dj3jWRsnbkKDolvaHRxt1KEi	2025-08-31 21:04:38.550288+00	\N		\N		\N			\N	2025-08-31 21:04:38.566844+00	{"provider": "email", "providers": ["email"]}	{"sub": "407e4c14-6976-44bb-9307-bc8e83f15c83", "email": "test17@fourmiz.com", "phone": "0671342225", "lastname": "T17", "firstname": "T17", "email_verified": true, "phone_verified": false}	\N	2025-08-31 21:04:38.442732+00	2025-08-31 21:04:38.620457+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	4b766453-4eb7-4138-9bb4-8cdf7508d0b3	authenticated	authenticated	test32@fourmiz.com	$2a$10$MNcUOrWPAvYjj9X8Quus8u1r1tvpp3pN53DwsEMkZZXnS7zlbv76K	2025-09-13 08:34:27.712263+00	\N		\N		\N			\N	2025-09-13 08:34:27.721295+00	{"provider": "email", "providers": ["email"]}	{"sub": "4b766453-4eb7-4138-9bb4-8cdf7508d0b3", "email": "test32@fourmiz.com", "phone": "0671342225", "lastname": "T32", "firstname": "T32", "email_verified": true, "phone_verified": false}	\N	2025-09-13 08:34:27.657907+00	2025-09-13 08:34:27.743583+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	b9c12b47-6545-456d-b6f7-2c37ee3681c6	authenticated	authenticated	test28@fourmiz.com	$2a$10$/XPhD53PtEYqhBazpWPEC.av1WlW.TiPoI2W7BE2uTaxkvwMxN8GW	2025-09-11 16:03:32.24752+00	\N		\N		\N			\N	2025-09-12 13:37:14.237158+00	{"provider": "email", "providers": ["email"]}	{"sub": "b9c12b47-6545-456d-b6f7-2c37ee3681c6", "email": "test28@fourmiz.com", "phone": "0671342255", "lastname": "T28", "firstname": "T28", "email_verified": true, "phone_verified": false}	\N	2025-09-11 16:03:32.178877+00	2025-09-12 14:35:43.609565+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	9c3c194c-0772-43f1-853d-92ac2af9646d	authenticated	authenticated	test31@fourmiz.com	$2a$10$3NabfJmYbegyQivZrLXN.eWgUR4nxFyXNUGRI3l6kPx.4JvtgF0im	2025-09-13 08:25:19.800718+00	\N		\N		\N			\N	2025-09-13 08:25:19.814795+00	{"provider": "email", "providers": ["email"]}	{"sub": "9c3c194c-0772-43f1-853d-92ac2af9646d", "email": "test31@fourmiz.com", "phone": "0671342225", "lastname": "T31", "firstname": "T31", "email_verified": true, "phone_verified": false}	\N	2025-09-13 08:25:19.722025+00	2025-09-13 08:25:19.848473+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	43af2b91-be63-47e1-b013-d55a97e6a11a	authenticated	authenticated	test26@fourmiz.com	$2a$10$daL9VEPx0qMaOlqJhK3Gd.A0tHotlPdNquwTJqY23Y6nnFnN3qtRK	2025-09-10 18:21:00.600515+00	\N		\N		\N			\N	2025-09-10 18:21:00.60805+00	{"provider": "email", "providers": ["email"]}	{"sub": "43af2b91-be63-47e1-b013-d55a97e6a11a", "email": "test26@fourmiz.com", "phone": "0671342225", "lastname": "T26", "firstname": "T26", "email_verified": true, "phone_verified": false}	\N	2025-09-10 18:21:00.585606+00	2025-09-11 15:38:25.420333+00	\N	\N			\N		0	\N		\N	f	\N	f
@@ -13459,19 +13680,20 @@ COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_co
 00000000-0000-0000-0000-000000000000	86f7c8b3-907c-40f8-960f-60f3688ce312	authenticated	authenticated	test30@fourmiz.com	$2a$10$84pMbuIhYmYObD3SC6ZD0uWwyxc5XrrrJki2It6enedt8Rc5Mpb8.	2025-09-12 16:53:20.25952+00	\N		\N		\N			\N	2025-09-12 16:53:20.272855+00	{"provider": "email", "providers": ["email"]}	{"sub": "86f7c8b3-907c-40f8-960f-60f3688ce312", "email": "test30@fourmiz.com", "phone": "0671342225", "lastname": "T30", "firstname": "T30", "email_verified": true, "phone_verified": false}	\N	2025-09-12 16:53:20.206435+00	2025-09-13 07:30:50.708153+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	4cbcf214-2e19-4d34-aa30-410fd8c9aec8	authenticated	authenticated	test27@fourmiz.com	$2a$10$gIU5je0pbPADr4JJR2LPlufZWOQLvrQY9KPrSx9ryEx9r7ADzAbMm	2025-09-11 15:47:30.70566+00	\N		\N		\N			\N	2025-09-11 15:47:30.715608+00	{"provider": "email", "providers": ["email"]}	{"sub": "4cbcf214-2e19-4d34-aa30-410fd8c9aec8", "email": "test27@fourmiz.com", "phone": "0671342225", "lastname": "T27", "firstname": "T27", "email_verified": true, "phone_verified": false}	\N	2025-09-11 15:47:30.638277+00	2025-09-11 15:47:30.735882+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	cd101ebf-f9cc-4beb-bbc7-7f90a96d919a	authenticated	authenticated	test34@fourmiz.com	$2a$10$SD.iwXvjqJjK6bX2.j5WI.Of9SPH7YGotEhuxHSpdJ.hXqUH4BJny	2025-09-13 09:08:55.32856+00	\N		\N		\N			\N	2025-09-13 09:08:55.339279+00	{"provider": "email", "providers": ["email"]}	{"sub": "cd101ebf-f9cc-4beb-bbc7-7f90a96d919a", "email": "test34@fourmiz.com", "phone": "0671342225", "lastname": "T34", "firstname": "T34", "email_verified": true, "phone_verified": false}	\N	2025-09-13 09:08:55.274579+00	2025-09-13 09:08:55.361759+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	6067031a-00bf-43c4-a7d0-783c02d7fb5a	authenticated	authenticated	test33@fourmiz.com	$2a$10$RdRWUiiEtRpistBiz3EJZ.sE0XEkSrC8l1OoSCMs3/E/TAJpyW8Oa	2025-09-13 08:42:45.283882+00	\N		\N		\N			\N	2025-09-13 08:42:45.292277+00	{"provider": "email", "providers": ["email"]}	{"sub": "6067031a-00bf-43c4-a7d0-783c02d7fb5a", "email": "test33@fourmiz.com", "phone": "0671342225", "lastname": "T33", "firstname": "T33", "email_verified": true, "phone_verified": false}	\N	2025-09-13 08:42:45.259528+00	2025-09-13 08:42:45.303252+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	6067031a-00bf-43c4-a7d0-783c02d7fb5a	authenticated	authenticated	test33@fourmiz.com	$2a$10$RdRWUiiEtRpistBiz3EJZ.sE0XEkSrC8l1OoSCMs3/E/TAJpyW8Oa	2025-09-13 08:42:45.283882+00	\N		\N		\N			\N	2025-09-20 09:26:25.437559+00	{"provider": "email", "providers": ["email"]}	{"sub": "6067031a-00bf-43c4-a7d0-783c02d7fb5a", "email": "test33@fourmiz.com", "phone": "0671342225", "lastname": "T33", "firstname": "T33", "email_verified": true, "phone_verified": false}	\N	2025-09-13 08:42:45.259528+00	2025-09-20 09:26:25.45074+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	79872df9-f084-4e5f-8151-926488c657b3	authenticated	authenticated	test39@fourmiz.com	$2a$10$TARHCxKge82N2QKHcE310er/bXBpktnoLpj2xP52OvW.wEt1.BXDq	2025-09-13 11:11:58.564203+00	\N		\N		\N			\N	2025-09-13 11:11:58.58238+00	{"provider": "email", "providers": ["email"]}	{"sub": "79872df9-f084-4e5f-8151-926488c657b3", "email": "test39@fourmiz.com", "phone": "0671342225", "lastname": "T39", "firstname": "T39", "email_verified": true, "phone_verified": false}	\N	2025-09-13 11:11:58.507111+00	2025-09-13 11:11:58.605144+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	4dfbda13-f598-4d4d-9538-d9ac157d0efc	authenticated	authenticated	test35@fourmiz.com	$2a$10$KkmcDqfECdBRWe/7TW3Uf.h8KErUjm0vZ8sNL4NmRL0G9Ru6WPlRO	2025-09-13 09:14:20.418405+00	\N		\N		\N			\N	2025-09-13 09:14:20.429659+00	{"provider": "email", "providers": ["email"]}	{"sub": "4dfbda13-f598-4d4d-9538-d9ac157d0efc", "email": "test35@fourmiz.com", "phone": "0671342225", "lastname": "T35", "firstname": "T35", "email_verified": true, "phone_verified": false}	\N	2025-09-13 09:14:20.373461+00	2025-09-13 09:14:20.45305+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	c2934cd2-6420-4a69-8b61-da6c08fc982a	authenticated	authenticated	test36@fourmiz.com	$2a$10$YwlGFkAoe4haMuOX6qcsq.UCZJVbuwv8q9tiXEGgKJHjgd6wOQxDy	2025-09-13 09:57:07.366851+00	\N		\N		\N			\N	2025-09-13 09:57:07.377609+00	{"provider": "email", "providers": ["email"]}	{"sub": "c2934cd2-6420-4a69-8b61-da6c08fc982a", "email": "test36@fourmiz.com", "phone": "0671342225", "lastname": "T36", "firstname": "T36", "email_verified": true, "phone_verified": false}	\N	2025-09-13 09:57:07.309646+00	2025-09-13 09:57:07.394479+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	4b766453-4eb7-4138-9bb4-8cdf7508d0b3	authenticated	authenticated	test32@fourmiz.com	$2a$10$MNcUOrWPAvYjj9X8Quus8u1r1tvpp3pN53DwsEMkZZXnS7zlbv76K	2025-09-13 08:34:27.712263+00	\N		\N		\N			\N	2025-09-20 09:35:06.818305+00	{"provider": "email", "providers": ["email"]}	{"sub": "4b766453-4eb7-4138-9bb4-8cdf7508d0b3", "email": "test32@fourmiz.com", "phone": "0671342225", "lastname": "T32", "firstname": "T32", "email_verified": true, "phone_verified": false}	\N	2025-09-13 08:34:27.657907+00	2025-09-20 09:35:06.832792+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	1cc6b4f7-794c-479f-9b95-ffda6cd93557	authenticated	authenticated	test40@fourmiz.com	$2a$10$DIBNFuOpRVCmQH2DpNEU8uqZhwIaojFpU92QiwGquMFIQi06JvGPy	2025-09-13 11:17:14.695544+00	\N		\N		\N			\N	2025-09-13 11:17:14.708247+00	{"provider": "email", "providers": ["email"]}	{"sub": "1cc6b4f7-794c-479f-9b95-ffda6cd93557", "email": "test40@fourmiz.com", "phone": "0671342225", "lastname": "T40", "firstname": "T40", "email_verified": true, "phone_verified": false}	\N	2025-09-13 11:17:14.657611+00	2025-09-13 11:17:14.725202+00	\N	\N			\N		0	\N		\N	f	\N	f
-00000000-0000-0000-0000-000000000000	8c5e4fc0-12f2-4181-8408-32c18693f7e3	authenticated	authenticated	test42@fourmiz.com	$2a$10$SxUMqjf5c22W1w4v7wWQO.t27suyktySzH6cKT84a4JkZbVSiPFiW	2025-09-15 09:10:13.477946+00	\N		\N		\N			\N	2025-09-15 09:10:13.489258+00	{"provider": "email", "providers": ["email"]}	{"sub": "8c5e4fc0-12f2-4181-8408-32c18693f7e3", "email": "test42@fourmiz.com", "phone": "0671342225", "lastname": "T42", "firstname": "T42", "email_verified": true, "phone_verified": false}	\N	2025-09-15 09:10:13.404848+00	2025-09-16 08:47:44.688066+00	\N	\N			\N		0	\N		\N	f	\N	f
+00000000-0000-0000-0000-000000000000	8c5e4fc0-12f2-4181-8408-32c18693f7e3	authenticated	authenticated	test42@fourmiz.com	$2a$10$SxUMqjf5c22W1w4v7wWQO.t27suyktySzH6cKT84a4JkZbVSiPFiW	2025-09-15 09:10:13.477946+00	\N		\N		\N			\N	2025-09-15 09:10:13.489258+00	{"provider": "email", "providers": ["email"]}	{"sub": "8c5e4fc0-12f2-4181-8408-32c18693f7e3", "email": "test42@fourmiz.com", "phone": "0671342225", "lastname": "T42", "firstname": "T42", "email_verified": true, "phone_verified": false}	\N	2025-09-15 09:10:13.404848+00	2025-09-16 10:11:34.261919+00	\N	\N			\N		0	\N		\N	f	\N	f
 00000000-0000-0000-0000-000000000000	cc1bd840-a1d9-4b99-bb70-2c312fc895e9	authenticated	authenticated	test41@fourmiz.com	$2a$10$.Qnkrm3a7fhhwQ5GgAWKTOkBeo7XHcyoQoF.xvcka7Do8pY2jeMDi	2025-09-13 11:46:54.058805+00	\N		\N		\N			\N	2025-09-13 11:46:54.075508+00	{"provider": "email", "providers": ["email"]}	{"sub": "cc1bd840-a1d9-4b99-bb70-2c312fc895e9", "email": "test41@fourmiz.com", "phone": "0671342225", "lastname": "T41", "firstname": "T41", "email_verified": true, "phone_verified": false}	\N	2025-09-13 11:46:53.990132+00	2025-09-13 11:46:54.100222+00	\N	\N			\N		0	\N		\N	f	\N	f
 \.
 
 
 --
 -- TOC entry 5797 (class 0 OID 160202)
--- Dependencies: 516
+-- Dependencies: 510
 -- Data for Name: active_service_tracking; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13480,7 +13702,7 @@ COPY public.active_service_tracking (id, service_id, fourmiz_user_id, client_use
 
 
 --
--- TOC entry 5725 (class 0 OID 30042)
+-- TOC entry 5731 (class 0 OID 30042)
 -- Dependencies: 415
 -- Data for Name: admin_notifications; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13490,8 +13712,8 @@ COPY public.admin_notifications (id, title, message, created_at) FROM stdin;
 
 
 --
--- TOC entry 5759 (class 0 OID 67695)
--- Dependencies: 462
+-- TOC entry 5764 (class 0 OID 67695)
+-- Dependencies: 461
 -- Data for Name: admin_settings; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13504,7 +13726,7 @@ ed9a68c8-9521-4219-86ac-9517209efd50	referral_client_commission_rate	5	Pourcenta
 
 
 --
--- TOC entry 5733 (class 0 OID 35855)
+-- TOC entry 5739 (class 0 OID 35855)
 -- Dependencies: 424
 -- Data for Name: app_settings; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13520,7 +13742,7 @@ default_fourmiz_commission_percent	20	2025-07-02 07:31:04.740254+00
 
 
 --
--- TOC entry 5717 (class 0 OID 26038)
+-- TOC entry 5723 (class 0 OID 26038)
 -- Dependencies: 407
 -- Data for Name: badge_settings; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13530,7 +13752,7 @@ COPY public.badge_settings (badge_id, bonus_value, is_editable) FROM stdin;
 
 
 --
--- TOC entry 5716 (class 0 OID 26008)
+-- TOC entry 5722 (class 0 OID 26008)
 -- Dependencies: 406
 -- Data for Name: badges; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13556,8 +13778,8 @@ speed-demon-fz	Fourmiz Express	Au plus grand nombre de missions en 24h sur un mo
 
 
 --
--- TOC entry 5764 (class 0 OID 69516)
--- Dependencies: 467
+-- TOC entry 5769 (class 0 OID 69516)
+-- Dependencies: 466
 -- Data for Name: badges_catalog; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13712,40 +13934,8 @@ b22898c4-e101-4a62-b06a-ff18d83b3846	Recruteur débutant	Vous avez parrainé vot
 
 
 --
--- TOC entry 5743 (class 0 OID 44268)
--- Dependencies: 434
--- Data for Name: categories; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.categories (id, name, description, created_at, color, icon) FROM stdin;
-57cc1020-d9a6-4195-8205-9e95e31cbfe2	Aide à domicile	\N	2025-07-08 19:33:56.684269	#4CAF50	🧹
-72f0914e-012a-45b4-b633-8e8cb3f59cea	Bricolage	\N	2025-07-08 19:33:56.684269	#FF9800	🛠️
-1429f2da-7f81-42a3-9e84-08443c23399d	Transport	\N	2025-07-08 19:33:56.684269	#2196F3	🚚
-823c8c1e-f424-4fc8-b957-7ff37343388b	Jardinage	\N	2025-07-08 19:33:56.684269	#8BC34A	🌿
-e0381d3d-7db7-42e1-b839-7637046b659d	Soins aux animaux	\N	2025-07-08 19:33:56.684269	#9C27B0	🐶
-b615e669-79fa-4c6c-8fea-5256386add18	Événementiel	\N	2025-07-08 19:33:56.684269	#E91E63	🎉
-f4738ebc-463a-4694-a45a-6aeae3a3bbb8	Professionnels	\N	2025-07-08 19:33:56.684269	#3F51B5	💼
-d04776f4-a88a-4562-8ebe-88a5241e539c	Urgence	\N	2025-07-08 19:33:56.684269	#F44336	🚨
-2bba7a87-60d4-4e1b-92d7-390b720a22a2	Services premium	\N	2025-07-08 19:33:56.684269	#FFEB3B	🌟
-f1972da9-8fde-4460-a7d5-01de34e67013	urgence	\N	2025-07-18 10:48:20.465633	#757575	\N
-6ca3d613-c744-40b1-ad05-9aa39577c757	domicile	\N	2025-07-18 10:48:20.465633	#757575	\N
-ae107164-2240-4670-aa17-1aa06ede5659	arts	\N	2025-07-18 10:48:20.465633	#757575	\N
-50ef01f3-4ed4-4b7b-85a1-13ac6f9cd032	nature	\N	2025-07-18 10:48:20.465633	#757575	\N
-85b7b5b1-4499-41fc-a2ea-fb06e20ab775	bien-être	\N	2025-07-18 10:48:20.465633	#757575	\N
-f1780a6a-70b7-4942-95e0-04baa6b19878	numérique	\N	2025-07-18 10:48:20.465633	#757575	\N
-9e7d465f-13b6-428a-9cfb-eac80e9646b3	bricolage	\N	2025-07-18 10:48:20.465633	#757575	\N
-6e007c6b-e39e-4caf-a3ea-67c187b73c33	sport	\N	2025-07-18 10:48:20.465633	#757575	\N
-e7ce877c-0bf9-450d-972d-aff6935770f9	transport	\N	2025-07-18 10:48:20.465633	#757575	\N
-c73715b0-9d93-4574-8683-3e20b0e03406	événementiel	\N	2025-07-18 10:48:20.465633	#757575	\N
-48a5592c-f5cb-44f3-9e9d-2b9febea8814	jardinage	\N	2025-07-18 10:48:20.465633	#757575	\N
-3ec24b65-6c87-48d9-8167-188138fc5a4d	professionnel	\N	2025-07-18 10:48:20.465633	#757575	\N
-4f214c4d-ebbb-4c59-9248-62ddc4ea5d0d	soins	\N	2025-07-18 10:48:20.465633	#757575	\N
-\.
-
-
---
--- TOC entry 5747 (class 0 OID 54789)
--- Dependencies: 446
+-- TOC entry 5752 (class 0 OID 54789)
+-- Dependencies: 445
 -- Data for Name: chat_messages; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13774,8 +13964,8 @@ COPY public.chat_messages (id, order_id, sender_id, message, message_type, metad
 
 
 --
--- TOC entry 5749 (class 0 OID 54816)
--- Dependencies: 448
+-- TOC entry 5754 (class 0 OID 54816)
+-- Dependencies: 447
 -- Data for Name: chat_participants; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13784,8 +13974,8 @@ COPY public.chat_participants (id, order_id, user_id, role, joined_at, left_at, 
 
 
 --
--- TOC entry 5751 (class 0 OID 54843)
--- Dependencies: 450
+-- TOC entry 5756 (class 0 OID 54843)
+-- Dependencies: 449
 -- Data for Name: chat_typing_status; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13794,8 +13984,8 @@ COPY public.chat_typing_status (id, order_id, user_id, is_typing, updated_at) FR
 
 
 --
--- TOC entry 5762 (class 0 OID 69430)
--- Dependencies: 465
+-- TOC entry 5767 (class 0 OID 69430)
+-- Dependencies: 464
 -- Data for Name: client_badges; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13804,7 +13994,7 @@ COPY public.client_badges (id, name, category, rarity, value, currency, created_
 
 
 --
--- TOC entry 5719 (class 0 OID 26285)
+-- TOC entry 5725 (class 0 OID 26285)
 -- Dependencies: 409
 -- Data for Name: client_reviews; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13814,7 +14004,7 @@ COPY public.client_reviews (id, order_id, reviewer_id, client_id, rating, commen
 
 
 --
--- TOC entry 5741 (class 0 OID 37695)
+-- TOC entry 5747 (class 0 OID 37695)
 -- Dependencies: 432
 -- Data for Name: criteria; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13835,7 +14025,7 @@ COPY public.criteria (id, user_id, created_at, updated_at, user_type, min_price,
 
 
 --
--- TOC entry 5721 (class 0 OID 27560)
+-- TOC entry 5727 (class 0 OID 27560)
 -- Dependencies: 411
 -- Data for Name: favorite_orders; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13845,8 +14035,8 @@ COPY public.favorite_orders (id, user_id, order_id, created_at) FROM stdin;
 
 
 --
--- TOC entry 5763 (class 0 OID 69439)
--- Dependencies: 466
+-- TOC entry 5768 (class 0 OID 69439)
+-- Dependencies: 465
 -- Data for Name: fourmiz_badges; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13855,7 +14045,7 @@ COPY public.fourmiz_badges (id, name, category, rarity, value, currency, created
 
 
 --
--- TOC entry 5701 (class 0 OID 25570)
+-- TOC entry 5707 (class 0 OID 25570)
 -- Dependencies: 391
 -- Data for Name: fourmiz_criteria; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13866,8 +14056,8 @@ COPY public.fourmiz_criteria (id, user_id, location, radius_km, availability, ve
 
 
 --
--- TOC entry 5758 (class 0 OID 59268)
--- Dependencies: 459
+-- TOC entry 5763 (class 0 OID 59268)
+-- Dependencies: 458
 -- Data for Name: fourmiz_criteria_backup; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13877,7 +14067,7 @@ COPY public.fourmiz_criteria_backup (id, user_id, location, radius_km, availabil
 
 --
 -- TOC entry 5801 (class 0 OID 160812)
--- Dependencies: 522
+-- Dependencies: 515
 -- Data for Name: fourmiz_mission_status; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13901,7 +14091,7 @@ ac13c5cf-6e94-45e6-a5b2-a0f29a1da587	a7019c60-ce0c-4123-955a-4a82f3a492d3	915b30
 
 
 --
--- TOC entry 5720 (class 0 OID 26388)
+-- TOC entry 5726 (class 0 OID 26388)
 -- Dependencies: 410
 -- Data for Name: fourmiz_reviews; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13911,7 +14101,7 @@ COPY public.fourmiz_reviews (id, order_id, client_id, fourmiz_id, rating, commen
 
 
 --
--- TOC entry 5703 (class 0 OID 25585)
+-- TOC entry 5709 (class 0 OID 25585)
 -- Dependencies: 393
 -- Data for Name: fourmiz_services; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13921,7 +14111,7 @@ COPY public.fourmiz_services (id, fourmiz_id, service_id) FROM stdin;
 
 
 --
--- TOC entry 5715 (class 0 OID 25923)
+-- TOC entry 5721 (class 0 OID 25923)
 -- Dependencies: 405
 -- Data for Name: iban_requests; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13931,8 +14121,8 @@ COPY public.iban_requests (id, user_id, iban, bic, account_name, amount_requeste
 
 
 --
--- TOC entry 5787 (class 0 OID 147628)
--- Dependencies: 502
+-- TOC entry 5792 (class 0 OID 147628)
+-- Dependencies: 501
 -- Data for Name: legal_engagement_types; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13947,7 +14137,7 @@ f07b1126-65ad-4838-a837-1dd7178f4b00	rgpd	Protection des données (RGPD)	J'accep
 
 --
 -- TOC entry 5796 (class 0 OID 159926)
--- Dependencies: 513
+-- Dependencies: 507
 -- Data for Name: location_cache; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13957,7 +14147,7 @@ COPY public.location_cache (profile_id, geohash, last_update, grid_x, grid_y) FR
 
 --
 -- TOC entry 5799 (class 0 OID 160682)
--- Dependencies: 519
+-- Dependencies: 513
 -- Data for Name: location_history; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -13969,7 +14159,7 @@ COPY public.location_history (id, user_id, latitude, longitude, accuracy, speed_
 
 
 --
--- TOC entry 5727 (class 0 OID 33986)
+-- TOC entry 5733 (class 0 OID 33986)
 -- Dependencies: 418
 -- Data for Name: locations; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13980,7 +14170,7 @@ COPY public.locations (user_id, latitude, longitude, available, updated_at) FROM
 
 
 --
--- TOC entry 5722 (class 0 OID 27686)
+-- TOC entry 5728 (class 0 OID 27686)
 -- Dependencies: 412
 -- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -13990,7 +14180,7 @@ COPY public.messages (id, sender_id, receiver_id, content, created_at, order_id,
 
 
 --
--- TOC entry 5739 (class 0 OID 37661)
+-- TOC entry 5745 (class 0 OID 37661)
 -- Dependencies: 430
 -- Data for Name: missions; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14000,8 +14190,8 @@ COPY public.missions (id, fourmiz_id, status, created_at) FROM stdin;
 
 
 --
--- TOC entry 5755 (class 0 OID 55183)
--- Dependencies: 454
+-- TOC entry 5760 (class 0 OID 55183)
+-- Dependencies: 453
 -- Data for Name: notification_history; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14115,12 +14305,20 @@ COPY public.notification_history (id, user_id, type, title, body, data, sent_at,
 112	3a974bf5-a0df-44fe-be9e-603910ef9a4e	order_update	Mission terminée	La prestation est terminée. N'oubliez pas de laisser un avis !	{"type": "order_update", "orderId": 69, "newStatus": "terminee", "oldStatus": "acceptee"}	2025-09-13 12:36:44.615334+00	\N	\N	pending	\N	69	\N
 113	3a974bf5-a0df-44fe-be9e-603910ef9a4e	order_update	Mission terminée	La prestation est terminée. N'oubliez pas de laisser un avis !	{"type": "order_update", "orderId": 67, "newStatus": "terminee", "oldStatus": "acceptee"}	2025-09-13 12:36:53.626793+00	\N	\N	pending	\N	67	\N
 114	3a974bf5-a0df-44fe-be9e-603910ef9a4e	order_update	Mission terminée	La prestation est terminée. N'oubliez pas de laisser un avis !	{"type": "order_update", "orderId": 61, "newStatus": "terminee", "oldStatus": "acceptee"}	2025-09-13 12:37:02.793875+00	\N	\N	pending	\N	61	\N
+115	3a974bf5-a0df-44fe-be9e-603910ef9a4e	order_update	Mission terminée	La prestation est terminée. N'oubliez pas de laisser un avis !	{"type": "order_update", "orderId": 93, "newStatus": "terminee", "oldStatus": "acceptee"}	2025-09-18 16:35:43.330753+00	\N	\N	pending	\N	93	\N
+116	b9821771-9882-4505-a198-78eeedecc42e	order_update	Mission annulée	La mission a été annulée	{"type": "order_update", "orderId": 120, "newStatus": "annulee", "oldStatus": "en_attente"}	2025-09-21 09:09:28.638122+00	\N	\N	pending	\N	120	\N
+117	43af2b91-be63-47e1-b013-d55a97e6a11a	order_update	Mission annulée	La mission a été annulée	{"type": "order_update", "orderId": 121, "newStatus": "annulee", "oldStatus": "en_attente"}	2025-09-21 09:09:28.638122+00	\N	\N	pending	\N	121	\N
+118	33daffd3-5c20-4f6f-bcee-30d2e4379f52	order_update	Mission annulée	La mission a été annulée	{"type": "order_update", "orderId": 122, "newStatus": "annulee", "oldStatus": "en_attente"}	2025-09-21 09:09:28.638122+00	\N	\N	pending	\N	122	\N
+119	65586e4e-0006-4308-bb21-d6cc13945294	order_update	Mission annulée	La mission a été annulée	{"type": "order_update", "orderId": 123, "newStatus": "annulee", "oldStatus": "en_attente"}	2025-09-21 09:09:28.638122+00	\N	\N	pending	\N	123	\N
+120	3f7a2d00-ea31-48f8-813c-27345f14375a	order_update	Mission annulée	La mission a été annulée	{"type": "order_update", "orderId": 124, "newStatus": "annulee", "oldStatus": "en_attente"}	2025-09-21 09:09:28.638122+00	\N	\N	pending	\N	124	\N
+121	3a974bf5-a0df-44fe-be9e-603910ef9a4e	order_update	Mission annulée	La mission a été annulée	{"type": "order_update", "orderId": 101, "newStatus": "annulee", "oldStatus": "en_attente"}	2025-09-21 09:09:28.638122+00	\N	\N	pending	\N	101	\N
+122	3a974bf5-a0df-44fe-be9e-603910ef9a4e	order_update	Mission annulée	La mission a été annulée	{"type": "order_update", "orderId": 102, "newStatus": "annulee", "oldStatus": "en_attente"}	2025-09-21 09:09:28.638122+00	\N	\N	pending	\N	102	\N
 \.
 
 
 --
--- TOC entry 5757 (class 0 OID 55210)
--- Dependencies: 456
+-- TOC entry 5762 (class 0 OID 55210)
+-- Dependencies: 455
 -- Data for Name: notification_preferences; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14132,7 +14330,7 @@ COPY public.notification_preferences (id, user_id, chat_messages, order_updates,
 
 
 --
--- TOC entry 5724 (class 0 OID 30004)
+-- TOC entry 5730 (class 0 OID 30004)
 -- Dependencies: 414
 -- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14142,19 +14340,22 @@ COPY public.notifications (id, user_id, title, message, is_read, created_at, dat
 
 
 --
--- TOC entry 5781 (class 0 OID 143687)
--- Dependencies: 494
+-- TOC entry 5786 (class 0 OID 143687)
+-- Dependencies: 493
 -- Data for Name: order_applications; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.order_applications (id, order_id, fourmiz_id, motivation_message, proposed_price, estimated_duration_hours, availability_description, status, applied_at, reviewed_at, response_message, created_at, updated_at) FROM stdin;
-1	102	a7019c60-ce0c-4123-955a-4a82f3a492d3	Bonjour n’bck vn’n’´ bbn’´´´	30.00	2	\N	en_attente	2025-09-07 19:51:24.43+00	\N	\N	2025-09-07 19:51:24.736788+00	2025-09-07 19:51:24.736788+00
+2	124	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Test	120.00	\N	\N	en_attente	2025-09-17 14:21:46.257+00	\N	\N	2025-09-17 14:21:46.483769+00	2025-09-17 14:21:46.483769+00
+3	120	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Test	85.00	\N	\N	en_attente	2025-09-17 14:22:24.832+00	\N	\N	2025-09-17 14:22:25.044749+00	2025-09-17 14:22:25.044749+00
+11	125	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Tedt	\N	\N	\N	en_attente	2025-09-20 17:08:10.158+00	\N	\N	2025-09-20 17:08:10.436653+00	2025-09-20 17:08:10.436653+00
+1	102	a7019c60-ce0c-4123-955a-4a82f3a492d3	Bonjour n’bck vn’n’´ bbn’´´´	30.00	2	\N	acceptee	2025-09-07 19:51:24.43+00	\N	\N	2025-09-07 19:51:24.736788+00	2025-09-07 19:51:24.736788+00
 \.
 
 
 --
--- TOC entry 5770 (class 0 OID 84465)
--- Dependencies: 480
+-- TOC entry 5775 (class 0 OID 84465)
+-- Dependencies: 479
 -- Data for Name: order_details; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14163,7 +14364,7 @@ COPY public.order_details (id, order_id, alternative_phone, duration, equipment,
 
 
 --
--- TOC entry 5726 (class 0 OID 31973)
+-- TOC entry 5732 (class 0 OID 31973)
 -- Dependencies: 417
 -- Data for Name: order_steps; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14173,8 +14374,8 @@ COPY public.order_steps (id, order_id, status, message, created_at) FROM stdin;
 
 
 --
--- TOC entry 5745 (class 0 OID 53051)
--- Dependencies: 442
+-- TOC entry 5750 (class 0 OID 53051)
+-- Dependencies: 441
 -- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14234,19 +14435,29 @@ COPY public.orders (id, user_id, service_id, description, date, start_time, end_
 12	\N	151	Description réelle de la demande	2025-07-23	06:15:00	07:00:00	16 allée jacques berque, 44000 Nantes	0671342225	t	1hour	f	25	annulee	2025-07-21 14:55:57.668037+00	2025-08-13 08:29:56.172	f	\N	2025-08-13 08:29:56.172	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque						\N	\N	\N	Aide à la création de micro-entreprise	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 44	\N	108	Description réelle de la demande	2025-08-17	02:30:00	05:00:00	16 allée jacques berque	0671342225	f	normal	f	20	terminee	2025-08-14 07:59:56.733+00	2025-08-24 14:15:27.3	t	2025-08-14 08:14:56.63	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	61d84e96-5fa1-44fb-a537-b753f1cb540f	{"city": "Nantes", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Aide au changement d’adresse	150	2025-08-24 14:15:27.3	3a974bf5-a0df-44fe-be9e-603910ef9a4e	client_direct	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 22	\N	22	Description réelle de la demande	2025-07-27	10:00:00	11:00:00	Adresse non spécifiée	0671342225	f	1hour	f	28	annulee	2025-07-26 16:55:11.906622+00	2025-08-13 08:29:25.616	f	\N	2025-08-13 08:29:25.616	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	12.50	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Accompagnement médical	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
+121	\N	96	Livraison de courses alimentaires depuis Carrefour Beaulieu	2025-09-17	16:30:00	17:30:00	31 avenue du Général de Gaulle	0671348461	t	1hour	f	35	annulee	2025-09-16 15:45:00+00	2025-09-21 09:09:28.638122	f	\N	2025-09-21 09:09:28.638122	43af2b91-be63-47e1-b013-d55a97e6a11a	\N	\N	\N	10.00	0.00	43af2b91-be63-47e1-b013-d55a97e6a11a	\N	{"city": "Nantes", "category": "Livraison", "postal_code": "44300", "pickup_address": "Centre Commercial Carrefour Beaulieu", "delivery_address": "31 avenue du Général de Gaulle"}	44300	Nantes	Centre Commercial Carrefour Beaulieu	\N	\N	\N	\N	\N	\N	\N	\N	Livraison de courses	1	\N	\N	\N	\N	\N	\N	\N	stripe	auto_cancel_expired	\N	\N	2025-09-16 15:45:00+00	\N	authorized	candidatures	f
 83	\N	\N	Commande annulée sans détails	2025-09-02	\N	\N	Adresse non spécifiée	0671342225	f	\N	f	15	annulee	2025-09-02 13:09:21.496958+00	2025-09-04 07:18:24.714	f	\N	2025-09-04 07:18:24.715	aac7ef75-48e9-49b2-971e-00fe0cf2402a	\N	\N	\N	0.00	0.00	aac7ef75-48e9-49b2-971e-00fe0cf2402a	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Service non spécifié	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 103	\N	\N	Service d'aide à domicile	2025-09-22	\N	\N	16 allée jacques berque	0671342225	f	normal	f	53	acceptee	2025-09-07 19:42:01.735+00	2025-09-07 19:51:41.251	t	2025-09-07 19:51:41.251	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	a7019c60-ce0c-4123-955a-4a82f3a492d3	{"city": "Nantes", "categorie": "Aide à domicile", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Aide à domicile	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-07 19:42:01.735+00	pi_3S4oT2Rr2gKkUrhC0v4MzqoD	authorized	direct	t
+122	\N	\N	Montage de meuble IKEA (bibliothèque Billy + table)	2025-09-18	14:00:00	17:00:00	22 boulevard des Belges	0671348358	f	normal	f	75	annulee	2025-09-16 16:20:00+00	2025-09-21 09:09:28.638122	f	\N	2025-09-21 09:09:28.638122	33daffd3-5c20-4f6f-bcee-30d2e4379f52	\N	\N	\N	0.00	0.00	33daffd3-5c20-4f6f-bcee-30d2e4379f52	\N	{"city": "Nantes", "category": "Bricolage", "postal_code": "44300", "main_address": "22 boulevard des Belges"}	44300	Nantes	22 boulevard des Belges	\N	\N	\N	\N	\N	\N	\N	\N	Montage de meubles	3	\N	\N	\N	\N	\N	\N	\N	stripe	auto_cancel_expired	\N	\N	2025-09-16 16:20:00+00	\N	authorized	candidatures	t
 84	\N	\N	Commande annulée sans détails	2025-09-02	\N	\N	Adresse non spécifiée	0671342225	f	\N	f	20	annulee	2025-09-02 13:57:09.675202+00	2025-09-04 07:18:27.254	f	\N	2025-09-04 07:18:27.254	aac7ef75-48e9-49b2-971e-00fe0cf2402a	\N	\N	\N	0.00	0.00	aac7ef75-48e9-49b2-971e-00fe0cf2402a	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Service non spécifié	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
+125	\N	\N	Jardinage - tonte pelouse et taille des haies	2025-09-22	10:00:00	13:00:00	12 boulevard Léon Bureau	0671342965	f	normal	t	90	en_attente	2025-09-16 19:15:00+00	\N	f	\N	\N	\N	\N	\N	\N	0.00	0.00	172f3624-5e35-43f4-868d-4f70ad5fdabc	\N	{"city": "Nantes", "category": "Jardinage", "postal_code": "44200", "main_address": "12 boulevard Léon Bureau"}	44200	Nantes	12 boulevard Léon Bureau	\N	\N	\N	\N	\N	\N	\N	\N	Entretien jardin	3	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-16 19:15:00+00	\N	authorized	candidatures	t
+126	\N	17	Cours particuliers de mathématiques niveau collège	2025-09-23	18:00:00	19:30:00	19 rue de Malakoff	0671344860	f	normal	t	45	en_attente	2025-09-16 20:30:00+00	\N	f	\N	\N	\N	\N	\N	\N	0.00	0.00	b657c06a-2248-49d7-8321-401d25ffde63	\N	{"city": "Nantes", "category": "Éducation", "postal_code": "44000", "main_address": "19 rue de Malakoff"}	44000	Nantes	19 rue de Malakoff	\N	\N	\N	\N	\N	\N	\N	\N	Soutien scolaire mathématiques	2	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-16 20:30:00+00	\N	authorized	candidatures	f
 50	\N	151	Description réelle de la demande	2025-08-18	00:45:00	02:00:00	16 allée jacques berque	0671342225	f	normal	f	55	annulee	2025-08-16 18:49:51.111+00	2025-08-20 09:44:14.774	f	\N	2025-08-20 09:44:14.774	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Aide à la création de micro-entreprise	75	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
+127	\N	95	Aide informatique - installation et configuration ordinateur portable	2025-09-24	15:00:00	17:00:00	42 route de Vannes	0671341919	t	2hours	f	55	en_attente	2025-09-16 21:00:00+00	\N	f	\N	\N	\N	\N	\N	\N	15.00	0.00	79872df9-f084-4e5f-8151-926488c657b3	\N	{"city": "Nantes", "category": "Informatique", "postal_code": "44100", "main_address": "42 route de Vannes"}	44100	Nantes	42 route de Vannes	\N	\N	\N	\N	\N	\N	\N	\N	Assistance informatique	2	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-16 21:00:00+00	\N	authorized	candidatures	f
+128	\N	151	Aide aux démarches administratives - dossier CAF et impôts	2025-09-25	11:00:00	12:30:00	45 rue de Rennes	0671342255	f	normal	t	80	en_attente	2025-09-16 22:15:00+00	\N	f	\N	\N	\N	\N	\N	\N	0.00	0.00	b9c12b47-6545-456d-b6f7-2c37ee3681c6	\N	{"city": "Nantes", "category": "Administratif", "postal_code": "44300", "main_address": "45 rue de Rennes"}	44300	Nantes	45 rue de Rennes	\N	\N	\N	\N	\N	\N	\N	\N	Aide administrative	2	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-16 22:15:00+00	\N	authorized	candidatures	t
+129	\N	79	Saisie de documents et classement administratif à domicile	2025-09-26	13:30:00	16:00:00	5 avenue Carnot	0671343719	f	normal	f	70	en_attente	2025-09-16 23:00:00+00	\N	f	\N	\N	\N	\N	\N	\N	0.00	0.00	aac7ef75-48e9-49b2-971e-00fe0cf2402a	\N	{"city": "Nantes", "category": "Secrétariat", "postal_code": "44000", "main_address": "5 avenue Carnot"}	44000	Nantes	5 avenue Carnot	\N	\N	\N	\N	\N	\N	\N	\N	Secrétariat à domicile	3	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-16 23:00:00+00	\N	authorized	candidatures	t
+120	\N	\N	Ménage complet appartement 3 pièces avec repassage	2025-09-20	09:00:00	12:00:00	8 rue du Calvaire	0671341647	f	normal	t	85	annulee	2025-09-16 14:30:00+00	2025-09-21 09:09:28.638122	f	\N	2025-09-21 09:09:28.638122	b9821771-9882-4505-a198-78eeedecc42e	\N	\N	\N	0.00	0.00	b9821771-9882-4505-a198-78eeedecc42e	\N	{"city": "Nantes", "category": "Ménage", "postal_code": "44000", "main_address": "8 rue du Calvaire", "departure_address": "8 rue du Calvaire"}	44000	Nantes	8 rue du Calvaire	\N	\N	\N	\N	\N	\N	\N	\N	Ménage et repassage	3	\N	\N	\N	\N	\N	\N	\N	stripe	auto_cancel_expired	\N	\N	2025-09-16 14:30:00+00	\N	authorized	candidatures	t
 69	\N	601	Description réelle de la demande	2025-09-11	01:00:00	02:15:00	16 allée jacques berque	0671342225	t	normal	f	58	terminee	2025-08-31 15:12:11.024+00	2025-09-13 12:36:44.27	t	2025-09-01 16:50:00.366	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	a7019c60-ce0c-4123-955a-4a82f3a492d3	{"city": "Nantes", "category": "Agriculture", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Arboriculture	75	2025-09-13 12:36:44.27	3a974bf5-a0df-44fe-be9e-603910ef9a4e	client_direct	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
+106	\N	91		\N	\N	\N	16 allée jacques berque	0671342225	f	normal	f	52	en_attente	2025-09-17 14:15:26.595+00	\N	f	\N	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Conciergerie", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-17 14:15:26.595+00	\N	authorized	candidatures	t
 72	\N	151	Description réelle de la demande	2025-09-04	01:00:00	02:30:00	16 allée jacques berque	0671342225	t	normal	f	15	annulee	2025-09-01 12:57:43.517+00	2025-09-04 14:41:42.458	f	\N	2025-09-04 14:41:42.458	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Aide à la création de micro-entreprise	90	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 71	\N	151	Description réelle de la demande	2025-09-04	00:45:00	02:00:00	Jhfcchhbjhvhjjbvhb v	0671342225	t	normal	f	52	terminee	2025-09-01 08:44:40.683+00	2025-09-04 15:49:59.115	t	2025-09-01 17:35:00.03	\N	\N	\N	\N	\N	0.00	0.00	c410752c-1639-487c-9e47-4393b21a99a8	3a974bf5-a0df-44fe-be9e-603910ef9a4e	{"city": "Nanted", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "Jhfcchhbjhvhjjbvhb v", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "Jhfcchhbjhvhjjbvhb v", "arrival_postal_code": ""}	44000	Nanted	Jhfcchhbjhvhjjbvhb v	\N	\N	\N	\N	\N	\N	\N	\N	Aide à la création de micro-entreprise	75	2025-09-04 15:49:59.115	3a974bf5-a0df-44fe-be9e-603910ef9a4e	fourmiz_validation	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 74	\N	325	Description réelle de la demande	2025-09-07	\N	\N	16 allée jacques berque	0671342225	t	normal	f	50	annulee	2025-09-01 19:36:47.347+00	2025-09-07 17:09:07.724	f	\N	2025-09-07 17:09:07.724	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Reparation", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Service de toiture	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
-93	\N	612	Description réelle de la demande	2025-09-15	\N	\N	16 allée jacques berque	0671342225	f	normal	f	32	acceptee	2025-09-04 19:44:21.065+00	2025-09-07 19:52:03.452	t	2025-09-07 19:52:03.452	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	a7019c60-ce0c-4123-955a-4a82f3a492d3	{"city": "Nantes", "category": "Agriculture", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Installation de serres	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-04 19:44:21.065+00	\N	authorized	direct	f
-101	\N	13	Description réelle de la demande	2025-09-07	\N	\N	16 allée jacques berque	0671342225	f	normal	f	25	en_attente	2025-09-07 17:09:03.994+00	\N	f	\N	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Enfance & famille", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Garde d’enfants	90	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-07 17:09:03.994+00	\N	authorized	candidatures	t
-102	\N	588	Description réelle de la demande	2025-09-07	\N	\N	16 allée jacques berque	0671342225	f	normal	f	25	en_attente	2025-09-07 19:40:54.901+00	\N	f	\N	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Agriculture", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Conditionnement & stockage	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-07 19:40:54.901+00	\N	authorized	candidatures	t
+93	\N	612	Description réelle de la demande	2025-09-15	\N	\N	16 allée jacques berque	0671342225	f	normal	f	32	terminee	2025-09-04 19:44:21.065+00	2025-09-18 16:35:42.933	t	2025-09-07 19:52:03.452	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	a7019c60-ce0c-4123-955a-4a82f3a492d3	{"city": "Nantes", "category": "Agriculture", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Installation de serres	\N	2025-09-18 16:35:42.933	3a974bf5-a0df-44fe-be9e-603910ef9a4e	client_direct	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-04 19:44:21.065+00	\N	authorized	direct	f
+101	\N	13	Description réelle de la demande	2025-09-07	\N	\N	16 allée jacques berque	0671342225	f	normal	f	25	annulee	2025-09-07 17:09:03.994+00	2025-09-21 09:09:28.638122	f	\N	2025-09-21 09:09:28.638122	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Enfance & famille", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Garde d’enfants	90	\N	\N	\N	\N	\N	\N	\N	stripe	auto_cancel_expired	\N	\N	2025-09-07 17:09:03.994+00	\N	authorized	candidatures	t
 92	\N	624	Description réelle de la demande	2025-09-04	13:00:00	14:15:00	16 allée jacques berque	0671342225	t	normal	f	24	terminee	2025-09-04 14:39:35.93+00	2025-09-09 07:51:18.69	t	2025-09-09 07:50:20.862	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	a7019c60-ce0c-4123-955a-4a82f3a492d3	{"city": "Nantes", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Demande de subvention	75	2025-09-09 07:51:18.69	a7019c60-ce0c-4123-955a-4a82f3a492d3	fourmiz_validation	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-04 14:39:35.93+00	\N	authorized	direct	f
+102	\N	588	Description réelle de la demande	2025-09-07	\N	\N	16 allée jacques berque	0671342225	f	normal	f	25	annulee	2025-09-07 19:40:54.901+00	2025-09-21 09:09:28.638122	f	\N	2025-09-21 09:09:28.638122	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Agriculture", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Conditionnement & stockage	\N	\N	\N	\N	\N	\N	\N	\N	stripe	auto_cancel_expired	\N	\N	2025-09-07 19:40:54.901+00	\N	authorized	candidatures	t
 94	\N	609	Description réelle de la demande	2025-09-05	\N	\N	16 allée jacques berque	0671342225	f	normal	f	53	terminee	2025-09-05 07:30:22.824+00	2025-09-13 12:36:25.121	t	2025-09-13 11:33:47.432	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	1cc6b4f7-794c-479f-9b95-ffda6cd93557	{"city": "Nantes", "category": "Agriculture", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Conduite engins agricoles	\N	2025-09-13 12:36:25.121	3a974bf5-a0df-44fe-be9e-603910ef9a4e	client_direct	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-05 07:30:22.824+00	\N	authorized	direct	f
+107	\N	\N		\N	\N	\N	16 allée jacques berque	0671342225	f	normal	f	53	en_attente	2025-09-17 14:16:55.603+00	\N	f	\N	\N	\N	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "categorie": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Testestestest	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	2025-09-17 14:16:55.603+00	pi_3S8M9uRr2gKkUrhC0MElpzn4	authorized	direct	t
 41	\N	94	Description réelle de la demande	2025-08-13	09:41:00	10:56:00	16 allée jacques berque	0671342225	t	1hour	f	25	annulee	2025-08-13 06:42:13.485+00	2025-08-13 08:29:13.965	f	\N	2025-08-13 08:29:13.965	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Aide à domicile", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Aide au tri et à l’archivage de documents	75	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 39	\N	31	Description réelle de la demande	2025-08-17	01:00:00	01:45:00	16 allée jacques berque	0671342225	t	1hour	f	25	terminee	2025-08-13 05:56:18.084+00	2025-08-24 14:16:12.415	t	2025-08-13 10:20:12.405	\N	\N	\N	\N	\N	15.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	61d84e96-5fa1-44fb-a537-b753f1cb540f	{"city": "Nantes", "category": "Animaux", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Alimentation animaux	45	2025-08-24 14:16:12.415	3a974bf5-a0df-44fe-be9e-603910ef9a4e	client_direct	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 10	\N	19	Description réelle de la demande	2025-07-21	15:45:00	16:45:00	16 allée jacques berque, 44000 Nantes	0671342225	t	1hour	f	10	annulee	2025-07-21 12:45:26.888513+00	2025-08-13 08:30:01.282	f	\N	2025-08-13 08:30:01.282	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Enfance & Famille", "postal_code": "44000", "arrival_city": null, "main_address": "16 allée jacques berque", "pickup_address": null, "arrival_address": null, "delivery_address": null, "departure_address": "16 allée jacques berque", "arrival_postal_code": null}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Accompagnement activité	\N	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
@@ -14261,11 +14472,13 @@ COPY public.orders (id, user_id, service_id, description, date, start_time, end_
 68	\N	151	Description réelle de la demande	2025-09-02	\N	\N	16 allée jacques berque	0671342225	t	normal	f	80	annulee	2025-08-31 12:49:45.595+00	2025-09-04 14:44:08.018	f	\N	2025-09-04 14:44:08.018	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Aide à la création de micro-entreprise	2	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 70	\N	151	Description réelle de la demande	2025-09-01	01:00:00	02:15:00	16 allée jacques berque	0671342225	f	normal	f	586	annulee	2025-08-31 16:20:37.133+00	2025-09-01 12:57:46.53	f	\N	2025-09-01 12:57:46.53	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Aide à la création de micro-entreprise	75	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
 58	\N	151	Description réelle de la demande	2025-08-28	01:00:00	02:15:00	16 allée jacques berque	0671342225	f	normal	f	100	annulee	2025-08-24 09:08:48.907+00	2025-08-24 14:17:34.388	f	\N	2025-08-24 14:17:34.388	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	\N	\N	0.00	0.00	3a974bf5-a0df-44fe-be9e-603910ef9a4e	\N	{"city": "Nantes", "category": "Administratif", "postal_code": "44000", "arrival_city": "", "main_address": "16 allée jacques berque", "pickup_address": "", "arrival_address": "", "delivery_address": "", "departure_address": "16 allée jacques berque", "arrival_postal_code": ""}	44000	Nantes	16 allée jacques berque	\N	\N	\N	\N	\N	\N	\N	\N	Aide à la création de micro-entreprise	75	\N	\N	\N	\N	\N	\N	\N	stripe	\N	\N	\N	\N	\N	pending	direct	f
+123	\N	\N	Garde d'enfants (2 enfants de 6 et 9 ans) avec aide aux devoirs	2025-09-19	17:00:00	20:00:00	26 boulevard de Berlin	0671345651	f	normal	t	65	annulee	2025-09-16 17:10:00+00	2025-09-21 09:09:28.638122	f	\N	2025-09-21 09:09:28.638122	65586e4e-0006-4308-bb21-d6cc13945294	\N	\N	\N	0.00	0.00	65586e4e-0006-4308-bb21-d6cc13945294	\N	{"city": "Nantes", "category": "Enfance & Famille", "postal_code": "44300", "main_address": "26 boulevard de Berlin"}	44300	Nantes	26 boulevard de Berlin	\N	\N	\N	\N	\N	\N	\N	\N	Garde d'enfants avec devoirs	3	\N	\N	\N	\N	\N	\N	\N	stripe	auto_cancel_expired	\N	\N	2025-09-16 17:10:00+00	\N	authorized	direct	f
+124	\N	\N	Aide au déménagement - transport de cartons et petits meubles	2025-09-21	08:00:00	12:00:00	13 avenue de la Gare	0671346000	f	normal	f	120	annulee	2025-09-16 18:00:00+00	2025-09-21 09:09:28.638122	f	\N	2025-09-21 09:09:28.638122	3f7a2d00-ea31-48f8-813c-27345f14375a	\N	\N	\N	0.00	0.00	3f7a2d00-ea31-48f8-813c-27345f14375a	\N	{"city": "Nantes", "category": "Déménagement", "postal_code": "44300", "pickup_address": "13 avenue de la Gare", "delivery_address": "67 rue des Hauts Pavés"}	44300	Nantes	13 avenue de la Gare	\N	\N	\N	\N	\N	\N	\N	\N	Aide au déménagement	4	\N	\N	\N	\N	\N	\N	\N	stripe	auto_cancel_expired	\N	\N	2025-09-16 18:00:00+00	\N	authorized	candidatures	t
 \.
 
 
 --
--- TOC entry 5705 (class 0 OID 25596)
+-- TOC entry 5711 (class 0 OID 25596)
 -- Dependencies: 395
 -- Data for Name: other_services; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14275,8 +14488,8 @@ COPY public.other_services (id, user_id, title, description, is_validated, creat
 
 
 --
--- TOC entry 5778 (class 0 OID 133726)
--- Dependencies: 491
+-- TOC entry 5783 (class 0 OID 133726)
+-- Dependencies: 490
 -- Data for Name: payments; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14285,8 +14498,8 @@ COPY public.payments (id, user_id, stripe_payment_intent_id, amount, currency, s
 
 
 --
--- TOC entry 5777 (class 0 OID 132496)
--- Dependencies: 490
+-- TOC entry 5782 (class 0 OID 132496)
+-- Dependencies: 489
 -- Data for Name: payout_requests; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14295,8 +14508,8 @@ COPY public.payout_requests (id, user_id, amount, payout_method, payout_details,
 
 
 --
--- TOC entry 5767 (class 0 OID 81071)
--- Dependencies: 476
+-- TOC entry 5772 (class 0 OID 81071)
+-- Dependencies: 475
 -- Data for Name: pending_uploads; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14305,8 +14518,8 @@ COPY public.pending_uploads (id, user_id, file_path, file_data, metadata, status
 
 
 --
--- TOC entry 5783 (class 0 OID 143722)
--- Dependencies: 496
+-- TOC entry 5788 (class 0 OID 143722)
+-- Dependencies: 495
 -- Data for Name: pre_selection_chats; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14315,8 +14528,8 @@ COPY public.pre_selection_chats (id, application_id, order_id, client_id, fourmi
 
 
 --
--- TOC entry 5785 (class 0 OID 143754)
--- Dependencies: 498
+-- TOC entry 5790 (class 0 OID 143754)
+-- Dependencies: 497
 -- Data for Name: pre_selection_messages; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14325,51 +14538,51 @@ COPY public.pre_selection_messages (id, chat_id, sender_id, content, message_typ
 
 
 --
--- TOC entry 5723 (class 0 OID 29940)
+-- TOC entry 5729 (class 0 OID 29940)
 -- Dependencies: 413
 -- Data for Name: profiles; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.profiles (id, firstname, avatar_url, created_at, is_online, lastname, expo_push_token, email, address, building, floor, city, instructions, phone, alternative_phone, availability, preferences, card_info, profile_completed, roles, id_document_path, postal_code, updated_at, last_active_at, user_id, default_rating, has_real_rating, rating, referral_code, missions_completed, orders_placed, client_rating, client_has_real_rating, fourmiz_rating, fourmiz_has_real_rating, legal_status, rcs_number, bio, skills, experience_years, hourly_rate, portfolio_images, certifications, languages, profile_completion_percent, is_verified, work_zone, preferred_missions, portfolio_urls, legal_engagements_required, grandfathered_fourmiz, latitude, longitude, is_available, response_time_minutes, service_radius_km, last_location_update, service_category_id, criteria_completed, formatted_address, address_confidence, address_validated_at, address_validation_source, address_validation_attempted_at, address_validation_error, is_mobile, tracking_enabled, current_latitude, current_longitude, current_location_updated_at, location_accuracy, movement_status, speed_kmh, tracking_consent_mission, tracking_consent_off_duty, tracking_consent_date, tracking_consent_ip, data_retention_days) FROM stdin;
-b9c12b47-6545-456d-b6f7-2c37ee3681c6	T28	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/b9c12b47-6545-456d-b6f7-2c37ee3681c6/profile_photo-1757687632172.png	2025-09-11 16:03:32.177352	f	T28	\N	test28@fourmiz.com	45 rue de Rennes	\N	\N	Nantes	\N	0671342255	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/b9c12b47-6545-456d-b6f7-2c37ee3681c6/id-document-1757687631087.png	44300	2025-09-16 06:57:57.603959+00	\N	b9c12b47-6545-456d-b6f7-2c37ee3681c6	5.0	f	\N	UN1RK089	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.23980000	-1.54560000	f	30	5	\N	\N	t	45 Rue de Rennes, 44300 Nantes	0.850	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.24200000	-1.53800000	2025-09-16 06:46:59.930097+00	12.00	driving	25.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-aac7ef75-48e9-49b2-971e-00fe0cf2402a	Test5	\N	2025-07-28 17:28:38.536081	f	Test5	\N	test5@fourmiz.com	5 avenue Carnot	Bbb	4	Nantes	\N	0671343719	\N	\N	\N	\N	t	{client}	\N	44000	2025-09-16 06:36:23.764416+00	\N	aac7ef75-48e9-49b2-971e-00fe0cf2402a	5.0	f	5.0	9Q5U6P	0	8	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21980000	-1.54420000	f	30	5	\N	\N	t	5 Avenue Carnot, 44000 Nantes	0.910	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-b9821771-9882-4505-a198-78eeedecc42e	T22	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/b9821771-9882-4505-a198-78eeedecc42e/profile_photo-1757501690712.png	2025-09-10 10:54:06.777474	f	T22	\N	test22@gmail.com	11 place Graslin	\N	\N	Nantes	\N	0671341647	\N	\N	\N	\N	t	{client}	\N	44000	2025-09-16 06:36:23.764416+00	\N	b9821771-9882-4505-a198-78eeedecc42e	5.0	f	\N	KOJXS1	0	0	\N	f	\N	f	particulier	\N	\N	\N	\N	\N	\N	\N	\N	60	f	\N	\N	\N	t	f	47.21340000	-1.56340000	t	30	5	\N	d04776f4-a88a-4562-8ebe-88a5241e539c	t	11 Place Graslin, 44000 Nantes	0.950	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-33daffd3-5c20-4f6f-bcee-30d2e4379f52	T25	\N	2025-09-10 18:19:18.02339	f	T25	\N	test25@fourmiz.com	22 boulevard des Belges	\N	\N	Nantes	\N	0671348358	\N	\N	\N	\N	f	{}	\N	44300	2025-09-16 06:36:23.764416+00	\N	b2d2d127-d12f-4db0-80c2-638d62986cbb	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.23010000	-1.56980000	f	30	5	\N	\N	t	22 Boulevard des Belges, 44300 Nantes	0.890	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-65586e4e-0006-4308-bb21-d6cc13945294	T27	\N	2025-09-11 15:47:30.637334	f	T27	\N	test27@fourmiz.com	26 boulevard de Berlin	\N	\N	Nantes	\N	0671345651	\N	\N	\N	\N	f	{}	\N	44300	2025-09-16 06:36:23.764416+00	\N	4cbcf214-2e19-4d34-aa30-410fd8c9aec8	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.22670000	-1.54560000	f	30	5	\N	\N	f	26 Boulevard de Berlin, 44300 Nantes	0.880	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-3f7a2d00-ea31-48f8-813c-27345f14375a	T30	\N	2025-09-12 16:53:20.205647	f	T30	\N	test30@fourmiz.com	13 avenue de la Gare	\N	\N	Nantes	\N	0671346000	\N	\N	\N	\N	f	{}	\N	44300	2025-09-16 06:36:23.764416+00	\N	86f7c8b3-907c-40f8-960f-60f3688ce312	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.24210000	-1.55670000	f	30	5	\N	\N	t	13 Avenue de la Gare, 44300 Nantes	0.870	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-172f3624-5e35-43f4-868d-4f70ad5fdabc	T33	\N	2025-09-13 08:42:45.259231	f	T33	\N	test33@fourmiz.com	12 boulevard Léon Bureau	\N	\N	Nantes	\N	0671342965	\N	\N	\N	\N	f	{}	\N	44200	2025-09-16 06:36:23.764416+00	\N	6067031a-00bf-43c4-a7d0-783c02d7fb5a	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.20890000	-1.52980000	f	30	5	\N	\N	f	12 Boulevard Léon Bureau, 44200 Nantes	0.860	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-b657c06a-2248-49d7-8321-401d25ffde63	T35	\N	2025-09-13 09:14:20.372594	f	T35	\N	test35@fourmiz.com	19 rue de Malakoff	\N	\N	Nantes	\N	0671344860	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	4dfbda13-f598-4d4d-9538-d9ac157d0efc	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21890000	-1.53780000	f	30	5	\N	\N	t	19 Rue de Malakoff, 44000 Nantes	0.890	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-43af2b91-be63-47e1-b013-d55a97e6a11a	T26	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/43af2b91-be63-47e1-b013-d55a97e6a11a/profile_photo-1757528514176.png	2025-09-10 18:21:00.585256	f	T26	\N	test26@fourmiz.com	31 avenue du Général de Gaulle	\N	\N	Nantes	\N	0671348461	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/43af2b91-be63-47e1-b013-d55a97e6a11a/id-document-1757528513179.png	44300	2025-09-16 06:57:57.603959+00	\N	43af2b91-be63-47e1-b013-d55a97e6a11a	5.0	f	\N	5HDXF419	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.24350000	-1.53890000	f	30	5	\N	\N	f	31 Avenue du Général de Gaulle, 44300 Nantes	0.860	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.24350000	-1.53890000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-79872df9-f084-4e5f-8151-926488c657b3	T39	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/79872df9-f084-4e5f-8151-926488c657b3/profile_photo-1757761990936.png	2025-09-13 11:11:58.506212	f	T39	\N	test39@fourmiz.com	42 route de Vannes	\N	\N	Nantes	\N	0671341919	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/79872df9-f084-4e5f-8151-926488c657b3/id-document-1757761989381.png	44100	2025-09-16 06:57:57.603959+00	\N	79872df9-f084-4e5f-8151-926488c657b3	5.0	f	\N	JTJCG120	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21230000	-1.60120000	f	30	5	\N	\N	t	42 Route de Vannes, 44100 Nantes	0.830	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.21230000	-1.60120000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-9479b338-39a9-4fdd-b1e5-986c837c4c09	T17	\N	2025-08-31 21:04:38.439243	f	T17	\N	test17@fourmiz.com	8 place Royale	\N	\N	Nantes	\N	0671344278	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	407e4c14-6976-44bb-9307-bc8e83f15c83	5.0	f	\N	4GYU34	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21560000	-1.55980000	f	30	5	\N	\N	t	8 Place Royale, 44000 Nantes	0.940	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-c410752c-1639-487c-9e47-4393b21a99a8	T18	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/c410752c-1639-487c-9e47-4393b21a99a8/profile_photo-1756678266820.jpg	2025-08-31 21:58:59.424504	f	T18	\N	test18@fourmiz.com	15 rue de la Juiverie	H	5	Nantes	\N	0671347539	\N	\N	\N	\N	t	{client}	\N	44000	2025-09-16 06:36:23.764416+00	\N	c410752c-1639-487c-9e47-4393b21a99a8	5.0	f	\N	L3A63A	0	1	5.0000000000000000	t	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21340000	-1.55120000	f	30	5	\N	\N	t	15 Rue de la Juiverie, 44000 Nantes	0.910	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-3d890212-323b-4cb3-9943-ca8275d3f1c6	T34	\N	2025-09-13 09:08:55.272294	f	T34	\N	test34@fourmiz.com	8 rue de la Commune de 1871	\N	\N	Nantes	\N	0671344535	\N	\N	\N	\N	f	{}	\N	44200	2025-09-16 06:36:23.764416+00	\N	cd101ebf-f9cc-4beb-bbc7-7f90a96d919a	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21340000	-1.53870000	f	30	5	\N	\N	f	8 Rue de la Commune de 1871, 44200 Nantes	0.880	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-c2934cd2-6420-4a69-8b61-da6c08fc982a	T36	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/c2934cd2-6420-4a69-8b61-da6c08fc982a/profile_photo-1757757470512.png	2025-09-13 09:57:07.308635	f	T36	\N	test36@fourmiz.com	33 boulevard Michelet	\N	\N	Nantes	\N	0671347427	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/c2934cd2-6420-4a69-8b61-da6c08fc982a/id-document-1757757469370.png	44000	2025-09-16 06:57:57.603959+00	\N	c2934cd2-6420-4a69-8b61-da6c08fc982a	5.0	f	\N	L37Z1939	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.22670000	-1.52340000	f	30	5	\N	\N	t	33 Boulevard Michelet, 44000 Nantes	0.850	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.22670000	-1.52340000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-cb9b0f98-1160-43e3-aa8f-4f1e2125eda5	T37	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/cb9b0f98-1160-43e3-aa8f-4f1e2125eda5/profile_photo-1757759379588.png	2025-09-13 10:27:33.723633	f	T37	\N	test37@fourmiz.com	21 rue de Gigant	\N	\N	Nantes	\N	0671349254	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/cb9b0f98-1160-43e3-aa8f-4f1e2125eda5/id-document-1757759378261.png	44000	2025-09-16 06:57:57.603959+00	\N	cb9b0f98-1160-43e3-aa8f-4f1e2125eda5	5.0	f	\N	RB83R365	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.22340000	-1.54230000	t	30	5	\N	d04776f4-a88a-4562-8ebe-88a5241e539c	t	21 Rue de Gigant, 44000 Nantes	0.870	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.22340000	-1.54230000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-a7019c60-ce0c-4123-955a-4a82f3a492d3	T19	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/a7019c60-ce0c-4123-955a-4a82f3a492d3/profile_photo-1756721405128.jpg	2025-09-01 10:08:17.241348	f	T19	\N	test19@fourmiz.com	22 place du Bouffay	V	5	Nantes	\N	0671341297	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/a7019c60-ce0c-4123-955a-4a82f3a492d3/id-document-1756721397675.jpg	44000	2025-09-16 07:05:12.281444+00	\N	a7019c60-ce0c-4123-955a-4a82f3a492d3	5.0	t	5.0	IOSA33	6	0	\N	f	\N	f	travailleur_independant	568568468	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	f	t	47.21450000	-1.55340000	t	30	5	\N	57cc1020-d9a6-4195-8205-9e95e31cbfe2	t	22 Place du Bouffay, 44000 Nantes	0.930	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.22000000	-1.55200000	2025-09-16 07:03:16.00029+00	8.00	driving	12.50	t	f	2025-09-16 06:57:57.603959+00	\N	30
-6bf223a1-1274-4d1c-865e-1a98eb098af6	test2	\N	2025-07-12 12:10:34.288	f	test2	\N	test2@fourmiz.com	3 place du Commerce	Test2	Test2	Nantes	\N	0671342234	\N	\N	\N	\N	t	{client}	\N	44000	2025-09-16 06:36:23.764416+00	\N	6bf223a1-1274-4d1c-865e-1a98eb098af6	5.0	f	5.0	W7STV2	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21650000	-1.55690000	f	30	5	\N	\N	t	3 Place du Commerce, 44000 Nantes	0.950	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-649f6274-cecb-464f-9a52-9a989bd7f0dd	Test4	\N	2025-07-29 09:11:22.738771	f	Test4	\N	test4@fourmiz.com	7 rue de la Paix	\N	\N	Nantes	\N	0600099002	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	649f6274-cecb-464f-9a52-9a989bd7f0dd	5.0	f	5.0	ZQGJ92	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21590000	-1.55120000	f	30	5	\N	\N	t	7 Rue de la Paix, 44000 Nantes	0.940	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-324a41c4-8404-436f-8874-a2b64f2bb073	Inconnu	\N	2025-07-29 14:36:43.327268	f	Test User	\N	test6@fourmiz.com	14 quai de la Fosse	\N	\N	Nantes	\N	0600099003	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	324a41c4-8404-436f-8874-a2b64f2bb073	5.0	f	5.0	Y7LBAJ	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.20890000	-1.56030000	f	30	5	\N	\N	t	14 Quai de la Fosse, 44000 Nantes	0.920	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-8e18c44c-790a-4792-b645-7ebd08805454	Utilisateur	\N	2025-08-31 18:58:18.416815	f	Test16	\N	test16@fourmiz.com	25 rue Kervégan	\N	\N	Nantes	\N	0600099004	\N	\N	\N	\N	f	{client}	\N	44000	2025-09-16 06:36:23.764416+00	\N	88969662-72db-4aa7-88e0-94e768b15e6a	5.0	f	\N	F2CNRZ	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21240000	-1.55430000	f	30	5	\N	\N	t	25 Rue Kervégan, 44000 Nantes	0.870	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-a4b048b8-d75d-4e8e-bdfc-bab1fa4b70f4	T24	\N	2025-09-10 15:06:38.400346	f	T24	\N	test24@fourmiz.com	9 cours des 50 Otages	\N	\N	Nantes	\N	0671346798	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	44a528b6-f6f9-4460-a874-a72aad2dd55b	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21870000	-1.55780000	f	30	5	\N	\N	t	9 Cours des 50 Otages, 44000 Nantes	0.920	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-1cc6b4f7-794c-479f-9b95-ffda6cd93557	T40	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/1cc6b4f7-794c-479f-9b95-ffda6cd93557/profile_photo-1757762324687.png	2025-09-13 11:17:14.65671	f	T40	\N	test40@fourmiz.com	16 avenue de la Chauvinière	\N	\N	Nantes	\N	0671342235	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/1cc6b4f7-794c-479f-9b95-ffda6cd93557/id-document-1757762323677.png	44100	2025-09-16 06:57:57.603959+00	\N	1cc6b4f7-794c-479f-9b95-ffda6cd93557	5.0	f	\N	9MHV8147	0	0	\N	f	\N	f	entreprise	457456456	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.23450000	-1.59340000	f	30	5	\N	\N	t	16 Avenue de la Chauvinière, 44100 Nantes	0.810	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.23450000	-1.59340000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-9e6f2eef-b93d-4662-92cf-1250403e0fe8	Inconnu	\N	2025-07-12 12:12:18.564	f	Test3	\N	test3@fourmiz.com	18 rue Crébillon	\N	\N	Nantes	\N	0600099001	\N	\N	\N	\N	f	{fourmiz}	\N	44000	2025-09-16 06:57:57.603959+00	\N	9e6f2eef-b93d-4662-92cf-1250403e0fe8	5.0	f	5.0	PNT9ZY	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21260000	-1.55940000	t	30	5	\N	823c8c1e-f424-4fc8-b957-7ff37343388b	f	18 Rue Crébillon, 44000 Nantes	0.930	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.21260000	-1.55940000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-c70b11ff-2769-4645-b3e3-e981fa3f8bfb	T23	\N	2025-09-10 14:15:45.9737	f	T23	\N	test23@fourmiz.com	17 rue de la Chaussée	\N	\N	Nantes	\N	0671343746	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	28c78e4b-6574-4595-a07a-83a7389a5dae	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21670000	-1.56120000	f	30	5	\N	\N	t	17 Rue de la Chaussée, 44000 Nantes	0.880	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-1a4a7e82-fb97-4135-9539-6f6bba996c0e	T31	\N	2025-09-13 08:25:19.72112	f	T31	\N	test31@fourmiz.com	28 boulevard de la Liberté	\N	\N	Nantes	\N	0671341920	\N	\N	\N	\N	f	{}	\N	44300	2025-09-16 06:36:23.764416+00	\N	9c3c194c-0772-43f1-853d-92ac2af9646d	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.23340000	-1.56120000	f	30	5	\N	\N	f	28 Boulevard de la Liberté, 44300 Nantes	0.840	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-b2a295c2-c4cf-46af-a0ef-6ec198f62561	T32	\N	2025-09-13 08:34:27.656986	f	T32	\N	test32@fourmiz.com	35 quai François Mitterrand	\N	\N	Nantes	\N	0671342468	\N	\N	\N	\N	f	{}	\N	44200	2025-09-16 06:36:23.764416+00	\N	4b766453-4eb7-4138-9bb4-8cdf7508d0b3	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.20760000	-1.54340000	f	30	5	\N	\N	f	35 Quai François Mitterrand, 44200 Nantes	0.910	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-61d84e96-5fa1-44fb-a537-b753f1cb540f	Test7	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/61d84e96-5fa1-44fb-a537-b753f1cb540f/profile_photo-1755527372689.png	2025-08-07 06:08:38.472391	f	T7	\N	test7@fourmiz.com	9 rue de Gorges	Bbb	Bbb	Nantes	\N	0671346918	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/61d84e96-5fa1-44fb-a537-b753f1cb540f/id-document-1755602845726.png	44000	2025-09-16 06:57:57.603959+00	\N	61d84e96-5fa1-44fb-a537-b753f1cb540f	5.0	f	5.0	Y39A8S	5	1	5.0000000000000000	t	3.7500000000000000	t	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	f	t	47.22010000	-1.55230000	t	30	5	\N	72f0914e-012a-45b4-b633-8e8cb3f59cea	f	9 Rue de Gorges, 44000 Nantes	0.900	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.22010000	-1.55230000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-808432b9-da8b-4663-ad37-0cc14ba33e38	T20	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/avatars/808432b9-da8b-4663-ad37-0cc14ba33e38/profile-1757499307245.jpg	2025-09-10 10:05:44.75167	f	T20	\N	test20@fourmiz.com	6 rue Sainte-Croix	H	2eme	Nantes	\N	0671348745	\N	\N	\N	\N	t	{client,fourmiz}	808432b9-da8b-4663-ad37-0cc14ba33e38/id-document-1757499307583.jpg	44000	2025-09-16 06:57:57.603959+00	\N	808432b9-da8b-4663-ad37-0cc14ba33e38	5.0	f	\N	LPXYRO	0	0	\N	f	\N	f	particulier	\N	\N	\N	\N	\N	\N	\N	{Français}	60	f	\N	\N	\N	t	f	47.21560000	-1.55230000	t	30	5	\N	d04776f4-a88a-4562-8ebe-88a5241e539c	f	6 Rue Sainte-Croix, 44000 Nantes	0.900	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.21560000	-1.55230000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-cc1bd840-a1d9-4b99-bb70-2c312fc895e9	T41	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/cc1bd840-a1d9-4b99-bb70-2c312fc895e9/profile_photo-1757764072984.png	2025-09-13 11:46:53.989213	f	T41	\N	test41@fourmiz.com	27 rue des Hauts Pavés	\N	\N	Nantes	\N	0671344014	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/cc1bd840-a1d9-4b99-bb70-2c312fc895e9/id-document-1757764072051.png	44000	2025-09-16 06:57:57.603959+00	\N	cc1bd840-a1d9-4b99-bb70-2c312fc895e9	5.0	f	\N	I23VO094	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.20870000	-1.58120000	f	30	5	\N	\N	t	27 Rue des Hauts Pavés, 44000 Nantes	0.860	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.20870000	-1.58120000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	Test11	\N	2025-08-07 06:08:38.472391	f	T11	\N	test11@fourmiz.com	4 place Aristide Briand	\N	\N	Nantes	\N	0600006964	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	5.0	f	5.0	UW3BDI	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21780000	-1.55340000	f	30	5	\N	\N	t	4 Place Aristide Briand, 44000 Nantes	0.960	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-e3a9145b-ad86-4068-b1d3-cd2097a755ee	test12	\N	2025-08-07 06:08:38.472391	f	T12	\N	test12@fourmiz.com	12 rue de Strasbourg	\N	\N	Nantes	\N	0600006918	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	e3a9145b-ad86-4068-b1d3-cd2097a755ee	5.0	f	5.0	QGLKZH	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21430000	-1.55870000	f	30	5	\N	\N	t	12 Rue de Strasbourg, 44000 Nantes	0.890	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30
-8c5e4fc0-12f2-4181-8408-32c18693f7e3	T42	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/8c5e4fc0-12f2-4181-8408-32c18693f7e3/profile_photo-1757928499285.png	2025-09-15 09:10:13.403994	f	T42	\N	test42@fourmiz.com	14 boulevard Victor Hugo	\N	\N	Nantes	\N	0671347413	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/8c5e4fc0-12f2-4181-8408-32c18693f7e3/id-document-1757928498315.png	44000	2025-09-16 06:57:57.603959+00	\N	8c5e4fc0-12f2-4181-8408-32c18693f7e3	5.0	f	\N	4J65SV	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.20340000	-1.55340000	f	30	5	\N	\N	t	14 Boulevard Victor Hugo, 44000 Nantes	0.900	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.20340000	-1.55340000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
-3a974bf5-a0df-44fe-be9e-603910ef9a4e	Gildas	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/3a974bf5-a0df-44fe-be9e-603910ef9a4e/profile_photo-1756047447811.png	2025-07-12 08:41:59.448621	f	Garrec	\N	garrec.gildas@gmail.com	16 allée jacques berque	Hemeria	4	Nantes	\N	0671342225	\N	\N	\N	\N	t	{client,user,fourmiz,admin}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/3a974bf5-a0df-44fe-be9e-603910ef9a4e/id-document-1756802644684.jpg	44000	2025-09-16 06:57:57.603959+00	\N	3a974bf5-a0df-44fe-be9e-603910ef9a4e	5.0	t	4.4	5B2X5F	2	72	4.2846153846153846	t	5.0000000000000000	t	travailleur_independant	567567567	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	f	t	47.21840000	-1.55360000	t	30	5	\N	1429f2da-7f81-42a3-9e84-08443c23399d	t	\N	\N	\N	\N	\N	\N	t	f	47.21840000	-1.55360000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30
+COPY public.profiles (id, firstname, avatar_url, created_at, is_online, lastname, expo_push_token, email, address, building, floor, city, instructions, phone, alternative_phone, availability, preferences, card_info, profile_completed, roles, id_document_path, postal_code, updated_at, last_active_at, user_id, default_rating, has_real_rating, rating, referral_code, missions_completed, orders_placed, client_rating, client_has_real_rating, fourmiz_rating, fourmiz_has_real_rating, legal_status, rcs_number, bio, skills, experience_years, hourly_rate, portfolio_images, certifications, languages, profile_completion_percent, is_verified, work_zone, preferred_missions, portfolio_urls, legal_engagements_required, grandfathered_fourmiz, latitude, longitude, is_available, response_time_minutes, service_radius_km, last_location_update, criteria_completed, formatted_address, address_confidence, address_validated_at, address_validation_source, address_validation_attempted_at, address_validation_error, is_mobile, tracking_enabled, current_latitude, current_longitude, current_location_updated_at, location_accuracy, movement_status, speed_kmh, tracking_consent_mission, tracking_consent_off_duty, tracking_consent_date, tracking_consent_ip, data_retention_days, service_category_text) FROM stdin;
+79872df9-f084-4e5f-8151-926488c657b3	T39	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/79872df9-f084-4e5f-8151-926488c657b3/profile_photo-1757761990936.png	2025-09-13 11:11:58.506212	f	T39	\N	test39@fourmiz.com	42 route de Vannes	\N	\N	Nantes	\N	0671341919	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/79872df9-f084-4e5f-8151-926488c657b3/id-document-1757761989381.png	44100	2025-09-17 11:03:50.622254+00	\N	79872df9-f084-4e5f-8151-926488c657b3	5.0	f	\N	JTJCG120	0	1	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21230000	-1.60120000	f	30	5	\N	t	42 Route de Vannes, 44100 Nantes	0.830	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.21230000	-1.60120000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	\N
+33daffd3-5c20-4f6f-bcee-30d2e4379f52	T25	\N	2025-09-10 18:19:18.02339	f	T25	\N	test25@fourmiz.com	22 boulevard des Belges	\N	\N	Nantes	\N	0671348358	\N	\N	\N	\N	f	{}	\N	44300	2025-09-16 06:36:23.764416+00	\N	b2d2d127-d12f-4db0-80c2-638d62986cbb	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.23010000	-1.56980000	f	30	5	\N	t	22 Boulevard des Belges, 44300 Nantes	0.890	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+b9821771-9882-4505-a198-78eeedecc42e	T22	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/b9821771-9882-4505-a198-78eeedecc42e/profile_photo-1757501690712.png	2025-09-10 10:54:06.777474	f	T22	\N	test22@gmail.com	11 place Graslin	\N	\N	Nantes	\N	0671341647	\N	\N	\N	\N	t	{client}	\N	44000	2025-09-21 09:09:28.638122+00	\N	b9821771-9882-4505-a198-78eeedecc42e	5.0	f	\N	KOJXS1	0	1	\N	f	\N	f	particulier	\N	\N	\N	\N	\N	\N	\N	\N	60	f	\N	\N	\N	t	f	47.21340000	-1.56340000	t	30	5	\N	t	11 Place Graslin, 44000 Nantes	0.950	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	Urgence
+65586e4e-0006-4308-bb21-d6cc13945294	T27	\N	2025-09-11 15:47:30.637334	f	T27	\N	test27@fourmiz.com	26 boulevard de Berlin	\N	\N	Nantes	\N	0671345651	\N	\N	\N	\N	f	{}	\N	44300	2025-09-16 06:36:23.764416+00	\N	4cbcf214-2e19-4d34-aa30-410fd8c9aec8	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.22670000	-1.54560000	f	30	5	\N	f	26 Boulevard de Berlin, 44300 Nantes	0.880	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+43af2b91-be63-47e1-b013-d55a97e6a11a	T26	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/43af2b91-be63-47e1-b013-d55a97e6a11a/profile_photo-1757528514176.png	2025-09-10 18:21:00.585256	f	T26	\N	test26@fourmiz.com	31 avenue du Général de Gaulle	\N	\N	Nantes	\N	0671348461	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/43af2b91-be63-47e1-b013-d55a97e6a11a/id-document-1757528513179.png	44300	2025-09-21 09:09:28.638122+00	\N	43af2b91-be63-47e1-b013-d55a97e6a11a	5.0	f	\N	5HDXF419	0	1	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.24350000	-1.53890000	f	30	5	\N	f	31 Avenue du Général de Gaulle, 44300 Nantes	0.860	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.24350000	-1.53890000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	\N
+b9c12b47-6545-456d-b6f7-2c37ee3681c6	T28	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/b9c12b47-6545-456d-b6f7-2c37ee3681c6/profile_photo-1757687632172.png	2025-09-11 16:03:32.177352	f	T28	\N	test28@fourmiz.com	45 rue de Rennes	\N	\N	Nantes	\N	0671342255	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/b9c12b47-6545-456d-b6f7-2c37ee3681c6/id-document-1757687631087.png	44300	2025-09-17 11:03:50.622254+00	\N	b9c12b47-6545-456d-b6f7-2c37ee3681c6	5.0	f	\N	UN1RK089	0	1	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.23980000	-1.54560000	f	30	5	\N	t	45 Rue de Rennes, 44300 Nantes	0.850	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.24200000	-1.53800000	2025-09-16 06:46:59.930097+00	12.00	driving	25.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	\N
+3f7a2d00-ea31-48f8-813c-27345f14375a	T30	\N	2025-09-12 16:53:20.205647	f	T30	\N	test30@fourmiz.com	13 avenue de la Gare	\N	\N	Nantes	\N	0671346000	\N	\N	\N	\N	f	{}	\N	44300	2025-09-16 06:36:23.764416+00	\N	86f7c8b3-907c-40f8-960f-60f3688ce312	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.24210000	-1.55670000	f	30	5	\N	t	13 Avenue de la Gare, 44300 Nantes	0.870	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+172f3624-5e35-43f4-868d-4f70ad5fdabc	T33	\N	2025-09-13 08:42:45.259231	f	T33	\N	test33@fourmiz.com	12 boulevard Léon Bureau	\N	\N	Nantes	\N	0671342965	\N	\N	\N	\N	f	{}	\N	44200	2025-09-16 06:36:23.764416+00	\N	6067031a-00bf-43c4-a7d0-783c02d7fb5a	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.20890000	-1.52980000	f	30	5	\N	f	12 Boulevard Léon Bureau, 44200 Nantes	0.860	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+b657c06a-2248-49d7-8321-401d25ffde63	T35	\N	2025-09-13 09:14:20.372594	f	T35	\N	test35@fourmiz.com	19 rue de Malakoff	\N	\N	Nantes	\N	0671344860	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	4dfbda13-f598-4d4d-9538-d9ac157d0efc	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21890000	-1.53780000	f	30	5	\N	t	19 Rue de Malakoff, 44000 Nantes	0.890	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+aac7ef75-48e9-49b2-971e-00fe0cf2402a	Test5	\N	2025-07-28 17:28:38.536081	f	Test5	\N	test5@fourmiz.com	5 avenue Carnot	Bbb	4	Nantes	\N	0671343719	\N	\N	\N	\N	t	{client}	\N	44000	2025-09-17 11:03:50.622254+00	\N	aac7ef75-48e9-49b2-971e-00fe0cf2402a	5.0	f	5.0	9Q5U6P	0	9	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21980000	-1.54420000	f	30	5	\N	t	5 Avenue Carnot, 44000 Nantes	0.910	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+9479b338-39a9-4fdd-b1e5-986c837c4c09	T17	\N	2025-08-31 21:04:38.439243	f	T17	\N	test17@fourmiz.com	8 place Royale	\N	\N	Nantes	\N	0671344278	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	407e4c14-6976-44bb-9307-bc8e83f15c83	5.0	f	\N	4GYU34	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21560000	-1.55980000	f	30	5	\N	t	8 Place Royale, 44000 Nantes	0.940	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+c410752c-1639-487c-9e47-4393b21a99a8	T18	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/c410752c-1639-487c-9e47-4393b21a99a8/profile_photo-1756678266820.jpg	2025-08-31 21:58:59.424504	f	T18	\N	test18@fourmiz.com	15 rue de la Juiverie	H	5	Nantes	\N	0671347539	\N	\N	\N	\N	t	{client}	\N	44000	2025-09-16 06:36:23.764416+00	\N	c410752c-1639-487c-9e47-4393b21a99a8	5.0	f	\N	L3A63A	0	1	5.0000000000000000	t	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21340000	-1.55120000	f	30	5	\N	t	15 Rue de la Juiverie, 44000 Nantes	0.910	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+cb9b0f98-1160-43e3-aa8f-4f1e2125eda5	T37	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/cb9b0f98-1160-43e3-aa8f-4f1e2125eda5/profile_photo-1757759379588.png	2025-09-13 10:27:33.723633	f	T37	\N	test37@fourmiz.com	21 rue de Gigant	\N	\N	Nantes	\N	0671349254	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/cb9b0f98-1160-43e3-aa8f-4f1e2125eda5/id-document-1757759378261.png	44000	2025-09-18 13:08:10.453785+00	\N	cb9b0f98-1160-43e3-aa8f-4f1e2125eda5	5.0	f	\N	RB83R365	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.22340000	-1.54230000	t	30	5	\N	t	21 Rue de Gigant, 44000 Nantes	0.870	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.22340000	-1.54230000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	Urgence
+3d890212-323b-4cb3-9943-ca8275d3f1c6	T34	\N	2025-09-13 09:08:55.272294	f	T34	\N	test34@fourmiz.com	8 rue de la Commune de 1871	\N	\N	Nantes	\N	0671344535	\N	\N	\N	\N	f	{}	\N	44200	2025-09-16 06:36:23.764416+00	\N	cd101ebf-f9cc-4beb-bbc7-7f90a96d919a	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21340000	-1.53870000	f	30	5	\N	f	8 Rue de la Commune de 1871, 44200 Nantes	0.880	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+c2934cd2-6420-4a69-8b61-da6c08fc982a	T36	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/c2934cd2-6420-4a69-8b61-da6c08fc982a/profile_photo-1757757470512.png	2025-09-13 09:57:07.308635	f	T36	\N	test36@fourmiz.com	33 boulevard Michelet	\N	\N	Nantes	\N	0671347427	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/c2934cd2-6420-4a69-8b61-da6c08fc982a/id-document-1757757469370.png	44000	2025-09-16 06:57:57.603959+00	\N	c2934cd2-6420-4a69-8b61-da6c08fc982a	5.0	f	\N	L37Z1939	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.22670000	-1.52340000	f	30	5	\N	t	33 Boulevard Michelet, 44000 Nantes	0.850	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.22670000	-1.52340000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	\N
+6bf223a1-1274-4d1c-865e-1a98eb098af6	test2	\N	2025-07-12 12:10:34.288	f	test2	\N	test2@fourmiz.com	3 place du Commerce	Test2	Test2	Nantes	\N	0671342234	\N	\N	\N	\N	t	{client}	\N	44000	2025-09-16 06:36:23.764416+00	\N	6bf223a1-1274-4d1c-865e-1a98eb098af6	5.0	f	5.0	W7STV2	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21650000	-1.55690000	f	30	5	\N	t	3 Place du Commerce, 44000 Nantes	0.950	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+649f6274-cecb-464f-9a52-9a989bd7f0dd	Test4	\N	2025-07-29 09:11:22.738771	f	Test4	\N	test4@fourmiz.com	7 rue de la Paix	\N	\N	Nantes	\N	0600099002	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	649f6274-cecb-464f-9a52-9a989bd7f0dd	5.0	f	5.0	ZQGJ92	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21590000	-1.55120000	f	30	5	\N	t	7 Rue de la Paix, 44000 Nantes	0.940	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+324a41c4-8404-436f-8874-a2b64f2bb073	Inconnu	\N	2025-07-29 14:36:43.327268	f	Test User	\N	test6@fourmiz.com	14 quai de la Fosse	\N	\N	Nantes	\N	0600099003	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	324a41c4-8404-436f-8874-a2b64f2bb073	5.0	f	5.0	Y7LBAJ	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.20890000	-1.56030000	f	30	5	\N	t	14 Quai de la Fosse, 44000 Nantes	0.920	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+a7019c60-ce0c-4123-955a-4a82f3a492d3	T19	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/a7019c60-ce0c-4123-955a-4a82f3a492d3/profile_photo-1756721405128.jpg	2025-09-01 10:08:17.241348	f	T19	\N	test19@fourmiz.com	22 place du Bouffay	V	5	Nantes	\N	0671341297	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/a7019c60-ce0c-4123-955a-4a82f3a492d3/id-document-1756721397675.jpg	44000	2025-09-18 13:08:10.453785+00	\N	a7019c60-ce0c-4123-955a-4a82f3a492d3	5.0	t	5.0	IOSA33	6	0	\N	f	\N	f	travailleur_independant	568568468	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	f	t	47.21450000	-1.55340000	t	30	5	\N	t	22 Place du Bouffay, 44000 Nantes	0.930	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.22000000	-1.55200000	2025-09-16 07:03:16.00029+00	8.00	driving	12.50	t	f	2025-09-16 06:57:57.603959+00	\N	30	Aide à domicile
+9e6f2eef-b93d-4662-92cf-1250403e0fe8	Inconnu	\N	2025-07-12 12:12:18.564	f	Test3	\N	test3@fourmiz.com	18 rue Crébillon	\N	\N	Nantes	\N	0600099001	\N	\N	\N	\N	f	{fourmiz}	\N	44000	2025-09-18 13:08:10.453785+00	\N	9e6f2eef-b93d-4662-92cf-1250403e0fe8	5.0	f	5.0	PNT9ZY	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21260000	-1.55940000	t	30	5	\N	f	18 Rue Crébillon, 44000 Nantes	0.930	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.21260000	-1.55940000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	Jardinage
+8e18c44c-790a-4792-b645-7ebd08805454	Utilisateur	\N	2025-08-31 18:58:18.416815	f	Test16	\N	test16@fourmiz.com	25 rue Kervégan	\N	\N	Nantes	\N	0600099004	\N	\N	\N	\N	f	{client}	\N	44000	2025-09-16 06:36:23.764416+00	\N	88969662-72db-4aa7-88e0-94e768b15e6a	5.0	f	\N	F2CNRZ	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21240000	-1.55430000	f	30	5	\N	t	25 Rue Kervégan, 44000 Nantes	0.870	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+a4b048b8-d75d-4e8e-bdfc-bab1fa4b70f4	T24	\N	2025-09-10 15:06:38.400346	f	T24	\N	test24@fourmiz.com	9 cours des 50 Otages	\N	\N	Nantes	\N	0671346798	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	44a528b6-f6f9-4460-a874-a72aad2dd55b	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21870000	-1.55780000	f	30	5	\N	t	9 Cours des 50 Otages, 44000 Nantes	0.920	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+1cc6b4f7-794c-479f-9b95-ffda6cd93557	T40	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/1cc6b4f7-794c-479f-9b95-ffda6cd93557/profile_photo-1757762324687.png	2025-09-13 11:17:14.65671	f	T40	\N	test40@fourmiz.com	16 avenue de la Chauvinière	\N	\N	Nantes	\N	0671342235	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/1cc6b4f7-794c-479f-9b95-ffda6cd93557/id-document-1757762323677.png	44100	2025-09-16 06:57:57.603959+00	\N	1cc6b4f7-794c-479f-9b95-ffda6cd93557	5.0	f	\N	9MHV8147	0	0	\N	f	\N	f	entreprise	457456456	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.23450000	-1.59340000	f	30	5	\N	t	16 Avenue de la Chauvinière, 44100 Nantes	0.810	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.23450000	-1.59340000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	\N
+c70b11ff-2769-4645-b3e3-e981fa3f8bfb	T23	\N	2025-09-10 14:15:45.9737	f	T23	\N	test23@fourmiz.com	17 rue de la Chaussée	\N	\N	Nantes	\N	0671343746	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	28c78e4b-6574-4595-a07a-83a7389a5dae	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.21670000	-1.56120000	f	30	5	\N	t	17 Rue de la Chaussée, 44000 Nantes	0.880	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+1a4a7e82-fb97-4135-9539-6f6bba996c0e	T31	\N	2025-09-13 08:25:19.72112	f	T31	\N	test31@fourmiz.com	28 boulevard de la Liberté	\N	\N	Nantes	\N	0671341920	\N	\N	\N	\N	f	{}	\N	44300	2025-09-16 06:36:23.764416+00	\N	9c3c194c-0772-43f1-853d-92ac2af9646d	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.23340000	-1.56120000	f	30	5	\N	f	28 Boulevard de la Liberté, 44300 Nantes	0.840	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+b2a295c2-c4cf-46af-a0ef-6ec198f62561	T32	\N	2025-09-13 08:34:27.656986	f	T32	\N	test32@fourmiz.com	35 quai François Mitterrand	\N	\N	Nantes	\N	0671342468	\N	\N	\N	\N	f	{}	\N	44200	2025-09-16 06:36:23.764416+00	\N	4b766453-4eb7-4138-9bb4-8cdf7508d0b3	5.0	f	\N	\N	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	0	f	\N	\N	\N	t	f	47.20760000	-1.54340000	f	30	5	\N	f	35 Quai François Mitterrand, 44200 Nantes	0.910	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+61d84e96-5fa1-44fb-a537-b753f1cb540f	Test7	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/61d84e96-5fa1-44fb-a537-b753f1cb540f/profile_photo-1755527372689.png	2025-08-07 06:08:38.472391	f	T7	\N	test7@fourmiz.com	9 rue de Gorges	Bbb	Bbb	Nantes	\N	0671346918	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/61d84e96-5fa1-44fb-a537-b753f1cb540f/id-document-1755602845726.png	44000	2025-09-18 13:08:10.453785+00	\N	61d84e96-5fa1-44fb-a537-b753f1cb540f	5.0	f	5.0	Y39A8S	5	1	5.0000000000000000	t	3.7500000000000000	t	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	f	t	47.22010000	-1.55230000	t	30	5	\N	f	9 Rue de Gorges, 44000 Nantes	0.900	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.22010000	-1.55230000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	Bricolage
+808432b9-da8b-4663-ad37-0cc14ba33e38	T20	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/avatars/808432b9-da8b-4663-ad37-0cc14ba33e38/profile-1757499307245.jpg	2025-09-10 10:05:44.75167	f	T20	\N	test20@fourmiz.com	6 rue Sainte-Croix	H	2eme	Nantes	\N	0671348745	\N	\N	\N	\N	t	{client,fourmiz}	808432b9-da8b-4663-ad37-0cc14ba33e38/id-document-1757499307583.jpg	44000	2025-09-18 13:08:10.453785+00	\N	808432b9-da8b-4663-ad37-0cc14ba33e38	5.0	f	\N	LPXYRO	0	0	\N	f	\N	f	particulier	\N	\N	\N	\N	\N	\N	\N	{Français}	60	f	\N	\N	\N	t	f	47.21560000	-1.55230000	t	30	5	\N	f	6 Rue Sainte-Croix, 44000 Nantes	0.900	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.21560000	-1.55230000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	Urgence
+cc1bd840-a1d9-4b99-bb70-2c312fc895e9	T41	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/cc1bd840-a1d9-4b99-bb70-2c312fc895e9/profile_photo-1757764072984.png	2025-09-13 11:46:53.989213	f	T41	\N	test41@fourmiz.com	27 rue des Hauts Pavés	\N	\N	Nantes	\N	0671344014	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/cc1bd840-a1d9-4b99-bb70-2c312fc895e9/id-document-1757764072051.png	44000	2025-09-16 06:57:57.603959+00	\N	cc1bd840-a1d9-4b99-bb70-2c312fc895e9	5.0	f	\N	I23VO094	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.20870000	-1.58120000	f	30	5	\N	t	27 Rue des Hauts Pavés, 44000 Nantes	0.860	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.20870000	-1.58120000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	\N
+64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	Test11	\N	2025-08-07 06:08:38.472391	f	T11	\N	test11@fourmiz.com	4 place Aristide Briand	\N	\N	Nantes	\N	0600006964	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	5.0	f	5.0	UW3BDI	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21780000	-1.55340000	f	30	5	\N	t	4 Place Aristide Briand, 44000 Nantes	0.960	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+e3a9145b-ad86-4068-b1d3-cd2097a755ee	test12	\N	2025-08-07 06:08:38.472391	f	T12	\N	test12@fourmiz.com	12 rue de Strasbourg	\N	\N	Nantes	\N	0600006918	\N	\N	\N	\N	f	{}	\N	44000	2025-09-16 06:36:23.764416+00	\N	e3a9145b-ad86-4068-b1d3-cd2097a755ee	5.0	f	5.0	QGLKZH	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.21430000	-1.55870000	f	30	5	\N	t	12 Rue de Strasbourg, 44000 Nantes	0.890	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	f	f	\N	\N	\N	\N	stationary	0.00	t	f	\N	\N	30	\N
+3a974bf5-a0df-44fe-be9e-603910ef9a4e	Gildas	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/3a974bf5-a0df-44fe-be9e-603910ef9a4e/profile_photo-1756047447811.png	2025-07-12 08:41:59.448621	f	Garrec	\N	garrec.gildas@gmail.com	16 allée jacques berque	Hemeria	4	Nantes	\N	0671342225	\N	\N	\N	\N	t	{client,user,fourmiz,admin}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/3a974bf5-a0df-44fe-be9e-603910ef9a4e/id-document-1756802644684.jpg	44000	2025-09-21 09:09:28.638122+00	\N	3a974bf5-a0df-44fe-be9e-603910ef9a4e	5.0	t	4.5	5B2X5F	2	74	4.3800000000000000	t	5.0000000000000000	t	travailleur_independant	567567567	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	f	t	47.21840000	-1.55360000	t	30	5	\N	t	\N	\N	\N	\N	\N	\N	t	f	47.21840000	-1.55360000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	Transport
+8c5e4fc0-12f2-4181-8408-32c18693f7e3	T42	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/8c5e4fc0-12f2-4181-8408-32c18693f7e3/profile_photo-1757928499285.png	2025-09-15 09:10:13.403994	f	T42	\N	test42@fourmiz.com	14 boulevard Victor Hugo	\N	\N	Nantes	\N	0671347413	\N	\N	\N	\N	t	{fourmiz}	https://hsijgsqtqbqevbytgvhm.supabase.co/storage/v1/object/public/user-documents/8c5e4fc0-12f2-4181-8408-32c18693f7e3/id-document-1757928498315.png	44000	2025-09-16 06:57:57.603959+00	\N	8c5e4fc0-12f2-4181-8408-32c18693f7e3	5.0	f	\N	4J65SV	0	0	\N	f	\N	f	particulier	\N	\N	\N	0	\N	\N	\N	{Français}	65	f	\N	\N	\N	t	f	47.20340000	-1.55340000	f	30	5	\N	t	14 Boulevard Victor Hugo, 44000 Nantes	0.900	2025-09-16 06:36:23.764416+00	manual_geocoding	\N	\N	t	f	47.20340000	-1.55340000	2025-09-16 06:45:38.752717+00	\N	stationary	0.00	t	f	2025-09-16 06:57:57.603959+00	\N	30	\N
 \.
 
 
 --
 -- TOC entry 5795 (class 0 OID 159636)
--- Dependencies: 512
+-- Dependencies: 506
 -- Data for Name: profiles_backup; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14411,19 +14624,19 @@ a7019c60-ce0c-4123-955a-4a82f3a492d3	T19	https://hsijgsqtqbqevbytgvhm.supabase.c
 
 
 --
--- TOC entry 5753 (class 0 OID 55162)
--- Dependencies: 452
+-- TOC entry 5758 (class 0 OID 55162)
+-- Dependencies: 451
 -- Data for Name: push_tokens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.push_tokens (id, user_id, token, platform, device_id, device_name, is_active, last_used, created_at, updated_at, device_type) FROM stdin;
-1	3a974bf5-a0df-44fe-be9e-603910ef9a4e	ExponentPushToken[E0r0ehHR3qCXBxABpURi9_]	ios	ios_iPhone_12_Pro_1757916217655	iPhone	t	2025-07-29 09:03:09.604+00	2025-07-17 10:25:14.143031+00	2025-09-15 09:03:37.080049+00	ios
+1	3a974bf5-a0df-44fe-be9e-603910ef9a4e	ExponentPushToken[E0r0ehHR3qCXBxABpURi9_]	ios	ios_iPhone_12_Pro_1758363942595	iPhone	t	2025-07-29 09:03:09.604+00	2025-07-17 10:25:14.143031+00	2025-09-21 08:58:18.542501+00	ios
 131	aac7ef75-48e9-49b2-971e-00fe0cf2402a	ExponentPushToken[E0r0ehHR3qCXBxABpURi9_]	ios	ios_iPhone_12_Pro_1757274528525	iPhone	t	2025-07-28 19:41:43.785+00	2025-07-28 19:41:43.836711+00	2025-09-07 19:48:48.640586+00	ios
 \.
 
 
 --
--- TOC entry 5707 (class 0 OID 25630)
+-- TOC entry 5713 (class 0 OID 25630)
 -- Dependencies: 397
 -- Data for Name: ratings; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14445,11 +14658,12 @@ COPY public.ratings (id, order_id, rating, comment, created_at) FROM stdin;
 20	69	5	\N	2025-09-13 12:36:44.706146
 21	67	5	\N	2025-09-13 12:36:53.724445
 22	61	5	\N	2025-09-13 12:37:02.894061
+23	93	5	\N	2025-09-18 16:35:43.540484
 \.
 
 
 --
--- TOC entry 5712 (class 0 OID 25885)
+-- TOC entry 5718 (class 0 OID 25885)
 -- Dependencies: 402
 -- Data for Name: referral_commissions; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14459,24 +14673,24 @@ COPY public.referral_commissions (id, referral_id, filleul_id, parrain_id, order
 
 
 --
--- TOC entry 5766 (class 0 OID 76839)
--- Dependencies: 473
+-- TOC entry 5771 (class 0 OID 76839)
+-- Dependencies: 472
 -- Data for Name: referral_config; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.referral_config (id, key, value_numeric, value_text, category, description, is_active, created_at, updated_at, created_by, updated_by, min_value, max_value) FROM stdin;
-1	referral_system_enabled	1	\N	general	Active/désactive le système de parrainage	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000
-2	referral_bonus_amount	10.00	\N	bonus	Bonus d'inscription en euros	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000
-3	referral_client_commission_rate	5.00	\N	commission	Taux de commission client (%)	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000
-4	referral_fourmiz_commission_rate	3.50	\N	commission	Taux de commission fourmiz (%)	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000
-5	referral_min_order_amount	20.00	\N	limits	Montant minimum pour déclencher commission	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000
-6	referral_max_commission_per_month	500.00	\N	limits	Commission maximale par mois par parrain	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000
-7	referral_max_bonus_per_day	100.00	\N	limits	Bonus maximum par jour	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000
+COPY public.referral_config (id, key, value_numeric, value_text, category, description, is_active, created_at, updated_at, created_by, updated_by, min_value, max_value, fourmiz_commission_rates) FROM stdin;
+2	referral_bonus_amount	10.00	\N	bonus	Bonus d'inscription en euros	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000	{"default": 0.00}
+3	referral_client_commission_rate	5.00	\N	commission	Taux de commission client (%)	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000	{"default": 0.00}
+4	referral_fourmiz_commission_rate	3.50	\N	commission	Taux de commission fourmiz (%)	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000	{"default": 0.00}
+5	referral_min_order_amount	20.00	\N	limits	Montant minimum pour déclencher commission	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000	{"default": 0.00}
+6	referral_max_commission_per_month	500.00	\N	limits	Commission maximale par mois par parrain	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000	{"default": 0.00}
+7	referral_max_bonus_per_day	100.00	\N	limits	Bonus maximum par jour	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000	{"default": 0.00}
+1	referral_system_enabled	1	\N	general	Active/désactive le système de parrainage	t	2025-07-28 12:54:32.047049	2025-07-28 12:54:32.047049	\N	\N	0	1000	{"Textile": 0.00, "default": 0.00, "Coaching": 0.00, "Location": 0.00, "Bricolage": 0.00, "Bâtiment": 0.00, "Formation": 0.00, "Jardinage": 0.00, "Livraison": 0.00, "Nettoyage": 0.00, "Transport": 0.00, "Bien-être": 0.00, "Mécanique": 0.00, "Sécurité": 0.00, "Agriculture": 0.00, "Billetterie": 0.00, "Hôtellerie": 0.00, "Conciergerie": 0.00, "Informatique": 0.00, "Restauration": 0.00, "Secrétariat": 0.00, "Téléphonie": 0.00, "Administratif": 0.00, "Déménagement": 0.00, "Événementiel": 0.00, "Aide à domicile": 0.00, "Mécanique vélo": 0.00, "Bar & cafétéria": 0.00, "Enfance & famille": 0.00, "Soins aux animaux": 0.00, "Piscines & bassins": 0.00, "Aide à la personne": 0.00, "Service à domicile": 0.00, "Mécanique automobile": 0.00, "Nettoyage de chantier": 0.00, "Seniors & dépendance": 0.00, "Demande personnalisée": 0.00, "Mécanique trottinette": 0.00, "Plomberie / sanitaires": 0.00, "Art, Culture & Création": 0.00, "Dépannage & Réparation": 0.00, "Mécanique moto & scooter": 0.00, "Électricité courants forts": 0.00, "Mécanique & entretien bateau": 0.00, "Peinture & revêtements muraux": 0.00, "Plâtrerie / staff / décors moulés": 0.00}
 \.
 
 
 --
--- TOC entry 5730 (class 0 OID 34531)
+-- TOC entry 5736 (class 0 OID 34531)
 -- Dependencies: 421
 -- Data for Name: referral_gains; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14487,7 +14701,7 @@ COPY public.referral_gains (id, sponsor_id, referred_id, amount, type, created_a
 
 
 --
--- TOC entry 5710 (class 0 OID 25862)
+-- TOC entry 5716 (class 0 OID 25862)
 -- Dependencies: 400
 -- Data for Name: referrals; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14520,7 +14734,7 @@ COPY public.referrals (id, parrain_id, filleul_id, created_at, is_validated, val
 
 
 --
--- TOC entry 5737 (class 0 OID 36115)
+-- TOC entry 5743 (class 0 OID 36115)
 -- Dependencies: 428
 -- Data for Name: revenues; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14530,7 +14744,7 @@ COPY public.revenues (id, user_id, filleul_id, source, amount, created_at) FROM 
 
 
 --
--- TOC entry 5736 (class 0 OID 36002)
+-- TOC entry 5742 (class 0 OID 36002)
 -- Dependencies: 427
 -- Data for Name: revenus; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14540,7 +14754,7 @@ COPY public.revenus (id, user_id, type, amount, source_user_id, description, cre
 
 
 --
--- TOC entry 5735 (class 0 OID 35945)
+-- TOC entry 5741 (class 0 OID 35945)
 -- Dependencies: 426
 -- Data for Name: rewards; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14550,8 +14764,8 @@ COPY public.rewards (id, user_id, title, description, amount, created_at) FROM s
 
 
 --
--- TOC entry 5774 (class 0 OID 102791)
--- Dependencies: 485
+-- TOC entry 5779 (class 0 OID 102791)
+-- Dependencies: 484
 -- Data for Name: security_incidents; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14560,7 +14774,7 @@ COPY public.security_incidents (id, type, user_id, order_id, violations, "timest
 
 
 --
--- TOC entry 5742 (class 0 OID 42252)
+-- TOC entry 5748 (class 0 OID 42252)
 -- Dependencies: 433
 -- Data for Name: service_assignments; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -14571,7 +14785,7 @@ COPY public.service_assignments (id, user_id, service_id, status, created_at, up
 
 --
 -- TOC entry 5798 (class 0 OID 160250)
--- Dependencies: 518
+-- Dependencies: 512
 -- Data for Name: service_tracking_history; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -14580,473 +14794,474 @@ COPY public.service_tracking_history (id, service_id, fourmiz_user_id, client_us
 
 
 --
--- TOC entry 5698 (class 0 OID 25214)
+-- TOC entry 5704 (class 0 OID 25214)
 -- Dependencies: 388
 -- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.services (id, title, description, categorie, user_id, created_at, "estimatedDuration", "isEligibleTaxCredit", slug, category_id, icon, workflow_type) FROM stdin;
-249	Effeuillage burlesque artistique	Spectacle glamour inspire du cabaret, costumes et mise en scene	Événementiel	\N	\N	\N	\N	effeuillage-burlesque-artistique	\N	\N	candidatures
-74	Nettoyage après fête	Service de nettoyage après fête.	Événementiel	\N	2025-06-26 12:48:30.522148	120	f	nettoyage-apr-s-f-te	b615e669-79fa-4c6c-8fea-5256386add18	\N	candidatures
-69	Aide pour un mariage	Service d'aide lors d'un mariage.	Événementiel	\N	2025-06-26 12:48:30.522148	120	f	aide-mariage	b615e669-79fa-4c6c-8fea-5256386add18	\N	candidatures
-68	Organisation d'événement	Service d'organisation de votre événement.	Événementiel	\N	2025-06-26 12:48:30.522148	30	f	organisation-v-nement	b615e669-79fa-4c6c-8fea-5256386add18	\N	candidatures
-70	Aide pour un anniversaire	Service d'aide pour votre anniversaire.	Événementiel	\N	2025-06-26 12:48:30.522148	120	f	aide-anniversaire	b615e669-79fa-4c6c-8fea-5256386add18	\N	candidatures
-115	Majordome événementiel	Assistance logistique et coordination pour événements privés.	Événementiel	\N	\N	90	f	majordome-v-nementiel	b615e669-79fa-4c6c-8fea-5256386add18	\N	candidatures
-622	Fleurir une tombe	Entretien et fleurissement de sépultures, nettoyage de tombes, dépôt de fleurs	Aide à la personne	\N	\N	\N	\N	fleurir-une-tombe	\N	\N	candidatures
-251	Animation immersive ou participative	Jeu d'enquete grandeur nature, spectacle interactif, jeu de role scenarie avec le public. Exemples : murder party dans un gite, escape game improvise, theatre immersif dans un jardin.	Événementiel	\N	\N	\N	\N	animation-immersive-ou-participative	\N	\N	candidatures
-269	Spectacle de marionnettes	Representation theatrale avec marionnettes pour enfants ou adultes. Exemples : spectacle de guignol, theatre de marionnettes a fils, spectacle de marionnettes a gaine.	Événementiel	\N	\N	\N	\N	spectacle-de-marionnettes	\N	\N	candidatures
-282	Service de photographie	Prise de vue professionnelle pour evenements ou portraits. Exemples : mariage, bapteme, portrait, evenement d'entreprise.	Événementiel	\N	\N	\N	\N	service-de-photographie	\N	\N	candidatures
-71	Location vaisselle	Service de location vaisselle.	Événementiel	\N	2025-06-26 12:48:30.522148	60	f	location-vaisselle	\N	\N	candidatures
-73	Service à table	Service de service à table.	Événementiel	\N	2025-06-26 12:48:30.522148	90	f	service-table	\N	\N	candidatures
-85	Chef à domicile	Service de chef à domicile.	Événementiel	\N	2025-06-26 12:48:30.522148	90	f	chef-domicile	\N	\N	candidatures
-623	Couper du bois	Découpe et débitage de bois, élagage, abattage d'arbres, préparation bois de chauffage	Jardinage	\N	\N	\N	\N	couper-du-bois	\N	\N	candidatures
-508	Organisation de banquets	Organisation mariages, séminaires, événements	Événementiel	\N	\N	\N	\N	organisation-banquets	\N	\N	candidatures
-509	Location matériel événementiel	Tables, chaises, vaisselle, chapiteaux	Événementiel	\N	\N	\N	\N	location-materiel-evenementiel	\N	\N	candidatures
-510	Service traiteur externe	Prestation traiteur pour événements	Événementiel	\N	\N	\N	\N	service-traiteur-externe	\N	\N	candidatures
-511	Animation culinaire	Chef invité, barman spectacle, show cooking	Événementiel	\N	\N	\N	\N	animation-culinaire	\N	\N	candidatures
-9	Aide au lever/coucher	Service d'aide au lever/coucher.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	aide-au-lever-coucher	\N	\N	candidatures
-12	Assistance administrative	Service d'assistance administrative.	Secrétariat	\N	2025-06-26 12:48:30.522148	45	f	assistance-administrative	\N	\N	candidatures
-11	Surveillance à domicile	Service de surveillance à domicile.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	120	f	surveillance-domicile	\N	\N	candidatures
-15	Sortie d’école	Service de sortie d’école.	Enfance & famille	\N	2025-06-26 12:48:30.522148	120	f	sortie-d-cole	\N	\N	candidatures
-17	Soutien scolaire	Service de soutien scolaire.	Enfance & famille	\N	2025-06-26 12:48:30.522148	30	f	soutien-scolaire	\N	\N	candidatures
-20	Aide aux personnes âgées	Service de aide aux personnes âgées.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	aide-aux-personnes-g-es	\N	\N	candidatures
-21	Téléassistance	Service de téléassistance.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	30	f	t-l-assistance	\N	\N	candidatures
-26	Soins esthétiques senior	Service de soins esthétiques senior.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	60	f	soins-esth-tiques-senior	\N	\N	candidatures
-79	Secrétariat à domicile	Service de secrétariat à domicile.	Secrétariat	\N	2025-06-26 12:48:30.522148	60	f	secr-tariat-domicile	\N	\N	candidatures
-94	Aide au tri et à l’archivage de documents	Organisation et classement des papiers personnels.	Aide à domicile	\N	\N	60	f	aide-au-tri-et-l-archivage-de-documents	\N	\N	candidatures
-95	Assistance informatique à domicile	Aide à l’utilisation des appareils (ordinateur, tablette, imprimante...).	Aide à domicile	\N	\N	60	f	assistance-informatique-domicile	\N	\N	candidatures
-96	Livraison de courses adaptées	Livraison de courses spécifiques (produits santé, sans contact).	Aide à domicile	\N	\N	45	f	livraison-de-courses-adapt-es	1429f2da-7f81-42a3-9e84-08443c23399d	\N	candidatures
-113	Coaching LinkedIn & CV	Mise en valeur du profil pro, rédaction CV et profil LinkedIn.	Coaching	\N	\N	60	f	coaching-linkedin-cv	\N	\N	candidatures
-117	Préparation des médicaments	Aide à la préparation des traitements médicaux.	Aide à domicile	\N	\N	30	f	pr-paration-des-m-dicaments-1	72f0914e-012a-45b4-b633-8e8cb3f59cea	\N	candidatures
-81	Comptabilité	Service de comptabilité.	Secrétariat	\N	2025-06-26 12:48:30.522148	45	f	comptabilit-	\N	\N	candidatures
-82	Assistance RH	Service d'assistance rh.	Secrétariat	\N	2025-06-26 12:48:30.522148	90	f	assistance-rh	\N	\N	candidatures
-83	Correction de documents	Service de correction de documents.	Secrétariat	\N	2025-06-26 12:48:30.522148	90	f	correction-de-documents	\N	\N	candidatures
-84	Saisie de données	Service de saisie de données.	Secrétariat	\N	2025-06-26 12:48:30.522148	30	f	saisie-de-donn-es	\N	\N	candidatures
-114	Assistant virtuel à domicile	Délégation de tâches récurrentes : emails, réservations, factures.	Secrétariat	\N	\N	60	f	assistant-virtuel-domicile	\N	\N	candidatures
-517	Rondes de nuit	Surveillance mobile, rondes nocturnes	Sécurité	\N	\N	\N	\N	rondes-nuit	\N	\N	candidatures
-518	Sécurité événementielle	Concerts, stades, salons, festivals	Sécurité	\N	\N	\N	\N	securite-evenementielle	\N	\N	candidatures
-519	Agent de sûreté transport	Sécurité aéroportuaire, ferroviaire	Sécurité	\N	\N	\N	\N	agent-surete-transport	\N	\N	candidatures
-520	Bodyguard / protection rapprochée	Garde du corps, protection personnelle	Sécurité	\N	\N	\N	\N	bodyguard-protection-rapprochee	\N	\N	candidatures
-521	Agent de sécurité magasin	Anti-vol, prévention des pertes	Sécurité	\N	\N	\N	\N	agent-securite-magasin	\N	\N	candidatures
-522	Prévention incendie	Contrôle extincteurs, RIA, BAES	Sécurité	\N	\N	\N	\N	prevention-incendie	\N	\N	candidatures
-523	Maintenance systèmes incendie	Détection, alarme, sprinklers	Sécurité	\N	\N	\N	\N	maintenance-systemes-incendie	\N	\N	candidatures
-524	Formation SSIAP	Agents spécialisés sécurité incendie	Sécurité	\N	\N	\N	\N	formation-ssiap	\N	\N	candidatures
-525	Formation secours	Évacuation, gestes premiers secours	Sécurité	\N	\N	\N	\N	formation-secours	\N	\N	candidatures
-526	Installation alarmes	Systèmes anti-intrusion	Sécurité	\N	\N	\N	\N	installation-alarmes	\N	\N	candidatures
-527	Installation vidéosurveillance	Caméras, télésurveillance	Sécurité	\N	\N	\N	\N	installation-videosurveillance	\N	\N	candidatures
-528	Contrôle d'accès	Badges, digicodes, biométrie	Sécurité	\N	\N	\N	\N	controle-acces	\N	\N	candidatures
-529	Interphonie / visiophonie	Systèmes de communication sécurisée	Sécurité	\N	\N	\N	\N	interphonie-visiophonie	\N	\N	candidatures
-530	Maintenance sécurité électronique	Entretien systèmes sécurisés	Sécurité	\N	\N	\N	\N	maintenance-securite-electronique	\N	\N	candidatures
-531	Domotique sécuritaire	Capteurs, détecteurs connectés	Sécurité	\N	\N	\N	\N	domotique-securitaire	\N	\N	candidatures
-532	Sûreté sites industriels	Sécurité installations industrielles	Sécurité	\N	\N	\N	\N	surete-sites-industriels	\N	\N	candidatures
-533	Sécurité chantiers BTP	Protection chantiers construction	Sécurité	\N	\N	\N	\N	securite-chantiers-btp	\N	\N	candidatures
-534	Sécurité parkings	Surveillance parkings, copropriétés	Sécurité	\N	\N	\N	\N	securite-parkings	\N	\N	candidatures
-535	Sécurité établissements sensibles	Hôpitaux, sites sensibles	Sécurité	\N	\N	\N	\N	securite-etablissements-sensibles	\N	\N	candidatures
-536	Sécurité ERP	Écoles, établissements recevant du public	Sécurité	\N	\N	\N	\N	securite-erp	\N	\N	candidatures
-537	Cyber-sécurité	Protection données, audit systèmes	Sécurité	\N	\N	\N	\N	cyber-securite	\N	\N	candidatures
-538	Sécurité réseaux	Protection réseaux et serveurs	Sécurité	\N	\N	\N	\N	securite-reseaux	\N	\N	candidatures
-539	Pentest / éthique hacking	Tests de pénétration, audit sécurité	Sécurité	\N	\N	\N	\N	pentest-ethique-hacking	\N	\N	candidatures
-540	Analyste SOC	Security Operation Center	Sécurité	\N	\N	\N	\N	analyste-soc	\N	\N	candidatures
-541	Prévention fraude IT	Contrôle accès informatique	Sécurité	\N	\N	\N	\N	prevention-fraude-it	\N	\N	candidatures
-624	Demande de subvention	Aide à la rédaction et constitution de dossiers de demande de subventions, accompagnement administratif	Administratif	\N	\N	\N	\N	demande-de-subvention-administratif	\N	\N	candidatures
-260	Creation artistique personnalisee	Realisation d'une oeuvre unique selon les desirs du client. Exemples : portrait sur commande, sculpture personnalisee, composition musicale dediee.	Art, Culture & Création	\N	\N	\N	\N	creation-artistique-personnalisee	\N	\N	candidatures
-263	Reparation de telephones	Remise en etat de smartphones et telephones portables. Exemples : changement d'ecran, reparation de batterie, deblocage de telephone, recuperation de donnees.	Téléphonie	\N	\N	\N	\N	reparation-de-telephones	\N	\N	candidatures
-347	Service de fumisterie	Installation et entretien de conduits de fumee. Exemples : cheminee, poele, ramonage, tubage.	Dépannage & Réparation	\N	\N	\N	\N	service-de-fumisterie	\N	\N	candidatures
-295	Reparation de bijoux	Entretien et reparation de bijoux. Exemples : sertissage, polissage, reparation de chaine, gravure.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-bijoux	\N	\N	candidatures
-307	Service de plomberie	Reparation et installation de plomberie. Exemples : fuite d'eau, debouchage, installation, depannage.	Dépannage & Réparation	\N	\N	\N	\N	service-de-plomberie	\N	\N	candidatures
-309	Service d'electricite	Reparation electrique. Exemples : prise, interrupteur, eclairage, depannage electrique.	Dépannage & Réparation	\N	\N	\N	\N	service-d-electricite	\N	\N	candidatures
-311	Service de serrurerie	Depannage et urgence de serrures. Exemples : ouverture de porte, changement de serrure, blindage, cles.	Dépannage & Réparation	\N	\N	\N	\N	service-de-serrurerie	\N	\N	candidatures
-625	Demande de subvention	Saisie et mise en forme de dossiers de subventions, gestion administrative et suivi	Secrétariat	\N	\N	\N	\N	demande-de-subvention-secretariat	\N	\N	candidatures
-331	Service de vitrerie	Reparation et installation de vitres. Exemples : double vitrage, miroir, vitrine, securite, sur mesure.	Dépannage & Réparation	\N	\N	\N	\N	service-de-vitrerie	\N	\N	candidatures
-333	Service de zinguerie	Travaux de zinguerie et metallerie. Exemples : gouttiere, cheneau, zinc, plomb, etancheite.	Dépannage & Réparation	\N	\N	\N	\N	service-de-zinguerie	\N	\N	candidatures
-335	Service de isolation	Travaux d'isolation thermique et phonique. Exemples : combles, murs, cloisons, laine de verre, economie d'energie.	Dépannage & Réparation	\N	\N	\N	\N	service-de-isolation	\N	\N	candidatures
-349	Service de ventilation	Installation et entretien de systemes de ventilation. Exemples : VMC, extraction, aeration, purification.	Dépannage & Réparation	\N	\N	\N	\N	service-de-ventilation	\N	\N	candidatures
-353	Service de climatisation reversible	Installation de systemes de climatisation reversible. Exemples : chaud-froid, economie d'energie, confort thermique.	Dépannage & Réparation	\N	\N	\N	\N	service-de-climatisation-reversible	\N	\N	candidatures
-357	Service de panneaux solaires	Installation de panneaux photovoltaiques. Exemples : electricite verte, economie, autoconsommation, ecologie.	Dépannage & Réparation	\N	\N	\N	\N	service-de-panneaux-solaires	\N	\N	candidatures
-363	Service de compostage	Installation de systemes de compostage. Exemples : composteur, lombricompostage, ecologie, recyclage organique.	Dépannage & Réparation	\N	\N	\N	\N	service-de-compostage	\N	\N	candidatures
-381	Service de toiture vegetalisee	Installation de toitures vegetales. Exemples : isolation naturelle, ecologie, biodiversite urbaine.	Dépannage & Réparation	\N	\N	\N	\N	service-de-toiture-vegetalisee	\N	\N	candidatures
-401	Service de champignonniere	Installation de cultures de champignons. Exemples : shiitake, pleurotes, mycologie, alimentation.	Jardinage	\N	\N	\N	\N	service-de-champignonniere	\N	\N	candidatures
-593	Légumes plein champ	Salades, courgettes, haricots, tomates	Agriculture	\N	\N	\N	\N	legumes-plein-champ	\N	\N	candidatures
-595	Vendanges	Raisins de cuve	Agriculture	\N	\N	\N	\N	vendanges	\N	\N	candidatures
-594	Légumes racines	Carottes, pommes de terre, oignons, betteraves	Agriculture	\N	\N	\N	\N	legumes-racines	\N	\N	candidatures
-596	Plantes aromatiques	Basilic, persil, menthe	Agriculture	\N	\N	\N	\N	plantes-aromatiques	\N	\N	candidatures
-597	Champignons	Cueillette forestière ou culture champignonnière	Agriculture	\N	\N	\N	\N	champignons	\N	\N	candidatures
-605	Élevage ovin / caprin	Tonte, soins, alimentation	Soins aux animaux	\N	\N	\N	\N	elevage-ovin-caprin	\N	\N	candidatures
-604	Élevage bovin	Traite, alimentation, soins veaux	Soins aux animaux	\N	\N	\N	\N	elevage-bovin	\N	\N	candidatures
-606	Élevage porcin / volailles	Nourrissage, ramassage œufs, nettoyage bâtiments	Soins aux animaux	\N	\N	\N	\N	elevage-porcin-volailles	\N	\N	candidatures
-607	Apiculture	Entretien ruches, récolte miel, mise en pots	Soins aux animaux	\N	\N	\N	\N	apiculture	\N	\N	candidatures
-608	Élevage équin	Entretien écuries, soins chevaux, assistance élevage	Soins aux animaux	\N	\N	\N	\N	elevage-equin	\N	\N	candidatures
-340	Cours de hautbois	Apprentissage du hautbois. Exemples : anche double, classique, orchestre, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-hautbois	\N	\N	candidatures
-151	Aide à la création de micro-entreprise	Accompagnement pour toutes les démarches administratives de création d'entreprise	Administratif	\N	\N	2	f	aide-la-cr-ation-de-micro-entreprise-2	\N	\N	candidatures
-342	Cours de basson	Apprentissage du basson. Exemples : anche double, classique, orchestre, grave, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-basson	\N	\N	candidatures
-344	Cours de harpe	Apprentissage de la harpe. Exemples : cordes pincees, classique, celtique, technique des doigts.	Formation	\N	\N	\N	\N	cours-de-harpe	\N	\N	candidatures
-346	Cours de mandoline	Apprentissage de la mandoline. Exemples : cordes doubles, folk, classique, mediator, technique.	Formation	\N	\N	\N	\N	cours-de-mandoline	\N	\N	candidatures
-459	Entretien moteur	Vidange, filtres, courroie, bougies, injecteurs	Mécanique & entretien bateau	\N	\N	\N	\N	entretien-moteur-bateau	\N	\N	candidatures
-337	Service de ravalement	Ravalement et renovation de facades. Exemples : nettoyage, peinture, crepi, pierre, renovation.	Dépannage & Réparation	\N	\N	\N	\N	service-de-ravalement	\N	\N	candidatures
-339	Service de demolition	Travaux de demolition et deblaiement. Exemples : cloison, mur, evacuation, deconstruction, securite.	Dépannage & Réparation	\N	\N	\N	\N	service-de-demolition	\N	\N	candidatures
-341	Service de terrassement	Travaux de terrassement et VRD. Exemples : excavation, fondation, drainage, nivellement, engins.	Dépannage & Réparation	\N	\N	\N	\N	service-de-terrassement	\N	\N	candidatures
-343	Service de charpente	Travaux de charpente et structure bois. Exemples : poutre, fermette, renovation, ossature, bois.	Dépannage & Réparation	\N	\N	\N	\N	service-de-charpente	\N	\N	candidatures
-345	Service de couverture	Travaux de couverture et etancheite. Exemples : tuiles, ardoise, zinc, membrane, refection.	Dépannage & Réparation	\N	\N	\N	\N	service-de-couverture	\N	\N	candidatures
-262	Depannage informatique	Resolution de problemes techniques sur ordinateurs ou appareils electroniques. Exemples : installation de logiciels, suppression de virus, recuperation de donnees, configuration reseau.	Informatique	\N	\N	\N	\N	depannage-informatique	\N	\N	candidatures
-264	Confection ou retouche textile	Creation ou modification de vetements et textiles. Exemples : couture sur mesure, retouche de pantalons, creation de costumes, reparation de vetements.	Textile	\N	\N	\N	\N	confection-ou-retouche-textile	\N	\N	candidatures
-265	Coaching ou accompagnement	Soutien personnalise pour atteindre des objectifs. Exemples : coaching sportif, accompagnement scolaire, conseil en developpement personnel, preparation d'entretiens.	Coaching	\N	\N	\N	\N	coaching-ou-accompagnement	\N	\N	candidatures
-267	Formation ou enseignement	Transmission de connaissances ou de competences. Exemples : cours particuliers, formation professionnelle, atelier pedagogique, initiation a une discipline.	Formation	\N	\N	\N	\N	formation-ou-enseignement	\N	\N	candidatures
-93	Aide aux démarches administratives en ligne	Assistance pour remplir les formulaires administratifs numériques.	Secrétariat	\N	\N	45	f	aide-aux-d-marches-administratives-en-ligne	\N	\N	candidatures
-2	Repassage	Service de repassage.	Service à domicile	\N	2025-06-26 12:48:30.522148	120	f	repassage	\N	\N	candidatures
-609	Conduite engins agricoles	Tracteur, moissonneuse, ensileuse	Agriculture	\N	\N	\N	\N	conduite-engins-agricoles	\N	\N	candidatures
-610	Entretien matériel agricole	Graissage, mécanique, réparations	Mécanique	\N	\N	\N	\N	entretien-materiel-agricole	\N	\N	candidatures
-612	Installation de serres	Abris tunnels, structures de protection	Agriculture	\N	\N	\N	\N	installation-serres	\N	\N	candidatures
-582	Préparation des sols	Labour, hersage, semis	Agriculture	\N	\N	\N	\N	preparation-sols	\N	\N	candidatures
-584	Fertilisation	Apport d'amendements, fertilisants	Agriculture	\N	\N	\N	\N	fertilisation	\N	\N	candidatures
-587	Récolte manuelle	Fruits, légumes, céréales	Agriculture	\N	\N	\N	\N	recolte-manuelle	\N	\N	candidatures
-583	Irrigation / arrosage	Gestion de l'eau, systèmes d'arrosage	Agriculture	\N	\N	\N	\N	irrigation-arrosage	\N	\N	candidatures
-586	Récolte mécanisée	Moissonneuse, vendangeuse, machines agricoles	Agriculture	\N	\N	\N	\N	recolte-mecanisee	\N	\N	candidatures
-585	Désherbage	Désherbage manuel ou mécanique	Agriculture	\N	\N	\N	\N	desherbage	\N	\N	candidatures
-613	Pose de filets protection	Grêle, oiseaux, insectes	Agriculture	\N	\N	\N	\N	pose-filets-protection	\N	\N	candidatures
-588	Conditionnement & stockage	Tri, calibrage, mise en cagettes	Agriculture	\N	\N	\N	\N	conditionnement-stockage	\N	\N	candidatures
-600	Viticulture	Taille, palissage, effeuillage, vendanges	Agriculture	\N	\N	\N	\N	viticulture	\N	\N	candidatures
-601	Arboriculture	Taille, greffe, cueillette	Agriculture	\N	\N	\N	\N	arboriculture	\N	\N	candidatures
-602	Maraîchage	Semis, repiquage, récolte légumes divers	Agriculture	\N	\N	\N	\N	maraichage	\N	\N	candidatures
-589	Fruits à noyaux	Cerises, abricots, pêches, prunes	Agriculture	\N	\N	\N	\N	fruits-noyaux	\N	\N	candidatures
-619	Recherche de billet	Rachat de billet d'événement	Billetterie	\N	\N	\N	\N	recherche-de-billet	\N	\N	candidatures
-620	Vente de billet	Revente de billets d'événements	Billetterie	\N	\N	\N	\N	vente-de-billet	\N	\N	candidatures
-621	Échange de billet	Service d'échange de billets	Billetterie	\N	\N	\N	\N	echange-de-billet	\N	\N	candidatures
-152	Nettoyage de véhicule intérieur / extérieur	Service complet de nettoyage intérieur et extérieur de votre véhicule à domicile.	Nettoyage	\N	\N	60	f	nettoyage-de-v-hicule-int-rieur-ext-rieur	\N	car	candidatures
-272	Atelier de cuisine	Cours de cuisine pour apprendre de nouvelles recettes et techniques culinaires. Exemples : cuisine francaise, patisserie, cuisine du monde, cuisine vegetarienne.	Formation	\N	\N	\N	\N	atelier-de-cuisine	\N	\N	candidatures
-155	Service traiteur à domicile	Préparation, dressage et service de repas à domicile pour repas familiaux ou événements privés.	Service à domicile	\N	\N	\N	f	service-traiteur-domicile	\N	chef-hat	candidatures
-275	Cours de musique	Lecons d'instruments ou de chant. Exemples : piano, guitare, violon, batterie, chant, solfege.	Formation	\N	\N	\N	\N	cours-de-musique	\N	\N	candidatures
-259	Visite culturelle guidee	Decouverte accompagnee de lieux ou d'expositions. Exemples : visite de musee privee, parcours historique dans une ville, decouverte d'un quartier artistique.	Art, Culture & Création	\N	\N	\N	\N	visite-culturelle-guidee	\N	\N	candidatures
-258	Performance artistique sur mesure	Spectacle ou creation artistique personnalisee. Exemples : concert prive, lecture de poesie, performance de danse, recital musical.	Art, Culture & Création	\N	\N	\N	\N	performance-artistique-sur-mesure	\N	\N	candidatures
-255	Service a domicile personnalise	Prestation sur mesure directement chez le client selon ses besoins specifiques. Exemples : assemblage de meubles, aide au rangement, preparation d'evenements prives.	Secrétariat	\N	\N	\N	\N	service-a-domicile-personnalise	\N	\N	candidatures
-266	Activite nautique ou aquatique	Loisirs ou formations lies a l'eau. Exemples : cours de natation, initiation a la voile, location de paddle, sortie en kayak.	Formation	\N	\N	\N	\N	activite-nautique-ou-aquatique	\N	\N	candidatures
-270	Cours de danse prive	Lecon de danse personnalisee selon le niveau et les preferences. Exemples : valse, tango, salsa, danse contemporaine, hip-hop.	Formation	\N	\N	\N	\N	cours-de-danse-prive	\N	\N	candidatures
-256	Activite de loisirs creatifs	Atelier artistique ou manuel pour apprendre une technique. Exemples : cours de poterie, initiation a la peinture, atelier de bijoux, session de sculpture.	Art, Culture & Création	\N	\N	\N	\N	activite-de-loisirs-creatifs	\N	\N	candidatures
-253	Service de discretion ou de confiance	Mission sensible ou confidentielle necessitant une personne de confiance. Exemples : remise d'une lettre personnelle, accompagnement discret a un rendez-vous, observation de situation sur demande.	Conciergerie	\N	\N	\N	\N	service-de-discretion-ou-de-confiance	\N	\N	candidatures
-257	Seance de bien-etre ou relaxation	Prestation de detente et de remise en forme. Exemples : massage therapeutique, seance de yoga, meditation guidee, soins esthetiques.	Bien-être	\N	\N	\N	\N	seance-de-bien-etre-ou-relaxation	\N	\N	candidatures
-271	Massage therapeutique	Soin corporel pour soulager les tensions et douleurs. Exemples : massage suedois, shiatsu, massage des tissus profonds, reflexologie.	Bien-être	\N	\N	\N	\N	massage-therapeutique	\N	\N	candidatures
-261	Reparation ou restauration	Remise en etat d'objets endommages ou anciens. Exemples : reparation de meubles, restauration de tableaux, retouche de vetements, renovation d'objets vintage.	Dépannage & Réparation	\N	\N	\N	\N	reparation-ou-restauration	\N	\N	candidatures
-274	Reparation de velos	Entretien et reparation de bicyclettes. Exemples : changement de pneus, reglage des freins, revision complete, reparation de chaine.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-velos	\N	\N	candidatures
-276	Service de menage	Nettoyage et entretien de domiciles ou bureaux. Exemples : aspirateur, serpilliere, nettoyage de vitres, rangement.	Nettoyage	\N	\N	\N	\N	service-de-menage	\N	\N	candidatures
-283	Cours de langue	Apprentissage de langues etrangeres. Exemples : anglais, espagnol, allemand, italien, chinois.	Formation	\N	\N	\N	\N	cours-de-langue	\N	\N	candidatures
-288	Cours de theatre	Apprentissage de l'art dramatique. Exemples : improvisation, technique vocale, expression corporelle, mise en scene.	Formation	\N	\N	\N	\N	cours-de-theatre	\N	\N	candidatures
-290	Reparation d'ordinateurs	Depannage et reparation d'equipements informatiques. Exemples : virus, lenteur, ecran casse, recuperation de donnees.	Informatique	\N	\N	\N	\N	reparation-d-ordinateurs	\N	\N	candidatures
-293	Cours de conduite	Apprentissage de la conduite automobile. Exemples : permis B, conduite accompagnee, perfectionnement, conduite defensive.	Formation	\N	\N	\N	\N	cours-de-conduite	\N	\N	candidatures
-294	Service de traduction	Traduction de documents ou interpretariat. Exemples : traduction ecrite, interpretation, revision, localisation.	Formation	\N	\N	\N	\N	service-de-traduction	\N	\N	candidatures
-481	Cuisinier / commis	Préparation des plats, mise en place	Restauration	\N	\N	\N	\N	cuisinier-commis	\N	\N	candidatures
-23	Préparation repas senior	Service de préparation repas senior.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	livraison-repas-senior	1429f2da-7f81-42a3-9e84-08443c23399d	\N	candidatures
-13	Garde d’enfants	Service de garde d’enfants & babby siiting	Enfance & famille	\N	2025-06-26 12:48:30.522148	90	f	garde-d-enfants	57cc1020-d9a6-4195-8205-9e95e31cbfe2	\N	candidatures
-308	Cours de dessin	Apprentissage du dessin et techniques graphiques. Exemples : crayon, fusain, perspective, portrait, nature morte.	Art, Culture & Création	\N	\N	\N	\N	cours-de-dessin	\N	\N	candidatures
-296	Cours de pilates	Seances de pilates pour renforcement musculaire. Exemples : pilates matwork, pilates machine, reeducation posturale.	Coaching	\N	\N	\N	\N	cours-de-pilates	\N	\N	candidatures
-278	Cours de peinture	Atelier d'apprentissage des techniques picturales. Exemples : aquarelle, huile, acrylique, pastel, dessin.	Art, Culture & Création	\N	\N	\N	\N	cours-de-peinture	\N	\N	candidatures
-291	Cours de sculpture	Apprentissage de l'art de la sculpture. Exemples : argile, pierre, bois, metal, modelage.	Art, Culture & Création	\N	\N	\N	\N	cours-de-sculpture	\N	\N	candidatures
-286	Cours de natation	Apprentissage de la natation et perfectionnement. Exemples : apprentissage, perfectionnement, aquagym, natation synchronisee.	Formation	\N	\N	\N	\N	cours-de-natation	\N	\N	candidatures
-284	Service de coiffure a domicile	Prestation capillaire au domicile du client. Exemples : coupe, brushing, coloration, mise en plis.	Service à domicile	\N	\N	\N	\N	service-de-coiffure-a-domicile	\N	\N	candidatures
-289	Service de repassage	Repassage de vetements et linge. Exemples : chemises, robes, linge de maison, pressing.	Service à domicile	\N	\N	\N	\N	service-de-repassage	\N	\N	candidatures
-280	Cours de yoga	Seances de yoga pour bien-etre et relaxation. Exemples : hatha yoga, vinyasa, yoga nidra, meditation.	Bien-être	\N	\N	\N	\N	cours-de-yoga	\N	\N	candidatures
-277	Reparation d'appareils electromenagers	Depannage et reparation d'equipements de la maison. Exemples : lave-linge, lave-vaisselle, refrigerateur, four, micro-ondes.	Dépannage & Réparation	\N	\N	\N	\N	reparation-d-appareils-electromenagers	\N	\N	candidatures
-281	Reparation de montres	Entretien et reparation d'horlogerie. Exemples : changement de pile, reparation de mecanisme, polissage, ajustement de bracelet.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-montres	\N	\N	candidatures
-285	Reparation de chaussures	Entretien et reparation de chaussures. Exemples : ressemelage, reparation de talon, cirage, entretien du cuir.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-chaussures	\N	\N	candidatures
-28	Garde d’animaux	Service de garde d’animaux.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	45	f	garde-d-animaux	\N	\N	candidatures
-29	Toilettage à domicile	Service de toilettage à domicile.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	90	f	toilettage-domicile	\N	\N	candidatures
-30	Visite vétérinaire	Service de visite vétérinaire.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	90	f	visite-v-t-rinaire	\N	\N	candidatures
-51	Ramassage feuilles	Service de ramassage feuilles.	Jardinage	\N	2025-06-26 12:48:30.522148	30	f	ramassage-feuilles	\N	\N	candidatures
-53	Débroussaillage	Service de débroussaillage.	Jardinage	\N	2025-06-26 12:48:30.522148	30	f	d-broussaillage	\N	\N	candidatures
-54	Désherbage	Service de désherbage.	Jardinage	\N	2025-06-26 12:48:30.522148	90	f	d-sherbage	\N	\N	candidatures
-304	Service de soutien scolaire	Aide aux devoirs et cours particuliers. Exemples : mathematiques, francais, sciences, preparation d'examens.	Formation	\N	\N	\N	\N	service-de-soutien-scolaire	\N	\N	candidatures
-64	Portage cartons	Service de portage cartons.	Déménagement	\N	2025-06-26 12:48:30.522148	45	f	portage-cartons	\N	\N	candidatures
-65	Location utilitaire	Service de location utilitaire.	Déménagement	\N	2025-06-26 12:48:30.522148	90	f	location-utilitaire	\N	\N	candidatures
-67	Déballage	Service de déballage.	Déménagement	\N	2025-06-26 12:48:30.522148	120	f	d-ballage	\N	\N	candidatures
-57	Plomberie (fuite, siphon)	Service de plomberie (fuite, siphon).	Bâtiment	\N	2025-06-26 12:48:30.522148	30	f	plomberie-fuite-siphon-	\N	\N	candidatures
-56	Électricité (prise, ampoule)	Service d'électricité (prise, ampoule).	Bâtiment	\N	2025-06-26 12:48:30.522148	60	f	-lectricit-prise-ampoule-	\N	\N	candidatures
-310	Cours de chant	Apprentissage du chant et techniques vocales. Exemples : technique vocale, interpretation, chorale, solo.	Formation	\N	\N	\N	\N	cours-de-chant	\N	\N	candidatures
-58	Serrurerie	Service de serrurerie.	Bâtiment	\N	2025-06-26 12:48:30.522148	60	f	serrurerie	\N	\N	candidatures
-66	Emballage	Service d'emballage.	Déménagement	\N	2025-06-26 12:48:30.522148	120	f	emballage	\N	\N	candidatures
-52	Arrosage plantes	Service d'arrosage plantes.	Jardinage	\N	2025-06-26 12:48:30.522148	120	f	arrosage-plantes	\N	\N	candidatures
-37	Accompagnement RDV	Service d'accompagnement à un rdv.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	45	f	accompagnement-rdv	\N	\N	candidatures
-98	Réalisation d’albums photo/souvenirs numériques	Création de souvenirs personnalisés pour les enfants et familles.	Enfance & famille	\N	\N	90	f	r-alisation-d-albums-photo-souvenirs-num-riques	\N	\N	candidatures
-99	Cours de langue à domicile pour enfants	Anglais, espagnol, allemand, adaptés aux jeunes publics.	Enfance & famille	\N	\N	60	f	cours-de-langue-domicile-pour-enfants	\N	\N	candidatures
-100	Accompagnement d’enfants neuro-atypiques	Soutien et activités adaptées aux enfants DYS ou TSA.	Enfance & famille	\N	\N	90	f	accompagnement-d-enfants-neuro-atypiques	\N	\N	candidatures
-101	Pose d’alarmes ou de détecteurs de fumée	Installation sécurisée dans les habitations.	Bricolage	\N	\N	30	f	pose-d-alarmes-ou-de-d-tecteurs-de-fum-e	\N	\N	candidatures
-298	Cours de poterie	Apprentissage de la ceramique et poterie. Exemples : tournage, modelage, emaillage, cuisson.	Art, Culture & Création	\N	\N	\N	\N	cours-de-poterie	\N	\N	candidatures
-302	Service de bricolage	Petits travaux de bricolage a domicile. Exemples : montage de meubles, reparations mineures, pose d'etageres.	Bricolage	\N	\N	\N	\N	service-de-bricolage	\N	\N	candidatures
-25	Lecture à domicile	Service de lecture à domicile.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	45	f	lecture-domicile	\N	\N	candidatures
-80	Traduction	Service de traduction.	Secrétariat	\N	2025-06-26 12:48:30.522148	120	f	traduction	\N	\N	candidatures
-369	Service de permaculture	Conseil et amenagement en permaculture. Exemples : design ecologique, biodiversite, agriculture naturelle.	Jardinage	\N	\N	\N	\N	service-de-permaculture	\N	\N	candidatures
-60	Isolation thermique	Service de isolation thermique.	Bâtiment	\N	2025-06-26 12:48:30.522148	30	f	isolation-thermique	\N	\N	candidatures
-299	Service de baby-sitting	Garde d'enfants a domicile. Exemples : garde d'enfants, aide aux devoirs, activites ludiques, securite.	Enfance & famille	\N	\N	\N	\N	service-de-baby-sitting	\N	\N	candidatures
-61	Réglage volets roulants	Service de réglage volets roulants.	Dépannage & Réparation	\N	2025-06-26 12:48:30.522148	90	f	r-glage-volets-roulants	\N	\N	candidatures
-300	Reparation d'instruments de musique	Entretien et reparation d'instruments musicaux. Exemples : accordage, reparation de cordes, entretien de cuivres.	Dépannage & Réparation	\N	\N	\N	\N	reparation-d-instruments-de-musique	\N	\N	candidatures
-305	Reparation de voitures	Entretien et reparation automobile. Exemples : vidange, freins, pneus, diagnostic, carrosserie.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-voitures	\N	\N	candidatures
-59	Débouchage de réseaux	Service de débouchage de réseaux, éviers, toilettes.	Dépannage & Réparation	\N	2025-06-26 12:48:30.522148	90	f	d-bouchage	\N	\N	candidatures
-301	Cours de meditation	Apprentissage de techniques de meditation. Exemples : meditation de pleine conscience, meditation guidee, relaxation.	Bien-être	\N	\N	\N	\N	cours-de-meditation	\N	\N	candidatures
-306	Cours de fitness	Entrainement physique personnalise. Exemples : musculation, cardio, preparation physique, remise en forme.	Bien-être	\N	\N	\N	\N	cours-de-fitness	\N	\N	candidatures
-31	Alimentation animaux	Service d'alimentation animaux.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	45	f	alimentation-animaux	\N	\N	candidatures
-107	Entretien de balcons et plantes d’intérieur	Soins, arrosage, rempotage et nettoyage des plantes.	Jardinage	\N	\N	45	f	entretien-de-balcons-et-plantes-d-int-rieur	\N	\N	candidatures
-87	Esthéticienne	Service de esthéticienne.	Bien-être	\N	2025-06-26 12:48:30.522148	45	f	esth-ticienne	\N	\N	candidatures
-312	Cours de danse classique	Apprentissage de la danse classique. Exemples : barre, centre, pointes, ballet, technique classique.	Formation	\N	\N	\N	\N	cours-de-danse-classique	\N	\N	candidatures
-88	Coiffeur à domicile	Service de coiffeur à domicile.	Service à domicile	\N	2025-06-26 12:48:30.522148	60	f	coiffeur-domicile	\N	\N	candidatures
-111	Réception de colis à domicile	Réception de colis en ton absence avec remise en main propre.	Aide à domicile	\N	\N	30	f	r-ception-de-colis-domicile	\N	\N	candidatures
-89	Massage bien-être	Service de massage bien-être.	Bien-être	\N	2025-06-26 12:48:30.522148	45	f	massage-bien-tre	\N	\N	candidatures
-86	Coach sportif	Service de coach sportif.	Coaching	\N	2025-06-26 12:48:30.522148	120	f	coach-sportif	\N	\N	candidatures
-91	Concierge privé	Service de concierge privé.	Conciergerie	\N	2025-06-26 12:48:30.522148	45	f	concierge-priv-	\N	\N	candidatures
-108	Aide au changement d’adresse	Accompagnement physique et administratif lors du déménagement.	Administratif	\N	\N	90	f	aide-au-changement-d-adresse	\N	\N	candidatures
-90	Styliste personnel	Service de styliste personnel.	Coaching	\N	2025-06-26 12:48:30.522148	30	f	styliste-personnel	\N	\N	candidatures
-316	Cours de guitare	Apprentissage de la guitare. Exemples : acoustique, electrique, classique, folk, rock.	Formation	\N	\N	\N	\N	cours-de-guitare	\N	\N	candidatures
-318	Cours de piano	Apprentissage du piano. Exemples : classique, jazz, pop, solfege, technique pianistique.	Formation	\N	\N	\N	\N	cours-de-piano	\N	\N	candidatures
-313	Service de maconnerie	Travaux de maconnerie et construction. Exemples : mur, dalle, renovation, construction, pierre.	Bâtiment	\N	\N	\N	\N	service-de-maconnerie	\N	\N	candidatures
-142	Coaching vie personnelle	Atteinte d’objectifs personnels, gestion du stress, équilibre vie pro/perso.	Coaching	\N	\N	60	f	coaching-vie-personnelle	\N	\N	candidatures
-143	Coaching parental	Accompagnement à la parentalité, écoute et conseils.	Coaching	\N	\N	60	f	coaching-parental	\N	\N	candidatures
-144	Coaching orientation jeunes	Aide à l’orientation scolaire et professionnelle des adolescents.	Coaching	\N	\N	45	f	coaching-orientation-jeunes	\N	\N	candidatures
-145	Coaching confiance en soi	Développement personnel et estime de soi.	Coaching	\N	\N	60	f	coaching-confiance-en-soi	\N	\N	candidatures
-315	Service de peinture	Peinture et decoration interieure. Exemples : murs, plafonds, papier peint, decoration, renovation.	Bâtiment	\N	\N	\N	\N	service-de-peinture	\N	\N	candidatures
-317	Service de menuiserie	Travaux de menuiserie et ebenisterie. Exemples : meuble, etagere, porte, fenetre, bois.	Bâtiment	\N	\N	\N	\N	service-de-menuiserie	\N	\N	candidatures
-314	Cours de tai chi	Pratique du tai chi chuan. Exemples : mouvements lents, energie, equilibre, meditation en mouvement.	Bien-être	\N	\N	\N	\N	cours-de-tai-chi	\N	\N	candidatures
-324	Cours de saxophone	Apprentissage du saxophone. Exemples : embouchure, jazz, classique, anche, techniques de souffle.	Formation	\N	\N	\N	\N	cours-de-saxophone	\N	\N	candidatures
-150	Assistance Ordinateur	Aide à domicile pour ordinateur	Aide à domicile	\N	\N	\N	\N	assistance-informatique	\N	\N	candidatures
-92	Préparation des médicaments	Aide à la préparation hebdomadaire des traitements médicaux.	Aide à domicile	\N	\N	30	f	pr-paration-des-m-dicaments	72f0914e-012a-45b4-b633-8e8cb3f59cea	\N	candidatures
-430	Entretien courant	Vidange, filtres (huile, air, carburant, habitacle), bougies	Mécanique automobile	\N	\N	\N	\N	entretien-courant-auto	\N	\N	candidatures
-431	Freinage	Plaquettes, disques, purge du liquide de frein	Mécanique automobile	\N	\N	\N	\N	freinage-auto	\N	\N	candidatures
-432	Transmission	Embrayage, boîte de vitesses, cardans, transmission automatique	Mécanique automobile	\N	\N	\N	\N	transmission-auto	\N	\N	candidatures
-433	Suspension & direction	Amortisseurs, rotules, parallélisme	Mécanique automobile	\N	\N	\N	\N	suspension-direction-auto	\N	\N	candidatures
-434	Moteur	Courroie ou chaîne de distribution, joints, injecteurs, turbo, culasse	Mécanique automobile	\N	\N	\N	\N	moteur-auto	\N	\N	candidatures
-435	Système de refroidissement	Radiateur, pompe à eau, liquide de refroidissement	Mécanique automobile	\N	\N	\N	\N	refroidissement-auto	\N	\N	candidatures
-436	Échappement & pollution	Pot d'échappement, catalyseur, FAP, sonde lambda	Mécanique automobile	\N	\N	\N	\N	echappement-pollution-auto	\N	\N	candidatures
-437	Électricité & électronique	Batterie, alternateur, démarreur, capteurs, fusibles	Mécanique automobile	\N	\N	\N	\N	electricite-electronique-auto	\N	\N	candidatures
-438	Pneumatiques	Montage, équilibrage, permutation, réparation crevaison	Mécanique automobile	\N	\N	\N	\N	pneumatiques-auto	\N	\N	candidatures
-439	Climatisation & chauffage	Recharge de gaz, compresseur, condenseur	Mécanique automobile	\N	\N	\N	\N	climatisation-chauffage-auto	\N	\N	candidatures
-440	Carrosserie légère	Changement de rétroviseur, pare-chocs, optiques, vitres	Mécanique automobile	\N	\N	\N	\N	carrosserie-legere-auto	\N	\N	candidatures
-441	Diagnostic & électronique embarquée	Valise diagnostic, reset voyants	Mécanique automobile	\N	\N	\N	\N	diagnostic-electronique-auto	\N	\N	candidatures
-442	Entretien courant	Vidange, filtres, bougies	Mécanique moto & scooter	\N	\N	\N	\N	entretien-courant-moto	\N	\N	candidatures
-443	Transmission	Kit chaîne, courroie, embrayage	Mécanique moto & scooter	\N	\N	\N	\N	transmission-moto	\N	\N	candidatures
-444	Freinage	Plaquettes, disques, purge hydraulique	Mécanique moto & scooter	\N	\N	\N	\N	freinage-moto	\N	\N	candidatures
-445	Suspensions	Fourche, amortisseurs	Mécanique moto & scooter	\N	\N	\N	\N	suspensions-moto	\N	\N	candidatures
-446	Électricité	Batterie, alternateur, éclairage, démarreur	Mécanique moto & scooter	\N	\N	\N	\N	electricite-moto	\N	\N	candidatures
-447	Moteur	Joints, culasse, carburation/injection, échappement	Mécanique moto & scooter	\N	\N	\N	\N	moteur-moto	\N	\N	candidatures
-448	Pneumatiques	Montage, équilibrage, réparation	Mécanique moto & scooter	\N	\N	\N	\N	pneumatiques-moto	\N	\N	candidatures
-449	Accessoires	Top-case, bulle, poignées chauffantes	Mécanique moto & scooter	\N	\N	\N	\N	accessoires-moto	\N	\N	candidatures
-450	Diagnostic électronique	ECU, voyants	Mécanique moto & scooter	\N	\N	\N	\N	diagnostic-electronique-moto	\N	\N	candidatures
-451	Réglages de base	Freins, dérailleurs, vitesses	Mécanique vélo	\N	\N	\N	\N	reglages-base-velo	\N	\N	candidatures
-452	Transmission	Chaîne, cassette, plateau, pédalier	Mécanique vélo	\N	\N	\N	\N	transmission-velo	\N	\N	candidatures
-453	Freinage	Patins, disques, câbles ou durites hydrauliques	Mécanique vélo	\N	\N	\N	\N	freinage-velo	\N	\N	candidatures
-454	Roues & pneus	Montage, chambre à air, tubeless, dévoilage roue	Mécanique vélo	\N	\N	\N	\N	roues-pneus-velo	\N	\N	candidatures
-460	Transmission & propulsion	Hélice, embase, arbre, inverseur	Mécanique & entretien bateau	\N	\N	\N	\N	transmission-propulsion-bateau	\N	\N	candidatures
-461	Circuit carburant	Réservoir, durites, pompe	Mécanique & entretien bateau	\N	\N	\N	\N	circuit-carburant-bateau	\N	\N	candidatures
-462	Circuit électrique	Batteries, alternateur, démarreur, éclairage, panneaux solaires	Mécanique & entretien bateau	\N	\N	\N	\N	circuit-electrique-bateau	\N	\N	candidatures
-463	Circuit d'eau	Pompe de cale, eau douce, sanitaire, désalinisation	Mécanique & entretien bateau	\N	\N	\N	\N	circuit-eau-bateau	\N	\N	candidatures
-464	Refroidissement	Pompe à eau de mer, échangeur, liquide de refroidissement	Mécanique & entretien bateau	\N	\N	\N	\N	refroidissement-bateau	\N	\N	candidatures
-465	Système de navigation	GPS, sondeur, pilote automatique, radar	Mécanique & entretien bateau	\N	\N	\N	\N	systeme-navigation-bateau	\N	\N	candidatures
-466	Sécurité & équipements	Gilets, radeau de survie, extincteurs	Mécanique & entretien bateau	\N	\N	\N	\N	securite-equipements-bateau	\N	\N	candidatures
-467	Carénage	Nettoyage carène, antifouling, anodes, peinture coque	Mécanique & entretien bateau	\N	\N	\N	\N	carenage-bateau	\N	\N	candidatures
-468	Voiles & gréement	Voiles, haubans, drisses, winchs	Mécanique & entretien bateau	\N	\N	\N	\N	voiles-greement-bateau	\N	\N	candidatures
-469	Accastillage & aménagements	Taquets, rails, cabestan, aménagement intérieur	Mécanique & entretien bateau	\N	\N	\N	\N	accastillage-amenagements-bateau	\N	\N	candidatures
-470	Climatisation / chauffage / réfrigération	Yachts, voiliers habitables	Mécanique & entretien bateau	\N	\N	\N	\N	climatisation-chauffage-refrigeration-bateau	\N	\N	candidatures
-471	Freinage	Patins, disques, tambours, câbles, purge hydraulique	Mécanique trottinette	\N	\N	\N	\N	freinage-trottinette	\N	\N	candidatures
-472	Transmission & roues	Pneus, chambre à air, moteur roue, roulements	Mécanique trottinette	\N	\N	\N	\N	transmission-roues-trottinette	\N	\N	candidatures
-473	Électricité	Batterie, contrôleur, câblage, chargeur	Mécanique trottinette	\N	\N	\N	\N	electricite-trottinette	\N	\N	candidatures
-474	Éclairage & accessoires	Phares, feux arrière, klaxon, guidon	Mécanique trottinette	\N	\N	\N	\N	eclairage-accessoires-trottinette	\N	\N	candidatures
-475	Suspension	Fourche avant, amortisseurs arrière	Mécanique trottinette	\N	\N	\N	\N	suspension-trottinette	\N	\N	candidatures
-476	Châssis & pliage	Charnières, colonne de direction, plateau	Mécanique trottinette	\N	\N	\N	\N	chassis-pliage-trottinette	\N	\N	candidatures
-477	Logiciel & diagnostic	Mise à jour firmware, affichage compteur, capteurs	Mécanique trottinette	\N	\N	\N	\N	logiciel-diagnostic-trottinette	\N	\N	candidatures
-478	Révision complète	Serrages, graissage, nettoyage, réglages	Mécanique trottinette	\N	\N	\N	\N	revision-complete-trottinette	\N	\N	candidatures
-326	Cours de flute	Apprentissage de la flute traversiere. Exemples : embouchure, classique, baroque, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-flute	\N	\N	candidatures
-328	Cours de trompette	Apprentissage de la trompette. Exemples : embouchure, jazz, classique, fanfare, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-trompette	\N	\N	candidatures
-330	Cours de clarinette	Apprentissage de la clarinette. Exemples : anche, classique, jazz, klezmer, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-clarinette	\N	\N	candidatures
-332	Cours de violoncelle	Apprentissage du violoncelle. Exemples : archet, doigtes, classique, position, technique.	Formation	\N	\N	\N	\N	cours-de-violoncelle	\N	\N	candidatures
-334	Cours de tuba	Apprentissage du tuba. Exemples : embouchure, orchestre, harmonie, technique de souffle, grave.	Formation	\N	\N	\N	\N	cours-de-tuba	\N	\N	candidatures
-336	Cours de cor	Apprentissage du cor d'harmonie. Exemples : embouchure, classique, orchestre, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-cor	\N	\N	candidatures
-348	Cours de banjo	Apprentissage du banjo. Exemples : bluegrass, folk, country, picking, technique.	Formation	\N	\N	\N	\N	cours-de-banjo	\N	\N	candidatures
-350	Cours d'accordeon	Apprentissage de l'accordeon. Exemples : diatonique, chromatique, folk, musette, soufflet.	Formation	\N	\N	\N	\N	cours-d-accordeon	\N	\N	candidatures
-352	Cours d'harmonica	Apprentissage de l'harmonica. Exemples : blues, folk, country, embouchure, technique de souffle.	Formation	\N	\N	\N	\N	cours-d-harmonica	\N	\N	candidatures
-354	Cours de kalimba	Apprentissage du kalimba ou piano a pouces. Exemples : musique africaine, relaxation, melodies simples.	Formation	\N	\N	\N	\N	cours-de-kalimba	\N	\N	candidatures
-356	Cours de tabla	Apprentissage du tabla indien. Exemples : rythmes indiens, percussion, meditation, world music.	Formation	\N	\N	\N	\N	cours-de-tabla	\N	\N	candidatures
-321	Service de climatisation	Installation et entretien de climatisation. Exemples : installation, maintenance, reparation, nettoyage.	Dépannage & Réparation	\N	\N	\N	\N	service-de-climatisation	\N	\N	candidatures
-323	Service de chauffage	Installation et entretien de systemes de chauffage. Exemples : chaudiere, radiateur, pompe a chaleur, maintenance.	Dépannage & Réparation	\N	\N	\N	\N	service-de-chauffage	\N	\N	candidatures
-325	Service de toiture	Reparation et entretien de toitures. Exemples : tuiles, ardoise, etancheite, gouttiere, isolation.	Dépannage & Réparation	\N	\N	\N	\N	service-de-toiture	\N	\N	candidatures
-327	Service de carrelage	Pose et reparation de carrelage. Exemples : sol, mur, salle de bain, cuisine, faience.	Dépannage & Réparation	\N	\N	\N	\N	service-de-carrelage	\N	\N	candidatures
-329	Service de parquet	Pose et entretien de parquet. Exemples : massif, stratifie, poncage, vitrification, renovation.	Dépannage & Réparation	\N	\N	\N	\N	service-de-parquet	\N	\N	candidatures
-366	Cours de djembe	Apprentissage du djembe africain. Exemples : rythmes africains, percussion, cercle de tambours, world music.	Formation	\N	\N	\N	\N	cours-de-djembe	\N	\N	candidatures
-368	Cours de congas	Apprentissage des congas cubaines. Exemples : salsa, latin jazz, percussion, rythmes afro-cubains.	Formation	\N	\N	\N	\N	cours-de-congas	\N	\N	candidatures
-370	Cours de bongos	Apprentissage des bongos. Exemples : salsa, latin jazz, percussion, technique des doigts.	Formation	\N	\N	\N	\N	cours-de-bongos	\N	\N	candidatures
-372	Cours de timbales	Apprentissage des timbales. Exemples : orchestre, percussion classique, technique de mailloche.	Formation	\N	\N	\N	\N	cours-de-timbales	\N	\N	candidatures
-374	Cours de marimba	Apprentissage du marimba. Exemples : percussion melodique, musique d'Amerique centrale, mailloche.	Formation	\N	\N	\N	\N	cours-de-marimba	\N	\N	candidatures
-376	Cours de vibraphone	Apprentissage du vibraphone. Exemples : jazz, percussion melodique, mailloche, technique moderne.	Formation	\N	\N	\N	\N	cours-de-vibraphone	\N	\N	candidatures
-378	Cours de glockenspiel	Apprentissage du glockenspiel. Exemples : percussion melodique, orchestre, mailloche, metal.	Formation	\N	\N	\N	\N	cours-de-glockenspiel	\N	\N	candidatures
-380	Cours de crotales	Apprentissage des crotales. Exemples : percussion classique, orchestre, technique precise, cristallin.	Formation	\N	\N	\N	\N	cours-de-crotales	\N	\N	candidatures
-382	Cours de triangle	Apprentissage du triangle. Exemples : percussion classique, orchestre, technique de frappe, metal.	Formation	\N	\N	\N	\N	cours-de-triangle	\N	\N	candidatures
-384	Cours de cymbales	Apprentissage des cymbales. Exemples : orchestre, percussion, technique de frappe, resonance.	Formation	\N	\N	\N	\N	cours-de-cymbales	\N	\N	candidatures
-386	Cours de cloche tubulaire	Apprentissage des cloches tubulaires. Exemples : orchestre, percussion melodique, mailloche, grave.	Formation	\N	\N	\N	\N	cours-de-cloche-tubulaire	\N	\N	candidatures
-479	Chef cuisinier	Direction de cuisine, création de menus, encadrement d'équipe	Restauration	\N	\N	\N	\N	chef-cuisinier	\N	\N	candidatures
-388	Cours de gong	Apprentissage du gong. Exemples : meditation, therapie sonore, relaxation, vibrations.	Formation	\N	\N	\N	\N	cours-de-gong	\N	\N	candidatures
-390	Cours de bol tibetain	Apprentissage du bol chantant tibetain. Exemples : meditation, therapie sonore, relaxation, spiritualite.	Formation	\N	\N	\N	\N	cours-de-bol-tibetain	\N	\N	candidatures
-392	Cours de carillon	Apprentissage du carillon. Exemples : cloches, melodie, tradition, technique de frappe.	Formation	\N	\N	\N	\N	cours-de-carillon	\N	\N	candidatures
-394	Cours de lithophone	Apprentissage du lithophone. Exemples : percussion sur pierre, sons naturels, musique primitive.	Formation	\N	\N	\N	\N	cours-de-lithophone	\N	\N	candidatures
-365	Service de potager	Creation et entretien de potagers. Exemples : plantation, permaculture, legumes bio, jardinage ecologique.	Jardinage	\N	\N	\N	\N	service-de-potager	\N	\N	candidatures
-367	Service de ruches	Installation et entretien de ruches. Exemples : apiculture, miel, pollinisation, ecologie, abeilles.	Agriculture	\N	\N	\N	\N	service-de-ruches	\N	\N	candidatures
-371	Service de mare naturelle	Creation de mares et bassins naturels. Exemples : biodiversite, ecosysteme aquatique, faune, flore.	Jardinage	\N	\N	\N	\N	service-de-mare-naturelle	\N	\N	candidatures
-375	Service de haie bocagere	Plantation de haies ecologiques. Exemples : biodiversite, protection, faune, corridors ecologiques.	Jardinage	\N	\N	\N	\N	service-de-haie-bocagere	\N	\N	candidatures
-373	Service de nichoirs	Installation de nichoirs et mangeoires. Exemples : oiseaux, biodiversite, observation, ecologie.	Agriculture	\N	\N	\N	\N	service-de-nichoirs	\N	\N	candidatures
-377	Service de prairie fleurie	Creation de prairies fleuries. Exemples : biodiversite, pollinisateurs, ecologie, fleurs sauvages.	Jardinage	\N	\N	\N	\N	service-de-prairie-fleurie	\N	\N	candidatures
-379	Service de jardin therapeutique	Creation de jardins a visee therapeutique. Exemples : hortitherapie, bien-etre, plantes medicinales.	Jardinage	\N	\N	\N	\N	service-de-jardin-therapeutique	\N	\N	candidatures
-383	Service de mur vegetal	Installation de murs vegetalises. Exemples : vegetalisation verticale, purification air, decoration verte.	Jardinage	\N	\N	\N	\N	service-de-mur-vegetal	\N	\N	candidatures
-385	Service de jardin japonais	Creation de jardins zen japonais. Exemples : meditation, esthetique, minimalisme, harmonie.	Jardinage	\N	\N	\N	\N	service-de-jardin-japonais	\N	\N	candidatures
-389	Service de foret comestible	Creation de forets nouricieres. Exemples : permaculture, arbres fruitiers, ecosysteme comestible.	Agriculture	\N	\N	\N	\N	service-de-foret-comestible	\N	\N	candidatures
-391	Service de labyrinthe vegetal	Creation de labyrinthes de jardin. Exemples : meditation, jeu, esthetique, cheminement spirituel.	Jardinage	\N	\N	\N	\N	service-de-labyrinthe-vegetal	\N	\N	candidatures
-387	Service de spirale aromatique	Creation de spirales d'herbes aromatiques. Exemples : permaculture, cuisine, medecine douce, biodiversite.	Jardinage	\N	\N	\N	\N	service-de-spirale-aromatique	\N	\N	candidatures
-393	Service de jardin de pluie	Creation de jardins de recuperation d'eau. Exemples : gestion eaux pluviales, ecologie, infiltration.	Jardinage	\N	\N	\N	\N	service-de-jardin-de-pluie	\N	\N	candidatures
-72	Montage barnum	Service de montage barnum.	Événementiel	\N	2025-06-26 12:48:30.522148	30	f	montage-barnum	72f0914e-012a-45b4-b633-8e8cb3f59cea	\N	candidatures
-55	Petites réparations	Service de petites réparations.	Dépannage & Réparation	\N	2025-06-26 12:48:30.522148	90	f	petites-r-parations	72f0914e-012a-45b4-b633-8e8cb3f59cea	\N	candidatures
-40	Montage de meubles	Service de montage de meubles.	Bricolage	\N	2025-06-26 12:48:30.522148	120	f	montage-de-meubles	72f0914e-012a-45b4-b633-8e8cb3f59cea	\N	candidatures
-44	Réparation porte/fenêtre	Service de réparation porte/fenêtre.	Bricolage	\N	2025-06-26 12:48:30.522148	120	f	r-paration-porte-fen-tre	72f0914e-012a-45b4-b633-8e8cb3f59cea	\N	candidatures
-395	Service de toit terrasse	Amenagement de toits terrasses. Exemples : espace vert urbain, detente, jardinage en hauteur.	Jardinage	\N	\N	\N	\N	service-de-toit-terrasse	\N	\N	candidatures
-359	Service d'eolienne	Installation de petites eoliennes domestiques. Exemples : electricite verte, autonomie energetique, vent.	Dépannage & Réparation	\N	\N	\N	\N	service-d-eolienne	\N	\N	candidatures
-361	Service de recuperation d'eau	Installation de systemes de recuperation d'eau de pluie. Exemples : cuve, filtration, arrosage, ecologie.	Dépannage & Réparation	\N	\N	\N	\N	service-de-recuperation-d-eau	\N	\N	candidatures
-400	Cours de tongue drum	Apprentissage du tongue drum. Exemples : percussion melodique, relaxation, musique therapeutique.	Formation	\N	\N	\N	\N	cours-de-tongue-drum	\N	\N	candidatures
-423	Vitrerie / Miroiterie	Travaux de vitrerie et pose de miroirs.	Bâtiment	\N	\N	\N	\N	vitrerie-miroiterie	\N	\N	candidatures
-402	Cours de cajon flamenco	Apprentissage du cajon specialise flamenco. Exemples : compas, palmas, technique percussive andalouse.	Formation	\N	\N	\N	\N	cours-de-cajon-flamenco	\N	\N	candidatures
-411	Peinture & Revêtements muraux	Travaux de peinture et décoration murale.	Peinture & revêtements muraux	\N	\N	\N	\N	peinture-revetements-muraux	\N	\N	candidatures
-413	Plâtrerie / Staff / Décors moulés	Travaux de plâtrerie décorative.	Plâtrerie / staff / décors moulés	\N	\N	\N	\N	platrerie-staff-decors-moules	\N	\N	candidatures
-414	Plomberie / Sanitaires	Installation et dépannage plomberie.	Plomberie / sanitaires	\N	\N	\N	\N	plomberie-sanitaires	\N	\N	candidatures
-416	Électricité courants forts	Installation électrique courants forts.	Électricité courants forts	\N	\N	\N	\N	electricite-courants-forts	\N	\N	candidatures
-426	Piscines & bassins	Construction et rénovation de piscines.	Piscines & bassins	\N	\N	\N	\N	piscines-bassins	\N	\N	candidatures
-429	Nettoyage de chantier	Nettoyage et remise en état post-travaux.	Nettoyage de chantier	\N	\N	\N	\N	nettoyage-de-chantier	\N	\N	candidatures
-480	Second de cuisine	Assistance du chef, supervision de la préparation	Restauration	\N	\N	\N	\N	second-de-cuisine	\N	\N	candidatures
-455	Suspension	Fourche, amortisseur arrière (VTT)	Mécanique vélo	\N	\N	\N	\N	suspension-velo	\N	\N	candidatures
-456	Électricité (VAE)	Batterie, moteur, contrôleur, câblage	Mécanique vélo	\N	\N	\N	\N	electricite-vae-velo	\N	\N	candidatures
-457	Accessoires	Éclairage, sonnette, porte-bagages, garde-boue	Mécanique vélo	\N	\N	\N	\N	accessoires-velo	\N	\N	candidatures
-458	Révision complète	Check-up sécurité, graissage, nettoyage transmission	Mécanique vélo	\N	\N	\N	\N	revision-complete-velo	\N	\N	candidatures
-482	Aide de cuisine / plongeur	Nettoyage, préparation de base, plonge	Restauration	\N	\N	\N	\N	aide-cuisine-plongeur	\N	\N	candidatures
-483	Pâtissier / boulanger / pizzaiolo	Préparation desserts, pâtisseries, pizzas	Restauration	\N	\N	\N	\N	patissier-boulanger-pizzaiolo	\N	\N	candidatures
-484	Traiteur / préparation buffets	Organisation de buffets, événements	Restauration	\N	\N	\N	\N	traiteur-buffets	\N	\N	candidatures
-485	Serveur / chef de rang	Service en salle, accueil clientèle	Restauration	\N	\N	\N	\N	serveur-chef-rang	\N	\N	candidatures
-486	Maître d'hôtel	Coordination du service, gestion équipe salle	Restauration	\N	\N	\N	\N	maitre-hotel	\N	\N	candidatures
-487	Sommelier	Conseil vins, gestion cave, accord mets-vins	Restauration	\N	\N	\N	\N	sommelier	\N	\N	candidatures
-488	Runner	Assistance service, transport plats	Restauration	\N	\N	\N	\N	runner	\N	\N	candidatures
-489	Responsable restauration	Gestion globale restaurant, encadrement	Restauration	\N	\N	\N	\N	responsable-restauration	\N	\N	candidatures
-490	Gestion des stocks	Approvisionnements, contrôle stocks	Restauration	\N	\N	\N	\N	gestion-stocks	\N	\N	candidatures
-418	Systèmes de sécurité incendie	Installation de sécurité incendie.	Sécurité	\N	\N	\N	\N	systemes-securite-incendie	\N	\N	candidatures
-397	Service de serre bioclimatique	Construction de serres ecologiques. Exemples : cultures 4 saisons, economie energie, autonomie alimentaire.	Agriculture	\N	\N	\N	\N	service-de-serre-bioclimatique	\N	\N	candidatures
-399	Service de aquaponie	Installation de systemes aquaponiques. Exemples : poissons-legumes, ecologie, circuit ferme, innovation.	Agriculture	\N	\N	\N	\N	service-de-aquaponie	\N	\N	candidatures
-403	Service de jardin therapeutique sensoriel	Creation de jardins sensoriels therapeutiques. Exemples : handicap, stimulation sens, hortitherapie.	Jardinage	\N	\N	\N	\N	service-de-jardin-therapeutique-sensoriel	\N	\N	candidatures
-427	Traitement acoustique	Travaux d'isolation phonique.	Bâtiment	\N	\N	\N	\N	traitement-acoustique	\N	\N	candidatures
-410	Revêtements de sols	Pose de revêtements de sols.	Bâtiment	\N	\N	\N	\N	revetements-de-sols	\N	\N	candidatures
-422	Métallerie / Serrurerie	Travaux de métallerie et serrurerie.	Bâtiment	\N	\N	\N	\N	metallerie-serrurerie	\N	\N	candidatures
-407	Menuiseries extérieures	Pose de menuiseries extérieures.	Bâtiment	\N	\N	\N	\N	menuiseries-exterieures	\N	\N	candidatures
-409	Menuiserie intérieure	Installation de menuiseries intérieures.	Bâtiment	\N	\N	\N	\N	menuiserie-interieure	\N	\N	candidatures
-412	Isolation intérieure	Travaux d'isolation phonique et thermique intérieure.	Bâtiment	\N	\N	\N	\N	isolation-interieure	\N	\N	candidatures
-252	Recuperation express d'un objet	Depannage en urgence pour recuperer un objet oublie (telephone, clef, dossier...) dans un lieu precis et le rapporter rapidement au client. Exemples : objet oublie dans un taxi, restaurant, ou chez un ami.	Livraison	\N	\N	\N	\N	recuperation-express-d-un-objet	\N	\N	direct
-1	Ménage	Service de ménage.	Nettoyage	\N	2025-06-26 12:48:30.522148	45	f	m-nage	57cc1020-d9a6-4195-8205-9e95e31cbfe2	\N	candidatures
-4	Grand nettoyage	Service de grand nettoyage.	Nettoyage	\N	2025-06-26 12:48:30.522148	30	f	grand-nettoyage	\N	\N	candidatures
-3	Nettoyage vitres	Service de nettoyage vitres.	Nettoyage	\N	2025-06-26 12:48:30.522148	90	f	nettoyage-vitres	\N	\N	candidatures
-32	Livraison express	Service de livraison express.	Livraison	\N	2025-06-26 12:48:30.522148	45	f	livraison-express	1429f2da-7f81-42a3-9e84-08443c23399d	\N	direct
-33	Livraison courses	Service de livraison courses - Drive	Livraison	\N	2025-06-26 12:48:30.522148	90	f	livraison-courses	1429f2da-7f81-42a3-9e84-08443c23399d	\N	direct
-35	Transport en voiture	Service de transport de personnes.	Transport	\N	2025-06-26 12:48:30.522148	30	f	transport-de-personnes	1429f2da-7f81-42a3-9e84-08443c23399d	\N	direct
-34	Livraison colis	Service de livraison colis.	Livraison	\N	2025-06-26 12:48:30.522148	120	f	livraison-colis	1429f2da-7f81-42a3-9e84-08443c23399d	\N	direct
-78	Livraison urgente médicament	Service de livraison urgente médicament.	Livraison	\N	2025-06-26 12:48:30.522148	120	f	livraison-urgente-m-dicament	1429f2da-7f81-42a3-9e84-08443c23399d	\N	direct
-63	Transport meubles	Service de transport meubles.	Transport	\N	2025-06-26 12:48:30.522148	120	f	transport-meubles	1429f2da-7f81-42a3-9e84-08443c23399d	\N	direct
-48	Tonte de pelouse	Service de tonte de pelouse.	Jardinage	\N	2025-06-26 12:48:30.522148	45	f	tonte-de-pelouse	823c8c1e-f424-4fc8-b957-7ff37343388b	\N	candidatures
-49	Taille de haie	Service de taille de haie.	Jardinage	\N	2025-06-26 12:48:30.522148	60	f	taille-de-haie	823c8c1e-f424-4fc8-b957-7ff37343388b	\N	candidatures
-50	Entretien jardin	Service de entretien jardin.	Jardinage	\N	2025-06-26 12:48:30.522148	30	f	entretien-jardin	823c8c1e-f424-4fc8-b957-7ff37343388b	\N	candidatures
-97	Organisation d’anniversaires clé-en-main	Animations, décoration, gâteaux et logistique.	Enfance & famille	\N	\N	120	f	organisation-d-anniversaires-cl-en-main	b615e669-79fa-4c6c-8fea-5256386add18	\N	candidatures
-38	Dépannage véhicule	Service de dépannage véhicule.	Dépannage & Réparation	\N	2025-06-26 12:48:30.522148	90	f	d-pannage-v-hicule	d04776f4-a88a-4562-8ebe-88a5241e539c	\N	candidatures
-62	Aide au déménagement	Service d'aide au déménagement.	Déménagement	\N	2025-06-26 12:48:30.522148	120	f	aide-au-d-m-nagement	1429f2da-7f81-42a3-9e84-08443c23399d	\N	candidatures
-338	Cours de trombone	Apprentissage du trombone. Exemples : coulisse, jazz, classique, harmonie, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-trombone	\N	\N	candidatures
-27	Promenade de chien	Service de promenade de chien.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	45	f	promenade-de-chien	e0381d3d-7db7-42e1-b839-7637046b659d	\N	candidatures
-141	Location / prêt de matériel	Prêt ou location de matériel : vaisselle, sono, vélos, outils, déco...	Location	\N	\N	60	f	location-pr-t-de-mat-riel-1	\N	\N	candidatures
-146	Transport de véhicule interville	Conduite de véhicule à transporter d'un endroit à un autre avec pris en charge des frais de retour	Livraison	\N	\N	\N	\N	dog-walking	\N	\N	direct
-5	Organisation maison	Service d'organisation maison.	Service à domicile	\N	2025-06-26 12:48:30.522148	45	f	organisation-maison	\N	\N	candidatures
-153	Livraison Boulangerie	Livraison de pains, viennoiseries et produits de boulangerie à domicile.	Livraison	\N	\N	30	f	livraison-boulangerie	\N	bread	direct
-154	Livraison Fleurs	Livraison de bouquets de fleurs à domicile pour toute occasion.	Livraison	\N	\N	30	f	livraison-fleurs	\N	flower	direct
-6	Préparation repas	Service de préparation repas.	Service à domicile	\N	2025-06-26 12:48:30.522148	30	f	pr-paration-repas	72f0914e-012a-45b4-b633-8e8cb3f59cea	\N	candidatures
-254	Livraison express ou specialisee	Transport rapide ou delicat d'objets fragiles, precieux ou urgents. Exemples : livraison de medicaments, transport d'oeuvres d'art, acheminement de documents importants.	Livraison	\N	\N	\N	\N	livraison-express-ou-specialisee	\N	\N	direct
-24	Promenade senior	Service de promenade senior.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	promenade-senior	e0381d3d-7db7-42e1-b839-7637046b659d	\N	candidatures
-268	Service de transport personnalise	Deplacement sur mesure de personnes ou d'objets. Exemples : transport VIP, accompagnement pour courses, demenagement leger, navette privee.	Transport	\N	\N	\N	\N	service-de-transport-personnalise	\N	\N	direct
-273	Service de jardinage	Entretien et amenagement d'espaces verts. Exemples : taille de haies, plantation, arrosage, creation de jardin, entretien de pelouse.	Jardinage	\N	\N	\N	\N	service-de-jardinage	\N	\N	candidatures
-7	Courses alimentaires	Service de courses alimentaires.	Livraison	\N	2025-06-26 12:48:30.522148	45	f	courses-alimentaires	\N	\N	direct
-22	Accompagnement médical	Service d'accompagnement médical.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	accompagnement-m-dical	\N	\N	candidatures
-18	Animation anniversaire	Service d'animation pour un  anniversaire.	Enfance & famille	\N	2025-06-26 12:48:30.522148	30	f	animation-anniversaire	b615e669-79fa-4c6c-8fea-5256386add18	\N	candidatures
-19	Accompagnement activité	Service d'accompagnement activité.	Enfance & famille	\N	2025-06-26 12:48:30.522148	60	f	accompagnement-activit-	\N	\N	candidatures
-16	Aide aux devoirs	Service d'aide aux devoirs.	Enfance & famille	\N	2025-06-26 12:48:30.522148	60	f	aide-aux-devoirs	\N	\N	candidatures
-279	Service de demenagement	Transport et manutention pour changement de domicile. Exemples : emballage, transport, deballage, montage de meubles.	Transport	\N	\N	\N	\N	service-de-demenagement	\N	\N	direct
-8	Aide à la toilette	Service d'aide à la toilette.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	45	f	aide-la-toilette	\N	\N	candidatures
-287	Service de livraison de courses	Achat et livraison de produits alimentaires. Exemples : courses alimentaires, produits frais, livraison express.	Livraison	\N	\N	\N	\N	service-de-livraison-de-courses	\N	\N	direct
-36	Covoiturage solidaire	Service de covoiturage solidaire.	Transport	\N	2025-06-26 12:48:30.522148	30	f	covoiturage-solidaire	\N	\N	direct
-39	Conduite accompagnée	Service de conduite accompagnée.	Transport	\N	2025-06-26 12:48:30.522148	45	f	conduite-accompagn-e	\N	\N	direct
-41	Petits travaux	Service de petits travaux.	Bricolage	\N	2025-06-26 12:48:30.522148	45	f	petits-travaux	\N	\N	candidatures
-42	Fixation étagères	Service de fixation étagères.	Bricolage	\N	2025-06-26 12:48:30.522148	60	f	fixation-tag-res	\N	\N	candidatures
-43	Peinture	Service de peinture.	Bricolage	\N	2025-06-26 12:48:30.522148	120	f	peinture	\N	\N	candidatures
-45	Pose de tringles	Service de pose de tringles.	Bricolage	\N	2025-06-26 12:48:30.522148	90	f	pose-de-tringles	\N	\N	candidatures
-46	Pose de rideaux	Service de pose de rideaux.	Bricolage	\N	2025-06-26 12:48:30.522148	30	f	pose-de-rideaux	\N	\N	candidatures
-47	Pose de papier peint	Service de pose de papier peint.	Bricolage	\N	2025-06-26 12:48:30.522148	30	f	pose-de-papier-peint	\N	\N	candidatures
-303	Cours de couture	Apprentissage de la couture et confection. Exemples : techniques de base, patron, machine a coudre, retouches.	Formation	\N	\N	\N	\N	cours-de-couture	\N	\N	candidatures
-103	Recyclage et évacuation d’encombrants	Débarras d’objets inutiles avec tri et orientation vers la bonne filière.	Transport	\N	\N	60	f	recyclage-et-vacuation-d-encombrants	\N	\N	direct
-110	Livraison entre particuliers	Transport sécurisé d’objets achetés sur Leboncoin, Vinted, etc.	Livraison	\N	\N	60	f	livraison-entre-particuliers	1429f2da-7f81-42a3-9e84-08443c23399d	\N	direct
-157	Transport scolaire	Accompagnement des enfants entre le domicile et l’établissement scolaire, en toute sécurité.	Transport	\N	\N	\N	f	transport-scolaire	\N	\N	direct
-109	Transport vers déchèterie	Acheminement d’objets encombrants ou déchets.	Transport	\N	\N	60	f	transport-vers-les-d-ch-teries	1429f2da-7f81-42a3-9e84-08443c23399d	\N	direct
-102	Installation d’équipements PMR	Pose de barres d’appui, rampes, etc. pour personnes à mobilité réduite.	Bricolage	\N	\N	60	f	installation-d-quipements-pmr	\N	\N	candidatures
-104	Création de potagers urbains	Installation de potagers sur balcon, terrasse ou petit jardin.	Jardinage	\N	\N	90	f	cr-ation-de-potagers-urbains	\N	\N	candidatures
-105	Entretien de tombes, caveaux & pierres tombales	Nettoyage régulier ou ponctuel des sépultures.	Jardinage	\N	\N	45	f	entretien-de-tombes-caveaux-pierres-tombales	\N	\N	candidatures
-106	Dératisation ou désinsectisation simple	Intervention de premier niveau contre nuisibles (fourmis, rongeurs...).	Jardinage	\N	\N	60	f	d-ratisation-ou-d-sinsectisation-simple	\N	\N	candidatures
-139	Assistant virtuel à domicile	Délégation de tâches récurrentes : emails, réservations, factures.	Secrétariat	\N	\N	60	f	assistant-virtuel-domicile-1	\N	\N	candidatures
-136	Réception de colis à domicile	Réception de colis en ton absence avec remise en main propre.	Livraison	\N	\N	30	f	r-ception-de-colis-domicile-1	\N	\N	direct
-319	Service de tapisserie	Refection et creation de tapisserie. Exemples : fauteuil, canape, rideaux, restauration, tissu.	Bricolage	\N	\N	\N	\N	service-de-tapisserie	\N	\N	candidatures
-128	Recyclage et évacuation d’encombrants	Débarras d’objets inutiles avec tri et orientation vers la bonne filière.	Bricolage	\N	\N	60	f	recyclage-et-vacuation-d-encombrants-1	\N	\N	candidatures
-351	Service de pompe a chaleur	Installation et entretien de pompes a chaleur. Exemples : air-air, air-eau, geothermie, maintenance.	Bâtiment	\N	\N	\N	\N	service-de-pompe-a-chaleur	\N	\N	candidatures
-133	Aide au changement d’adresse	Accompagnement physique et administratif lors du déménagement.	Déménagement	\N	\N	90	f	aide-au-changement-d-adresse-1	\N	\N	candidatures
-320	Cours de batterie	Apprentissage de la batterie. Exemples : rythme, coordination, rock, jazz, techniques de frappe.	Formation	\N	\N	\N	\N	cours-de-batterie	\N	\N	candidatures
-322	Cours de violon	Apprentissage du violon. Exemples : technique d'archet, doigtes, classique, folk, improvisation.	Formation	\N	\N	\N	\N	cours-de-violon	\N	\N	candidatures
-134	Transport vers les déchèteries	Acheminement d’objets encombrants ou déchets.	Déménagement	\N	\N	60	f	transport-vers-les-d-ch-teries-1	1429f2da-7f81-42a3-9e84-08443c23399d	\N	candidatures
-420	Installation Gaz	Raccordement et installation gaz.	Bâtiment	\N	\N	\N	\N	installation-gaz	\N	\N	candidatures
-358	Cours de didgeridoo	Apprentissage du didgeridoo aborigene. Exemples : respiration circulaire, sons harmoniques, culture aborigene.	Formation	\N	\N	\N	\N	cours-de-didgeridoo	\N	\N	candidatures
-360	Cours de hang drum	Apprentissage du hang drum. Exemples : percussion melodique, meditation, relaxation, musique therapeutique.	Formation	\N	\N	\N	\N	cours-de-hang-drum	\N	\N	candidatures
-362	Cours de steel drum	Apprentissage du steel drum antillais. Exemples : musique caribeenne, rythmes tropicaux, percussion melodique.	Formation	\N	\N	\N	\N	cours-de-steel-drum	\N	\N	candidatures
-364	Cours de cajon	Apprentissage du cajon peruvien. Exemples : percussion assise, flamenco, world music, rythmes latins.	Formation	\N	\N	\N	\N	cours-de-cajon	\N	\N	candidatures
-396	Cours de kalimba electronique	Apprentissage du kalimba amplifie. Exemples : musique moderne, effets sonores, creativite electronique.	Formation	\N	\N	\N	\N	cours-de-kalimba-electronique	\N	\N	candidatures
-398	Cours de handpan	Apprentissage du handpan. Exemples : percussion melodique moderne, meditation, musique intuitive.	Formation	\N	\N	\N	\N	cours-de-handpan	\N	\N	candidatures
-405	Gros œuvre béton armé	Réalisation de structures béton armé.	Bâtiment	\N	\N	\N	\N	gros-oeuvre-beton-arme	\N	\N	candidatures
-404	Fondations / Maçonnerie	Travaux de fondations et maçonnerie générale.	Bâtiment	\N	\N	\N	\N	fondations-maconnerie	\N	\N	candidatures
-421	Étanchéité	Travaux d'étanchéité.	Bâtiment	\N	\N	\N	\N	etancheite	\N	\N	candidatures
-417	Électricité courants faibles	Installation courants faibles.	Bâtiment	\N	\N	\N	\N	electricite-courants-faibles	\N	\N	candidatures
-428	Désamiantage / Déplombage	Décontamination amiante et plomb.	Bâtiment	\N	\N	\N	\N	desamiantage-deplombage	\N	\N	candidatures
-408	Cloisons / Doublages / Faux-plafonds	Travaux de plâtrerie et aménagement intérieur.	Bâtiment	\N	\N	\N	\N	cloisons-doublages-faux-plafonds	\N	\N	candidatures
-415	Chauffage / Ventilation / Climatisation	Installation et maintenance CVC.	Bâtiment	\N	\N	\N	\N	chauffage-ventilation-climatisation	\N	\N	candidatures
-406	Charpente métallique	Installation et montage de charpentes métalliques.	Bâtiment	\N	\N	\N	\N	charpente-metallique	\N	\N	candidatures
-419	Ascenseurs / Monte-charges	Installation et maintenance d'ascenseurs.	Bâtiment	\N	\N	\N	\N	ascenseurs-monte-charges	\N	\N	candidatures
-424	Aménagements paysagers	Création et entretien d'espaces verts.	Jardinage	\N	\N	\N	\N	amenagements-paysagers	\N	\N	candidatures
-425	Voiries, parkings & clôtures	Aménagements extérieurs.	Jardinage	\N	\N	\N	\N	voiries-parkings-clotures	\N	\N	candidatures
-149	Demande personnalisée	Décrivez votre besoin spécifique en choisissant d'abord une catégorie. Idéal pour des services non listés.	Demande personnalisée	\N	\N	\N	\N	dog-walking-1	\N	\N	candidatures
-491	Hygiène & sécurité alimentaire	Application normes HACCP, contrôle qualité	Restauration	\N	\N	\N	\N	hygiene-securite-alimentaire	\N	\N	candidatures
-492	Barman / barmaid	Préparation cocktails, service bar	Bar & cafétéria	\N	\N	\N	\N	barman-barmaid	\N	\N	candidatures
-493	Barista	Préparation café, boissons chaudes spécialisées	Bar & cafétéria	\N	\N	\N	\N	barista	\N	\N	candidatures
-494	Mixologue	Création cocktails élaborés, bar à cocktails	Bar & cafétéria	\N	\N	\N	\N	mixologue	\N	\N	candidatures
-495	Serveur de bar	Service boissons, accueil clientèle bar	Bar & cafétéria	\N	\N	\N	\N	serveur-bar	\N	\N	candidatures
-496	Responsable bar	Gestion bar, encadrement équipe	Bar & cafétéria	\N	\N	\N	\N	responsable-bar	\N	\N	candidatures
-497	Réceptionniste	Accueil clients, check-in/check-out	Hôtellerie	\N	\N	\N	\N	receptionniste	\N	\N	candidatures
-498	Concierge	Services personnalisés, informations touristiques	Hôtellerie	\N	\N	\N	\N	concierge	\N	\N	candidatures
-499	Voiturier / bagagiste	Service voiturier, transport bagages	Hôtellerie	\N	\N	\N	\N	voiturier-bagagiste	\N	\N	candidatures
-500	Gouvernant(e)	Supervision étages, gestion équipe ménage	Hôtellerie	\N	\N	\N	\N	gouvernante	\N	\N	candidatures
-502	Lingère / blanchisserie	Gestion linge, blanchisserie	Hôtellerie	\N	\N	\N	\N	lingere-blanchisserie	\N	\N	candidatures
-503	Responsable hébergement	Gestion hébergement, coordination services	Hôtellerie	\N	\N	\N	\N	responsable-hebergement	\N	\N	candidatures
-504	Directeur d'hôtel	Direction générale établissement	Hôtellerie	\N	\N	\N	\N	directeur-hotel	\N	\N	candidatures
-505	Responsable réservation	Gestion réservations, planification	Hôtellerie	\N	\N	\N	\N	responsable-reservation	\N	\N	candidatures
-506	Technicien de maintenance	Maintenance hôtelière, dépannages	Hôtellerie	\N	\N	\N	\N	technicien-maintenance	\N	\N	candidatures
-507	Sécurité / gardiennage	Surveillance, sécurité établissement	Hôtellerie	\N	\N	\N	\N	securite-gardiennage	\N	\N	candidatures
-542	Audit sécurité	Audit bâtiments, sites, entreprises	Sécurité	\N	\N	\N	\N	audit-securite	\N	\N	candidatures
-543	Plan de sûreté	Gestion de crise, plans sécurité	Sécurité	\N	\N	\N	\N	plan-surete	\N	\N	candidatures
-544	Formation sécurité privée	Formation agents sécurité	Sécurité	\N	\N	\N	\N	formation-securite-privee	\N	\N	candidatures
-545	Formation self-défense	Gestes sécurité, auto-défense	Sécurité	\N	\N	\N	\N	formation-self-defense	\N	\N	candidatures
-546	Prévention risques professionnels	PAPRIPACT, DUERP, sécurité travail	Sécurité	\N	\N	\N	\N	prevention-risques-professionnels	\N	\N	candidatures
-513	Agent de sécurité / rondier	Surveillance générale, rondes de sécurité	Sécurité	\N	\N	\N	\N	agent-securite-rondier	\N	\N	candidatures
-514	Agent de sécurité incendie	SSIAP 1, 2, 3, prévention incendie	Sécurité	\N	\N	\N	\N	agent-securite-incendie	\N	\N	candidatures
-515	Agent cynophile	Maître-chien, sécurité avec chien	Sécurité	\N	\N	\N	\N	agent-cynophile	\N	\N	candidatures
-516	Vigile / gardien de site	Gardiennage fixe, surveillance site	Sécurité	\N	\N	\N	\N	vigile-gardien-site	\N	\N	candidatures
-566	Nettoyage verrerie	Entretien matériel bar, nettoyage verrerie	Nettoyage	\N	\N	\N	\N	bar-nettoyage-verrerie	\N	\N	candidatures
-565	Gestion cave / stocks	Gestion stocks boissons, cave à vins	Bar & cafétéria	\N	\N	\N	\N	bar-gestion-cave-stocks	\N	\N	candidatures
-571	Valet de chambre	Nettoyage chambres, préparation literie	Hôtellerie	\N	\N	\N	\N	hotellerie-femme-valet-chambre	\N	\N	candidatures
+COPY public.services (id, title, description, categorie, user_id, created_at, "estimatedDuration", "isEligibleTaxCredit", slug, icon, workflow_type) FROM stdin;
+249	Effeuillage burlesque artistique	Spectacle glamour inspire du cabaret, costumes et mise en scene	Événementiel	\N	\N	\N	\N	effeuillage-burlesque-artistique	\N	candidatures
+74	Nettoyage après fête	Service de nettoyage après fête.	Événementiel	\N	2025-06-26 12:48:30.522148	120	f	nettoyage-apr-s-f-te	\N	candidatures
+69	Aide pour un mariage	Service d'aide lors d'un mariage.	Événementiel	\N	2025-06-26 12:48:30.522148	120	f	aide-mariage	\N	candidatures
+68	Organisation d'événement	Service d'organisation de votre événement.	Événementiel	\N	2025-06-26 12:48:30.522148	30	f	organisation-v-nement	\N	candidatures
+70	Aide pour un anniversaire	Service d'aide pour votre anniversaire.	Événementiel	\N	2025-06-26 12:48:30.522148	120	f	aide-anniversaire	\N	candidatures
+115	Majordome événementiel	Assistance logistique et coordination pour événements privés.	Événementiel	\N	\N	90	f	majordome-v-nementiel	\N	candidatures
+622	Fleurir une tombe	Entretien et fleurissement de sépultures, nettoyage de tombes, dépôt de fleurs	Aide à la personne	\N	\N	\N	\N	fleurir-une-tombe	\N	candidatures
+251	Animation immersive ou participative	Jeu d'enquete grandeur nature, spectacle interactif, jeu de role scenarie avec le public. Exemples : murder party dans un gite, escape game improvise, theatre immersif dans un jardin.	Événementiel	\N	\N	\N	\N	animation-immersive-ou-participative	\N	candidatures
+269	Spectacle de marionnettes	Representation theatrale avec marionnettes pour enfants ou adultes. Exemples : spectacle de guignol, theatre de marionnettes a fils, spectacle de marionnettes a gaine.	Événementiel	\N	\N	\N	\N	spectacle-de-marionnettes	\N	candidatures
+282	Service de photographie	Prise de vue professionnelle pour evenements ou portraits. Exemples : mariage, bapteme, portrait, evenement d'entreprise.	Événementiel	\N	\N	\N	\N	service-de-photographie	\N	candidatures
+71	Location vaisselle	Service de location vaisselle.	Événementiel	\N	2025-06-26 12:48:30.522148	60	f	location-vaisselle	\N	candidatures
+73	Service à table	Service de service à table.	Événementiel	\N	2025-06-26 12:48:30.522148	90	f	service-table	\N	candidatures
+85	Chef à domicile	Service de chef à domicile.	Événementiel	\N	2025-06-26 12:48:30.522148	90	f	chef-domicile	\N	candidatures
+623	Couper du bois	Découpe et débitage de bois, élagage, abattage d'arbres, préparation bois de chauffage	Jardinage	\N	\N	\N	\N	couper-du-bois	\N	candidatures
+508	Organisation de banquets	Organisation mariages, séminaires, événements	Événementiel	\N	\N	\N	\N	organisation-banquets	\N	candidatures
+509	Location matériel événementiel	Tables, chaises, vaisselle, chapiteaux	Événementiel	\N	\N	\N	\N	location-materiel-evenementiel	\N	candidatures
+510	Service traiteur externe	Prestation traiteur pour événements	Événementiel	\N	\N	\N	\N	service-traiteur-externe	\N	candidatures
+511	Animation culinaire	Chef invité, barman spectacle, show cooking	Événementiel	\N	\N	\N	\N	animation-culinaire	\N	candidatures
+9	Aide au lever/coucher	Service d'aide au lever/coucher.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	aide-au-lever-coucher	\N	candidatures
+12	Assistance administrative	Service d'assistance administrative.	Secrétariat	\N	2025-06-26 12:48:30.522148	45	f	assistance-administrative	\N	candidatures
+11	Surveillance à domicile	Service de surveillance à domicile.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	120	f	surveillance-domicile	\N	candidatures
+15	Sortie d’école	Service de sortie d’école.	Enfance & famille	\N	2025-06-26 12:48:30.522148	120	f	sortie-d-cole	\N	candidatures
+17	Soutien scolaire	Service de soutien scolaire.	Enfance & famille	\N	2025-06-26 12:48:30.522148	30	f	soutien-scolaire	\N	candidatures
+20	Aide aux personnes âgées	Service de aide aux personnes âgées.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	aide-aux-personnes-g-es	\N	candidatures
+21	Téléassistance	Service de téléassistance.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	30	f	t-l-assistance	\N	candidatures
+26	Soins esthétiques senior	Service de soins esthétiques senior.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	60	f	soins-esth-tiques-senior	\N	candidatures
+79	Secrétariat à domicile	Service de secrétariat à domicile.	Secrétariat	\N	2025-06-26 12:48:30.522148	60	f	secr-tariat-domicile	\N	candidatures
+94	Aide au tri et à l’archivage de documents	Organisation et classement des papiers personnels.	Aide à domicile	\N	\N	60	f	aide-au-tri-et-l-archivage-de-documents	\N	candidatures
+95	Assistance informatique à domicile	Aide à l’utilisation des appareils (ordinateur, tablette, imprimante...).	Aide à domicile	\N	\N	60	f	assistance-informatique-domicile	\N	candidatures
+96	Livraison de courses adaptées	Livraison de courses spécifiques (produits santé, sans contact).	Aide à domicile	\N	\N	45	f	livraison-de-courses-adapt-es	\N	candidatures
+113	Coaching LinkedIn & CV	Mise en valeur du profil pro, rédaction CV et profil LinkedIn.	Coaching	\N	\N	60	f	coaching-linkedin-cv	\N	candidatures
+117	Préparation des médicaments	Aide à la préparation des traitements médicaux.	Aide à domicile	\N	\N	30	f	pr-paration-des-m-dicaments-1	\N	candidatures
+81	Comptabilité	Service de comptabilité.	Secrétariat	\N	2025-06-26 12:48:30.522148	45	f	comptabilit-	\N	candidatures
+82	Assistance RH	Service d'assistance rh.	Secrétariat	\N	2025-06-26 12:48:30.522148	90	f	assistance-rh	\N	candidatures
+83	Correction de documents	Service de correction de documents.	Secrétariat	\N	2025-06-26 12:48:30.522148	90	f	correction-de-documents	\N	candidatures
+84	Saisie de données	Service de saisie de données.	Secrétariat	\N	2025-06-26 12:48:30.522148	30	f	saisie-de-donn-es	\N	candidatures
+114	Assistant virtuel à domicile	Délégation de tâches récurrentes : emails, réservations, factures.	Secrétariat	\N	\N	60	f	assistant-virtuel-domicile	\N	candidatures
+626	Sosie artistique	Prestation d'imitation et sosie de célébrités pour événements. Exemples : sosie de chanteur, acteur, personnalité politique, personnage historique, animation spectacle, photo avec sosie	Événementiel	\N	\N	\N	\N	sosie-artistique	\N	candidatures
+517	Rondes de nuit	Surveillance mobile, rondes nocturnes	Sécurité	\N	\N	\N	\N	rondes-nuit	\N	candidatures
+518	Sécurité événementielle	Concerts, stades, salons, festivals	Sécurité	\N	\N	\N	\N	securite-evenementielle	\N	candidatures
+519	Agent de sûreté transport	Sécurité aéroportuaire, ferroviaire	Sécurité	\N	\N	\N	\N	agent-surete-transport	\N	candidatures
+520	Bodyguard / protection rapprochée	Garde du corps, protection personnelle	Sécurité	\N	\N	\N	\N	bodyguard-protection-rapprochee	\N	candidatures
+521	Agent de sécurité magasin	Anti-vol, prévention des pertes	Sécurité	\N	\N	\N	\N	agent-securite-magasin	\N	candidatures
+522	Prévention incendie	Contrôle extincteurs, RIA, BAES	Sécurité	\N	\N	\N	\N	prevention-incendie	\N	candidatures
+523	Maintenance systèmes incendie	Détection, alarme, sprinklers	Sécurité	\N	\N	\N	\N	maintenance-systemes-incendie	\N	candidatures
+524	Formation SSIAP	Agents spécialisés sécurité incendie	Sécurité	\N	\N	\N	\N	formation-ssiap	\N	candidatures
+525	Formation secours	Évacuation, gestes premiers secours	Sécurité	\N	\N	\N	\N	formation-secours	\N	candidatures
+526	Installation alarmes	Systèmes anti-intrusion	Sécurité	\N	\N	\N	\N	installation-alarmes	\N	candidatures
+527	Installation vidéosurveillance	Caméras, télésurveillance	Sécurité	\N	\N	\N	\N	installation-videosurveillance	\N	candidatures
+528	Contrôle d'accès	Badges, digicodes, biométrie	Sécurité	\N	\N	\N	\N	controle-acces	\N	candidatures
+529	Interphonie / visiophonie	Systèmes de communication sécurisée	Sécurité	\N	\N	\N	\N	interphonie-visiophonie	\N	candidatures
+530	Maintenance sécurité électronique	Entretien systèmes sécurisés	Sécurité	\N	\N	\N	\N	maintenance-securite-electronique	\N	candidatures
+531	Domotique sécuritaire	Capteurs, détecteurs connectés	Sécurité	\N	\N	\N	\N	domotique-securitaire	\N	candidatures
+532	Sûreté sites industriels	Sécurité installations industrielles	Sécurité	\N	\N	\N	\N	surete-sites-industriels	\N	candidatures
+533	Sécurité chantiers BTP	Protection chantiers construction	Sécurité	\N	\N	\N	\N	securite-chantiers-btp	\N	candidatures
+534	Sécurité parkings	Surveillance parkings, copropriétés	Sécurité	\N	\N	\N	\N	securite-parkings	\N	candidatures
+535	Sécurité établissements sensibles	Hôpitaux, sites sensibles	Sécurité	\N	\N	\N	\N	securite-etablissements-sensibles	\N	candidatures
+536	Sécurité ERP	Écoles, établissements recevant du public	Sécurité	\N	\N	\N	\N	securite-erp	\N	candidatures
+537	Cyber-sécurité	Protection données, audit systèmes	Sécurité	\N	\N	\N	\N	cyber-securite	\N	candidatures
+538	Sécurité réseaux	Protection réseaux et serveurs	Sécurité	\N	\N	\N	\N	securite-reseaux	\N	candidatures
+539	Pentest / éthique hacking	Tests de pénétration, audit sécurité	Sécurité	\N	\N	\N	\N	pentest-ethique-hacking	\N	candidatures
+540	Analyste SOC	Security Operation Center	Sécurité	\N	\N	\N	\N	analyste-soc	\N	candidatures
+541	Prévention fraude IT	Contrôle accès informatique	Sécurité	\N	\N	\N	\N	prevention-fraude-it	\N	candidatures
+624	Demande de subvention	Aide à la rédaction et constitution de dossiers de demande de subventions, accompagnement administratif	Administratif	\N	\N	\N	\N	demande-de-subvention-administratif	\N	candidatures
+260	Creation artistique personnalisee	Realisation d'une oeuvre unique selon les desirs du client. Exemples : portrait sur commande, sculpture personnalisee, composition musicale dediee.	Art, Culture & Création	\N	\N	\N	\N	creation-artistique-personnalisee	\N	candidatures
+263	Reparation de telephones	Remise en etat de smartphones et telephones portables. Exemples : changement d'ecran, reparation de batterie, deblocage de telephone, recuperation de donnees.	Téléphonie	\N	\N	\N	\N	reparation-de-telephones	\N	candidatures
+347	Service de fumisterie	Installation et entretien de conduits de fumee. Exemples : cheminee, poele, ramonage, tubage.	Dépannage & Réparation	\N	\N	\N	\N	service-de-fumisterie	\N	candidatures
+295	Reparation de bijoux	Entretien et reparation de bijoux. Exemples : sertissage, polissage, reparation de chaine, gravure.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-bijoux	\N	candidatures
+307	Service de plomberie	Reparation et installation de plomberie. Exemples : fuite d'eau, debouchage, installation, depannage.	Dépannage & Réparation	\N	\N	\N	\N	service-de-plomberie	\N	candidatures
+309	Service d'electricite	Reparation electrique. Exemples : prise, interrupteur, eclairage, depannage electrique.	Dépannage & Réparation	\N	\N	\N	\N	service-d-electricite	\N	candidatures
+311	Service de serrurerie	Depannage et urgence de serrures. Exemples : ouverture de porte, changement de serrure, blindage, cles.	Dépannage & Réparation	\N	\N	\N	\N	service-de-serrurerie	\N	candidatures
+625	Demande de subvention	Saisie et mise en forme de dossiers de subventions, gestion administrative et suivi	Secrétariat	\N	\N	\N	\N	demande-de-subvention-secretariat	\N	candidatures
+331	Service de vitrerie	Reparation et installation de vitres. Exemples : double vitrage, miroir, vitrine, securite, sur mesure.	Dépannage & Réparation	\N	\N	\N	\N	service-de-vitrerie	\N	candidatures
+333	Service de zinguerie	Travaux de zinguerie et metallerie. Exemples : gouttiere, cheneau, zinc, plomb, etancheite.	Dépannage & Réparation	\N	\N	\N	\N	service-de-zinguerie	\N	candidatures
+335	Service de isolation	Travaux d'isolation thermique et phonique. Exemples : combles, murs, cloisons, laine de verre, economie d'energie.	Dépannage & Réparation	\N	\N	\N	\N	service-de-isolation	\N	candidatures
+349	Service de ventilation	Installation et entretien de systemes de ventilation. Exemples : VMC, extraction, aeration, purification.	Dépannage & Réparation	\N	\N	\N	\N	service-de-ventilation	\N	candidatures
+353	Service de climatisation reversible	Installation de systemes de climatisation reversible. Exemples : chaud-froid, economie d'energie, confort thermique.	Dépannage & Réparation	\N	\N	\N	\N	service-de-climatisation-reversible	\N	candidatures
+357	Service de panneaux solaires	Installation de panneaux photovoltaiques. Exemples : electricite verte, economie, autoconsommation, ecologie.	Dépannage & Réparation	\N	\N	\N	\N	service-de-panneaux-solaires	\N	candidatures
+363	Service de compostage	Installation de systemes de compostage. Exemples : composteur, lombricompostage, ecologie, recyclage organique.	Dépannage & Réparation	\N	\N	\N	\N	service-de-compostage	\N	candidatures
+381	Service de toiture vegetalisee	Installation de toitures vegetales. Exemples : isolation naturelle, ecologie, biodiversite urbaine.	Dépannage & Réparation	\N	\N	\N	\N	service-de-toiture-vegetalisee	\N	candidatures
+401	Service de champignonniere	Installation de cultures de champignons. Exemples : shiitake, pleurotes, mycologie, alimentation.	Jardinage	\N	\N	\N	\N	service-de-champignonniere	\N	candidatures
+593	Légumes plein champ	Salades, courgettes, haricots, tomates	Agriculture	\N	\N	\N	\N	legumes-plein-champ	\N	candidatures
+595	Vendanges	Raisins de cuve	Agriculture	\N	\N	\N	\N	vendanges	\N	candidatures
+594	Légumes racines	Carottes, pommes de terre, oignons, betteraves	Agriculture	\N	\N	\N	\N	legumes-racines	\N	candidatures
+596	Plantes aromatiques	Basilic, persil, menthe	Agriculture	\N	\N	\N	\N	plantes-aromatiques	\N	candidatures
+597	Champignons	Cueillette forestière ou culture champignonnière	Agriculture	\N	\N	\N	\N	champignons	\N	candidatures
+605	Élevage ovin / caprin	Tonte, soins, alimentation	Soins aux animaux	\N	\N	\N	\N	elevage-ovin-caprin	\N	candidatures
+604	Élevage bovin	Traite, alimentation, soins veaux	Soins aux animaux	\N	\N	\N	\N	elevage-bovin	\N	candidatures
+606	Élevage porcin / volailles	Nourrissage, ramassage œufs, nettoyage bâtiments	Soins aux animaux	\N	\N	\N	\N	elevage-porcin-volailles	\N	candidatures
+607	Apiculture	Entretien ruches, récolte miel, mise en pots	Soins aux animaux	\N	\N	\N	\N	apiculture	\N	candidatures
+608	Élevage équin	Entretien écuries, soins chevaux, assistance élevage	Soins aux animaux	\N	\N	\N	\N	elevage-equin	\N	candidatures
+340	Cours de hautbois	Apprentissage du hautbois. Exemples : anche double, classique, orchestre, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-hautbois	\N	candidatures
+151	Aide à la création de micro-entreprise	Accompagnement pour toutes les démarches administratives de création d'entreprise	Administratif	\N	\N	2	f	aide-la-cr-ation-de-micro-entreprise-2	\N	candidatures
+342	Cours de basson	Apprentissage du basson. Exemples : anche double, classique, orchestre, grave, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-basson	\N	candidatures
+344	Cours de harpe	Apprentissage de la harpe. Exemples : cordes pincees, classique, celtique, technique des doigts.	Formation	\N	\N	\N	\N	cours-de-harpe	\N	candidatures
+346	Cours de mandoline	Apprentissage de la mandoline. Exemples : cordes doubles, folk, classique, mediator, technique.	Formation	\N	\N	\N	\N	cours-de-mandoline	\N	candidatures
+459	Entretien moteur	Vidange, filtres, courroie, bougies, injecteurs	Mécanique & entretien bateau	\N	\N	\N	\N	entretien-moteur-bateau	\N	candidatures
+337	Service de ravalement	Ravalement et renovation de facades. Exemples : nettoyage, peinture, crepi, pierre, renovation.	Dépannage & Réparation	\N	\N	\N	\N	service-de-ravalement	\N	candidatures
+339	Service de demolition	Travaux de demolition et deblaiement. Exemples : cloison, mur, evacuation, deconstruction, securite.	Dépannage & Réparation	\N	\N	\N	\N	service-de-demolition	\N	candidatures
+341	Service de terrassement	Travaux de terrassement et VRD. Exemples : excavation, fondation, drainage, nivellement, engins.	Dépannage & Réparation	\N	\N	\N	\N	service-de-terrassement	\N	candidatures
+343	Service de charpente	Travaux de charpente et structure bois. Exemples : poutre, fermette, renovation, ossature, bois.	Dépannage & Réparation	\N	\N	\N	\N	service-de-charpente	\N	candidatures
+345	Service de couverture	Travaux de couverture et etancheite. Exemples : tuiles, ardoise, zinc, membrane, refection.	Dépannage & Réparation	\N	\N	\N	\N	service-de-couverture	\N	candidatures
+262	Depannage informatique	Resolution de problemes techniques sur ordinateurs ou appareils electroniques. Exemples : installation de logiciels, suppression de virus, recuperation de donnees, configuration reseau.	Informatique	\N	\N	\N	\N	depannage-informatique	\N	candidatures
+264	Confection ou retouche textile	Creation ou modification de vetements et textiles. Exemples : couture sur mesure, retouche de pantalons, creation de costumes, reparation de vetements.	Textile	\N	\N	\N	\N	confection-ou-retouche-textile	\N	candidatures
+265	Coaching ou accompagnement	Soutien personnalise pour atteindre des objectifs. Exemples : coaching sportif, accompagnement scolaire, conseil en developpement personnel, preparation d'entretiens.	Coaching	\N	\N	\N	\N	coaching-ou-accompagnement	\N	candidatures
+267	Formation ou enseignement	Transmission de connaissances ou de competences. Exemples : cours particuliers, formation professionnelle, atelier pedagogique, initiation a une discipline.	Formation	\N	\N	\N	\N	formation-ou-enseignement	\N	candidatures
+93	Aide aux démarches administratives en ligne	Assistance pour remplir les formulaires administratifs numériques.	Secrétariat	\N	\N	45	f	aide-aux-d-marches-administratives-en-ligne	\N	candidatures
+2	Repassage	Service de repassage.	Service à domicile	\N	2025-06-26 12:48:30.522148	120	f	repassage	\N	candidatures
+609	Conduite engins agricoles	Tracteur, moissonneuse, ensileuse	Agriculture	\N	\N	\N	\N	conduite-engins-agricoles	\N	candidatures
+610	Entretien matériel agricole	Graissage, mécanique, réparations	Mécanique	\N	\N	\N	\N	entretien-materiel-agricole	\N	candidatures
+612	Installation de serres	Abris tunnels, structures de protection	Agriculture	\N	\N	\N	\N	installation-serres	\N	candidatures
+582	Préparation des sols	Labour, hersage, semis	Agriculture	\N	\N	\N	\N	preparation-sols	\N	candidatures
+584	Fertilisation	Apport d'amendements, fertilisants	Agriculture	\N	\N	\N	\N	fertilisation	\N	candidatures
+587	Récolte manuelle	Fruits, légumes, céréales	Agriculture	\N	\N	\N	\N	recolte-manuelle	\N	candidatures
+583	Irrigation / arrosage	Gestion de l'eau, systèmes d'arrosage	Agriculture	\N	\N	\N	\N	irrigation-arrosage	\N	candidatures
+586	Récolte mécanisée	Moissonneuse, vendangeuse, machines agricoles	Agriculture	\N	\N	\N	\N	recolte-mecanisee	\N	candidatures
+585	Désherbage	Désherbage manuel ou mécanique	Agriculture	\N	\N	\N	\N	desherbage	\N	candidatures
+613	Pose de filets protection	Grêle, oiseaux, insectes	Agriculture	\N	\N	\N	\N	pose-filets-protection	\N	candidatures
+588	Conditionnement & stockage	Tri, calibrage, mise en cagettes	Agriculture	\N	\N	\N	\N	conditionnement-stockage	\N	candidatures
+600	Viticulture	Taille, palissage, effeuillage, vendanges	Agriculture	\N	\N	\N	\N	viticulture	\N	candidatures
+601	Arboriculture	Taille, greffe, cueillette	Agriculture	\N	\N	\N	\N	arboriculture	\N	candidatures
+602	Maraîchage	Semis, repiquage, récolte légumes divers	Agriculture	\N	\N	\N	\N	maraichage	\N	candidatures
+589	Fruits à noyaux	Cerises, abricots, pêches, prunes	Agriculture	\N	\N	\N	\N	fruits-noyaux	\N	candidatures
+619	Recherche de billet	Rachat de billet d'événement	Billetterie	\N	\N	\N	\N	recherche-de-billet	\N	candidatures
+620	Vente de billet	Revente de billets d'événements	Billetterie	\N	\N	\N	\N	vente-de-billet	\N	candidatures
+621	Échange de billet	Service d'échange de billets	Billetterie	\N	\N	\N	\N	echange-de-billet	\N	candidatures
+152	Nettoyage de véhicule intérieur / extérieur	Service complet de nettoyage intérieur et extérieur de votre véhicule à domicile.	Nettoyage	\N	\N	60	f	nettoyage-de-v-hicule-int-rieur-ext-rieur	car	candidatures
+272	Atelier de cuisine	Cours de cuisine pour apprendre de nouvelles recettes et techniques culinaires. Exemples : cuisine francaise, patisserie, cuisine du monde, cuisine vegetarienne.	Formation	\N	\N	\N	\N	atelier-de-cuisine	\N	candidatures
+155	Service traiteur à domicile	Préparation, dressage et service de repas à domicile pour repas familiaux ou événements privés.	Service à domicile	\N	\N	\N	f	service-traiteur-domicile	chef-hat	candidatures
+275	Cours de musique	Lecons d'instruments ou de chant. Exemples : piano, guitare, violon, batterie, chant, solfege.	Formation	\N	\N	\N	\N	cours-de-musique	\N	candidatures
+259	Visite culturelle guidee	Decouverte accompagnee de lieux ou d'expositions. Exemples : visite de musee privee, parcours historique dans une ville, decouverte d'un quartier artistique.	Art, Culture & Création	\N	\N	\N	\N	visite-culturelle-guidee	\N	candidatures
+258	Performance artistique sur mesure	Spectacle ou creation artistique personnalisee. Exemples : concert prive, lecture de poesie, performance de danse, recital musical.	Art, Culture & Création	\N	\N	\N	\N	performance-artistique-sur-mesure	\N	candidatures
+255	Service a domicile personnalise	Prestation sur mesure directement chez le client selon ses besoins specifiques. Exemples : assemblage de meubles, aide au rangement, preparation d'evenements prives.	Secrétariat	\N	\N	\N	\N	service-a-domicile-personnalise	\N	candidatures
+266	Activite nautique ou aquatique	Loisirs ou formations lies a l'eau. Exemples : cours de natation, initiation a la voile, location de paddle, sortie en kayak.	Formation	\N	\N	\N	\N	activite-nautique-ou-aquatique	\N	candidatures
+270	Cours de danse prive	Lecon de danse personnalisee selon le niveau et les preferences. Exemples : valse, tango, salsa, danse contemporaine, hip-hop.	Formation	\N	\N	\N	\N	cours-de-danse-prive	\N	candidatures
+256	Activite de loisirs creatifs	Atelier artistique ou manuel pour apprendre une technique. Exemples : cours de poterie, initiation a la peinture, atelier de bijoux, session de sculpture.	Art, Culture & Création	\N	\N	\N	\N	activite-de-loisirs-creatifs	\N	candidatures
+253	Service de discretion ou de confiance	Mission sensible ou confidentielle necessitant une personne de confiance. Exemples : remise d'une lettre personnelle, accompagnement discret a un rendez-vous, observation de situation sur demande.	Conciergerie	\N	\N	\N	\N	service-de-discretion-ou-de-confiance	\N	candidatures
+257	Seance de bien-etre ou relaxation	Prestation de detente et de remise en forme. Exemples : massage therapeutique, seance de yoga, meditation guidee, soins esthetiques.	Bien-être	\N	\N	\N	\N	seance-de-bien-etre-ou-relaxation	\N	candidatures
+271	Massage therapeutique	Soin corporel pour soulager les tensions et douleurs. Exemples : massage suedois, shiatsu, massage des tissus profonds, reflexologie.	Bien-être	\N	\N	\N	\N	massage-therapeutique	\N	candidatures
+261	Reparation ou restauration	Remise en etat d'objets endommages ou anciens. Exemples : reparation de meubles, restauration de tableaux, retouche de vetements, renovation d'objets vintage.	Dépannage & Réparation	\N	\N	\N	\N	reparation-ou-restauration	\N	candidatures
+274	Reparation de velos	Entretien et reparation de bicyclettes. Exemples : changement de pneus, reglage des freins, revision complete, reparation de chaine.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-velos	\N	candidatures
+276	Service de menage	Nettoyage et entretien de domiciles ou bureaux. Exemples : aspirateur, serpilliere, nettoyage de vitres, rangement.	Nettoyage	\N	\N	\N	\N	service-de-menage	\N	candidatures
+283	Cours de langue	Apprentissage de langues etrangeres. Exemples : anglais, espagnol, allemand, italien, chinois.	Formation	\N	\N	\N	\N	cours-de-langue	\N	candidatures
+288	Cours de theatre	Apprentissage de l'art dramatique. Exemples : improvisation, technique vocale, expression corporelle, mise en scene.	Formation	\N	\N	\N	\N	cours-de-theatre	\N	candidatures
+290	Reparation d'ordinateurs	Depannage et reparation d'equipements informatiques. Exemples : virus, lenteur, ecran casse, recuperation de donnees.	Informatique	\N	\N	\N	\N	reparation-d-ordinateurs	\N	candidatures
+293	Cours de conduite	Apprentissage de la conduite automobile. Exemples : permis B, conduite accompagnee, perfectionnement, conduite defensive.	Formation	\N	\N	\N	\N	cours-de-conduite	\N	candidatures
+294	Service de traduction	Traduction de documents ou interpretariat. Exemples : traduction ecrite, interpretation, revision, localisation.	Formation	\N	\N	\N	\N	service-de-traduction	\N	candidatures
+481	Cuisinier / commis	Préparation des plats, mise en place	Restauration	\N	\N	\N	\N	cuisinier-commis	\N	candidatures
+23	Préparation repas senior	Service de préparation repas senior.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	livraison-repas-senior	\N	candidatures
+13	Garde d’enfants	Service de garde d’enfants & babby siiting	Enfance & famille	\N	2025-06-26 12:48:30.522148	90	f	garde-d-enfants	\N	candidatures
+308	Cours de dessin	Apprentissage du dessin et techniques graphiques. Exemples : crayon, fusain, perspective, portrait, nature morte.	Art, Culture & Création	\N	\N	\N	\N	cours-de-dessin	\N	candidatures
+296	Cours de pilates	Seances de pilates pour renforcement musculaire. Exemples : pilates matwork, pilates machine, reeducation posturale.	Coaching	\N	\N	\N	\N	cours-de-pilates	\N	candidatures
+278	Cours de peinture	Atelier d'apprentissage des techniques picturales. Exemples : aquarelle, huile, acrylique, pastel, dessin.	Art, Culture & Création	\N	\N	\N	\N	cours-de-peinture	\N	candidatures
+291	Cours de sculpture	Apprentissage de l'art de la sculpture. Exemples : argile, pierre, bois, metal, modelage.	Art, Culture & Création	\N	\N	\N	\N	cours-de-sculpture	\N	candidatures
+286	Cours de natation	Apprentissage de la natation et perfectionnement. Exemples : apprentissage, perfectionnement, aquagym, natation synchronisee.	Formation	\N	\N	\N	\N	cours-de-natation	\N	candidatures
+284	Service de coiffure a domicile	Prestation capillaire au domicile du client. Exemples : coupe, brushing, coloration, mise en plis.	Service à domicile	\N	\N	\N	\N	service-de-coiffure-a-domicile	\N	candidatures
+289	Service de repassage	Repassage de vetements et linge. Exemples : chemises, robes, linge de maison, pressing.	Service à domicile	\N	\N	\N	\N	service-de-repassage	\N	candidatures
+280	Cours de yoga	Seances de yoga pour bien-etre et relaxation. Exemples : hatha yoga, vinyasa, yoga nidra, meditation.	Bien-être	\N	\N	\N	\N	cours-de-yoga	\N	candidatures
+277	Reparation d'appareils electromenagers	Depannage et reparation d'equipements de la maison. Exemples : lave-linge, lave-vaisselle, refrigerateur, four, micro-ondes.	Dépannage & Réparation	\N	\N	\N	\N	reparation-d-appareils-electromenagers	\N	candidatures
+281	Reparation de montres	Entretien et reparation d'horlogerie. Exemples : changement de pile, reparation de mecanisme, polissage, ajustement de bracelet.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-montres	\N	candidatures
+285	Reparation de chaussures	Entretien et reparation de chaussures. Exemples : ressemelage, reparation de talon, cirage, entretien du cuir.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-chaussures	\N	candidatures
+28	Garde d’animaux	Service de garde d’animaux.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	45	f	garde-d-animaux	\N	candidatures
+29	Toilettage à domicile	Service de toilettage à domicile.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	90	f	toilettage-domicile	\N	candidatures
+30	Visite vétérinaire	Service de visite vétérinaire.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	90	f	visite-v-t-rinaire	\N	candidatures
+51	Ramassage feuilles	Service de ramassage feuilles.	Jardinage	\N	2025-06-26 12:48:30.522148	30	f	ramassage-feuilles	\N	candidatures
+53	Débroussaillage	Service de débroussaillage.	Jardinage	\N	2025-06-26 12:48:30.522148	30	f	d-broussaillage	\N	candidatures
+54	Désherbage	Service de désherbage.	Jardinage	\N	2025-06-26 12:48:30.522148	90	f	d-sherbage	\N	candidatures
+304	Service de soutien scolaire	Aide aux devoirs et cours particuliers. Exemples : mathematiques, francais, sciences, preparation d'examens.	Formation	\N	\N	\N	\N	service-de-soutien-scolaire	\N	candidatures
+64	Portage cartons	Service de portage cartons.	Déménagement	\N	2025-06-26 12:48:30.522148	45	f	portage-cartons	\N	candidatures
+65	Location utilitaire	Service de location utilitaire.	Déménagement	\N	2025-06-26 12:48:30.522148	90	f	location-utilitaire	\N	candidatures
+67	Déballage	Service de déballage.	Déménagement	\N	2025-06-26 12:48:30.522148	120	f	d-ballage	\N	candidatures
+57	Plomberie (fuite, siphon)	Service de plomberie (fuite, siphon).	Bâtiment	\N	2025-06-26 12:48:30.522148	30	f	plomberie-fuite-siphon-	\N	candidatures
+56	Électricité (prise, ampoule)	Service d'électricité (prise, ampoule).	Bâtiment	\N	2025-06-26 12:48:30.522148	60	f	-lectricit-prise-ampoule-	\N	candidatures
+310	Cours de chant	Apprentissage du chant et techniques vocales. Exemples : technique vocale, interpretation, chorale, solo.	Formation	\N	\N	\N	\N	cours-de-chant	\N	candidatures
+58	Serrurerie	Service de serrurerie.	Bâtiment	\N	2025-06-26 12:48:30.522148	60	f	serrurerie	\N	candidatures
+66	Emballage	Service d'emballage.	Déménagement	\N	2025-06-26 12:48:30.522148	120	f	emballage	\N	candidatures
+52	Arrosage plantes	Service d'arrosage plantes.	Jardinage	\N	2025-06-26 12:48:30.522148	120	f	arrosage-plantes	\N	candidatures
+37	Accompagnement RDV	Service d'accompagnement à un rdv.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	45	f	accompagnement-rdv	\N	candidatures
+98	Réalisation d’albums photo/souvenirs numériques	Création de souvenirs personnalisés pour les enfants et familles.	Enfance & famille	\N	\N	90	f	r-alisation-d-albums-photo-souvenirs-num-riques	\N	candidatures
+99	Cours de langue à domicile pour enfants	Anglais, espagnol, allemand, adaptés aux jeunes publics.	Enfance & famille	\N	\N	60	f	cours-de-langue-domicile-pour-enfants	\N	candidatures
+100	Accompagnement d’enfants neuro-atypiques	Soutien et activités adaptées aux enfants DYS ou TSA.	Enfance & famille	\N	\N	90	f	accompagnement-d-enfants-neuro-atypiques	\N	candidatures
+101	Pose d’alarmes ou de détecteurs de fumée	Installation sécurisée dans les habitations.	Bricolage	\N	\N	30	f	pose-d-alarmes-ou-de-d-tecteurs-de-fum-e	\N	candidatures
+298	Cours de poterie	Apprentissage de la ceramique et poterie. Exemples : tournage, modelage, emaillage, cuisson.	Art, Culture & Création	\N	\N	\N	\N	cours-de-poterie	\N	candidatures
+302	Service de bricolage	Petits travaux de bricolage a domicile. Exemples : montage de meubles, reparations mineures, pose d'etageres.	Bricolage	\N	\N	\N	\N	service-de-bricolage	\N	candidatures
+25	Lecture à domicile	Service de lecture à domicile.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	45	f	lecture-domicile	\N	candidatures
+80	Traduction	Service de traduction.	Secrétariat	\N	2025-06-26 12:48:30.522148	120	f	traduction	\N	candidatures
+369	Service de permaculture	Conseil et amenagement en permaculture. Exemples : design ecologique, biodiversite, agriculture naturelle.	Jardinage	\N	\N	\N	\N	service-de-permaculture	\N	candidatures
+60	Isolation thermique	Service de isolation thermique.	Bâtiment	\N	2025-06-26 12:48:30.522148	30	f	isolation-thermique	\N	candidatures
+299	Service de baby-sitting	Garde d'enfants a domicile. Exemples : garde d'enfants, aide aux devoirs, activites ludiques, securite.	Enfance & famille	\N	\N	\N	\N	service-de-baby-sitting	\N	candidatures
+61	Réglage volets roulants	Service de réglage volets roulants.	Dépannage & Réparation	\N	2025-06-26 12:48:30.522148	90	f	r-glage-volets-roulants	\N	candidatures
+300	Reparation d'instruments de musique	Entretien et reparation d'instruments musicaux. Exemples : accordage, reparation de cordes, entretien de cuivres.	Dépannage & Réparation	\N	\N	\N	\N	reparation-d-instruments-de-musique	\N	candidatures
+305	Reparation de voitures	Entretien et reparation automobile. Exemples : vidange, freins, pneus, diagnostic, carrosserie.	Dépannage & Réparation	\N	\N	\N	\N	reparation-de-voitures	\N	candidatures
+59	Débouchage de réseaux	Service de débouchage de réseaux, éviers, toilettes.	Dépannage & Réparation	\N	2025-06-26 12:48:30.522148	90	f	d-bouchage	\N	candidatures
+301	Cours de meditation	Apprentissage de techniques de meditation. Exemples : meditation de pleine conscience, meditation guidee, relaxation.	Bien-être	\N	\N	\N	\N	cours-de-meditation	\N	candidatures
+306	Cours de fitness	Entrainement physique personnalise. Exemples : musculation, cardio, preparation physique, remise en forme.	Bien-être	\N	\N	\N	\N	cours-de-fitness	\N	candidatures
+31	Alimentation animaux	Service d'alimentation animaux.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	45	f	alimentation-animaux	\N	candidatures
+107	Entretien de balcons et plantes d’intérieur	Soins, arrosage, rempotage et nettoyage des plantes.	Jardinage	\N	\N	45	f	entretien-de-balcons-et-plantes-d-int-rieur	\N	candidatures
+87	Esthéticienne	Service de esthéticienne.	Bien-être	\N	2025-06-26 12:48:30.522148	45	f	esth-ticienne	\N	candidatures
+312	Cours de danse classique	Apprentissage de la danse classique. Exemples : barre, centre, pointes, ballet, technique classique.	Formation	\N	\N	\N	\N	cours-de-danse-classique	\N	candidatures
+88	Coiffeur à domicile	Service de coiffeur à domicile.	Service à domicile	\N	2025-06-26 12:48:30.522148	60	f	coiffeur-domicile	\N	candidatures
+111	Réception de colis à domicile	Réception de colis en ton absence avec remise en main propre.	Aide à domicile	\N	\N	30	f	r-ception-de-colis-domicile	\N	candidatures
+89	Massage bien-être	Service de massage bien-être.	Bien-être	\N	2025-06-26 12:48:30.522148	45	f	massage-bien-tre	\N	candidatures
+86	Coach sportif	Service de coach sportif.	Coaching	\N	2025-06-26 12:48:30.522148	120	f	coach-sportif	\N	candidatures
+91	Concierge privé	Service de concierge privé.	Conciergerie	\N	2025-06-26 12:48:30.522148	45	f	concierge-priv-	\N	candidatures
+108	Aide au changement d’adresse	Accompagnement physique et administratif lors du déménagement.	Administratif	\N	\N	90	f	aide-au-changement-d-adresse	\N	candidatures
+90	Styliste personnel	Service de styliste personnel.	Coaching	\N	2025-06-26 12:48:30.522148	30	f	styliste-personnel	\N	candidatures
+316	Cours de guitare	Apprentissage de la guitare. Exemples : acoustique, electrique, classique, folk, rock.	Formation	\N	\N	\N	\N	cours-de-guitare	\N	candidatures
+318	Cours de piano	Apprentissage du piano. Exemples : classique, jazz, pop, solfege, technique pianistique.	Formation	\N	\N	\N	\N	cours-de-piano	\N	candidatures
+313	Service de maconnerie	Travaux de maconnerie et construction. Exemples : mur, dalle, renovation, construction, pierre.	Bâtiment	\N	\N	\N	\N	service-de-maconnerie	\N	candidatures
+142	Coaching vie personnelle	Atteinte d’objectifs personnels, gestion du stress, équilibre vie pro/perso.	Coaching	\N	\N	60	f	coaching-vie-personnelle	\N	candidatures
+143	Coaching parental	Accompagnement à la parentalité, écoute et conseils.	Coaching	\N	\N	60	f	coaching-parental	\N	candidatures
+144	Coaching orientation jeunes	Aide à l’orientation scolaire et professionnelle des adolescents.	Coaching	\N	\N	45	f	coaching-orientation-jeunes	\N	candidatures
+145	Coaching confiance en soi	Développement personnel et estime de soi.	Coaching	\N	\N	60	f	coaching-confiance-en-soi	\N	candidatures
+315	Service de peinture	Peinture et decoration interieure. Exemples : murs, plafonds, papier peint, decoration, renovation.	Bâtiment	\N	\N	\N	\N	service-de-peinture	\N	candidatures
+317	Service de menuiserie	Travaux de menuiserie et ebenisterie. Exemples : meuble, etagere, porte, fenetre, bois.	Bâtiment	\N	\N	\N	\N	service-de-menuiserie	\N	candidatures
+314	Cours de tai chi	Pratique du tai chi chuan. Exemples : mouvements lents, energie, equilibre, meditation en mouvement.	Bien-être	\N	\N	\N	\N	cours-de-tai-chi	\N	candidatures
+324	Cours de saxophone	Apprentissage du saxophone. Exemples : embouchure, jazz, classique, anche, techniques de souffle.	Formation	\N	\N	\N	\N	cours-de-saxophone	\N	candidatures
+150	Assistance Ordinateur	Aide à domicile pour ordinateur	Aide à domicile	\N	\N	\N	\N	assistance-informatique	\N	candidatures
+92	Préparation des médicaments	Aide à la préparation hebdomadaire des traitements médicaux.	Aide à domicile	\N	\N	30	f	pr-paration-des-m-dicaments	\N	candidatures
+430	Entretien courant	Vidange, filtres (huile, air, carburant, habitacle), bougies	Mécanique automobile	\N	\N	\N	\N	entretien-courant-auto	\N	candidatures
+431	Freinage	Plaquettes, disques, purge du liquide de frein	Mécanique automobile	\N	\N	\N	\N	freinage-auto	\N	candidatures
+432	Transmission	Embrayage, boîte de vitesses, cardans, transmission automatique	Mécanique automobile	\N	\N	\N	\N	transmission-auto	\N	candidatures
+433	Suspension & direction	Amortisseurs, rotules, parallélisme	Mécanique automobile	\N	\N	\N	\N	suspension-direction-auto	\N	candidatures
+434	Moteur	Courroie ou chaîne de distribution, joints, injecteurs, turbo, culasse	Mécanique automobile	\N	\N	\N	\N	moteur-auto	\N	candidatures
+435	Système de refroidissement	Radiateur, pompe à eau, liquide de refroidissement	Mécanique automobile	\N	\N	\N	\N	refroidissement-auto	\N	candidatures
+436	Échappement & pollution	Pot d'échappement, catalyseur, FAP, sonde lambda	Mécanique automobile	\N	\N	\N	\N	echappement-pollution-auto	\N	candidatures
+437	Électricité & électronique	Batterie, alternateur, démarreur, capteurs, fusibles	Mécanique automobile	\N	\N	\N	\N	electricite-electronique-auto	\N	candidatures
+438	Pneumatiques	Montage, équilibrage, permutation, réparation crevaison	Mécanique automobile	\N	\N	\N	\N	pneumatiques-auto	\N	candidatures
+439	Climatisation & chauffage	Recharge de gaz, compresseur, condenseur	Mécanique automobile	\N	\N	\N	\N	climatisation-chauffage-auto	\N	candidatures
+440	Carrosserie légère	Changement de rétroviseur, pare-chocs, optiques, vitres	Mécanique automobile	\N	\N	\N	\N	carrosserie-legere-auto	\N	candidatures
+441	Diagnostic & électronique embarquée	Valise diagnostic, reset voyants	Mécanique automobile	\N	\N	\N	\N	diagnostic-electronique-auto	\N	candidatures
+442	Entretien courant	Vidange, filtres, bougies	Mécanique moto & scooter	\N	\N	\N	\N	entretien-courant-moto	\N	candidatures
+443	Transmission	Kit chaîne, courroie, embrayage	Mécanique moto & scooter	\N	\N	\N	\N	transmission-moto	\N	candidatures
+444	Freinage	Plaquettes, disques, purge hydraulique	Mécanique moto & scooter	\N	\N	\N	\N	freinage-moto	\N	candidatures
+445	Suspensions	Fourche, amortisseurs	Mécanique moto & scooter	\N	\N	\N	\N	suspensions-moto	\N	candidatures
+446	Électricité	Batterie, alternateur, éclairage, démarreur	Mécanique moto & scooter	\N	\N	\N	\N	electricite-moto	\N	candidatures
+447	Moteur	Joints, culasse, carburation/injection, échappement	Mécanique moto & scooter	\N	\N	\N	\N	moteur-moto	\N	candidatures
+448	Pneumatiques	Montage, équilibrage, réparation	Mécanique moto & scooter	\N	\N	\N	\N	pneumatiques-moto	\N	candidatures
+449	Accessoires	Top-case, bulle, poignées chauffantes	Mécanique moto & scooter	\N	\N	\N	\N	accessoires-moto	\N	candidatures
+450	Diagnostic électronique	ECU, voyants	Mécanique moto & scooter	\N	\N	\N	\N	diagnostic-electronique-moto	\N	candidatures
+451	Réglages de base	Freins, dérailleurs, vitesses	Mécanique vélo	\N	\N	\N	\N	reglages-base-velo	\N	candidatures
+452	Transmission	Chaîne, cassette, plateau, pédalier	Mécanique vélo	\N	\N	\N	\N	transmission-velo	\N	candidatures
+453	Freinage	Patins, disques, câbles ou durites hydrauliques	Mécanique vélo	\N	\N	\N	\N	freinage-velo	\N	candidatures
+454	Roues & pneus	Montage, chambre à air, tubeless, dévoilage roue	Mécanique vélo	\N	\N	\N	\N	roues-pneus-velo	\N	candidatures
+460	Transmission & propulsion	Hélice, embase, arbre, inverseur	Mécanique & entretien bateau	\N	\N	\N	\N	transmission-propulsion-bateau	\N	candidatures
+461	Circuit carburant	Réservoir, durites, pompe	Mécanique & entretien bateau	\N	\N	\N	\N	circuit-carburant-bateau	\N	candidatures
+462	Circuit électrique	Batteries, alternateur, démarreur, éclairage, panneaux solaires	Mécanique & entretien bateau	\N	\N	\N	\N	circuit-electrique-bateau	\N	candidatures
+463	Circuit d'eau	Pompe de cale, eau douce, sanitaire, désalinisation	Mécanique & entretien bateau	\N	\N	\N	\N	circuit-eau-bateau	\N	candidatures
+464	Refroidissement	Pompe à eau de mer, échangeur, liquide de refroidissement	Mécanique & entretien bateau	\N	\N	\N	\N	refroidissement-bateau	\N	candidatures
+465	Système de navigation	GPS, sondeur, pilote automatique, radar	Mécanique & entretien bateau	\N	\N	\N	\N	systeme-navigation-bateau	\N	candidatures
+466	Sécurité & équipements	Gilets, radeau de survie, extincteurs	Mécanique & entretien bateau	\N	\N	\N	\N	securite-equipements-bateau	\N	candidatures
+467	Carénage	Nettoyage carène, antifouling, anodes, peinture coque	Mécanique & entretien bateau	\N	\N	\N	\N	carenage-bateau	\N	candidatures
+468	Voiles & gréement	Voiles, haubans, drisses, winchs	Mécanique & entretien bateau	\N	\N	\N	\N	voiles-greement-bateau	\N	candidatures
+469	Accastillage & aménagements	Taquets, rails, cabestan, aménagement intérieur	Mécanique & entretien bateau	\N	\N	\N	\N	accastillage-amenagements-bateau	\N	candidatures
+470	Climatisation / chauffage / réfrigération	Yachts, voiliers habitables	Mécanique & entretien bateau	\N	\N	\N	\N	climatisation-chauffage-refrigeration-bateau	\N	candidatures
+471	Freinage	Patins, disques, tambours, câbles, purge hydraulique	Mécanique trottinette	\N	\N	\N	\N	freinage-trottinette	\N	candidatures
+472	Transmission & roues	Pneus, chambre à air, moteur roue, roulements	Mécanique trottinette	\N	\N	\N	\N	transmission-roues-trottinette	\N	candidatures
+473	Électricité	Batterie, contrôleur, câblage, chargeur	Mécanique trottinette	\N	\N	\N	\N	electricite-trottinette	\N	candidatures
+474	Éclairage & accessoires	Phares, feux arrière, klaxon, guidon	Mécanique trottinette	\N	\N	\N	\N	eclairage-accessoires-trottinette	\N	candidatures
+475	Suspension	Fourche avant, amortisseurs arrière	Mécanique trottinette	\N	\N	\N	\N	suspension-trottinette	\N	candidatures
+476	Châssis & pliage	Charnières, colonne de direction, plateau	Mécanique trottinette	\N	\N	\N	\N	chassis-pliage-trottinette	\N	candidatures
+477	Logiciel & diagnostic	Mise à jour firmware, affichage compteur, capteurs	Mécanique trottinette	\N	\N	\N	\N	logiciel-diagnostic-trottinette	\N	candidatures
+478	Révision complète	Serrages, graissage, nettoyage, réglages	Mécanique trottinette	\N	\N	\N	\N	revision-complete-trottinette	\N	candidatures
+326	Cours de flute	Apprentissage de la flute traversiere. Exemples : embouchure, classique, baroque, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-flute	\N	candidatures
+328	Cours de trompette	Apprentissage de la trompette. Exemples : embouchure, jazz, classique, fanfare, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-trompette	\N	candidatures
+330	Cours de clarinette	Apprentissage de la clarinette. Exemples : anche, classique, jazz, klezmer, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-clarinette	\N	candidatures
+332	Cours de violoncelle	Apprentissage du violoncelle. Exemples : archet, doigtes, classique, position, technique.	Formation	\N	\N	\N	\N	cours-de-violoncelle	\N	candidatures
+334	Cours de tuba	Apprentissage du tuba. Exemples : embouchure, orchestre, harmonie, technique de souffle, grave.	Formation	\N	\N	\N	\N	cours-de-tuba	\N	candidatures
+336	Cours de cor	Apprentissage du cor d'harmonie. Exemples : embouchure, classique, orchestre, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-cor	\N	candidatures
+348	Cours de banjo	Apprentissage du banjo. Exemples : bluegrass, folk, country, picking, technique.	Formation	\N	\N	\N	\N	cours-de-banjo	\N	candidatures
+350	Cours d'accordeon	Apprentissage de l'accordeon. Exemples : diatonique, chromatique, folk, musette, soufflet.	Formation	\N	\N	\N	\N	cours-d-accordeon	\N	candidatures
+352	Cours d'harmonica	Apprentissage de l'harmonica. Exemples : blues, folk, country, embouchure, technique de souffle.	Formation	\N	\N	\N	\N	cours-d-harmonica	\N	candidatures
+354	Cours de kalimba	Apprentissage du kalimba ou piano a pouces. Exemples : musique africaine, relaxation, melodies simples.	Formation	\N	\N	\N	\N	cours-de-kalimba	\N	candidatures
+356	Cours de tabla	Apprentissage du tabla indien. Exemples : rythmes indiens, percussion, meditation, world music.	Formation	\N	\N	\N	\N	cours-de-tabla	\N	candidatures
+321	Service de climatisation	Installation et entretien de climatisation. Exemples : installation, maintenance, reparation, nettoyage.	Dépannage & Réparation	\N	\N	\N	\N	service-de-climatisation	\N	candidatures
+323	Service de chauffage	Installation et entretien de systemes de chauffage. Exemples : chaudiere, radiateur, pompe a chaleur, maintenance.	Dépannage & Réparation	\N	\N	\N	\N	service-de-chauffage	\N	candidatures
+325	Service de toiture	Reparation et entretien de toitures. Exemples : tuiles, ardoise, etancheite, gouttiere, isolation.	Dépannage & Réparation	\N	\N	\N	\N	service-de-toiture	\N	candidatures
+327	Service de carrelage	Pose et reparation de carrelage. Exemples : sol, mur, salle de bain, cuisine, faience.	Dépannage & Réparation	\N	\N	\N	\N	service-de-carrelage	\N	candidatures
+329	Service de parquet	Pose et entretien de parquet. Exemples : massif, stratifie, poncage, vitrification, renovation.	Dépannage & Réparation	\N	\N	\N	\N	service-de-parquet	\N	candidatures
+366	Cours de djembe	Apprentissage du djembe africain. Exemples : rythmes africains, percussion, cercle de tambours, world music.	Formation	\N	\N	\N	\N	cours-de-djembe	\N	candidatures
+368	Cours de congas	Apprentissage des congas cubaines. Exemples : salsa, latin jazz, percussion, rythmes afro-cubains.	Formation	\N	\N	\N	\N	cours-de-congas	\N	candidatures
+370	Cours de bongos	Apprentissage des bongos. Exemples : salsa, latin jazz, percussion, technique des doigts.	Formation	\N	\N	\N	\N	cours-de-bongos	\N	candidatures
+372	Cours de timbales	Apprentissage des timbales. Exemples : orchestre, percussion classique, technique de mailloche.	Formation	\N	\N	\N	\N	cours-de-timbales	\N	candidatures
+374	Cours de marimba	Apprentissage du marimba. Exemples : percussion melodique, musique d'Amerique centrale, mailloche.	Formation	\N	\N	\N	\N	cours-de-marimba	\N	candidatures
+376	Cours de vibraphone	Apprentissage du vibraphone. Exemples : jazz, percussion melodique, mailloche, technique moderne.	Formation	\N	\N	\N	\N	cours-de-vibraphone	\N	candidatures
+378	Cours de glockenspiel	Apprentissage du glockenspiel. Exemples : percussion melodique, orchestre, mailloche, metal.	Formation	\N	\N	\N	\N	cours-de-glockenspiel	\N	candidatures
+380	Cours de crotales	Apprentissage des crotales. Exemples : percussion classique, orchestre, technique precise, cristallin.	Formation	\N	\N	\N	\N	cours-de-crotales	\N	candidatures
+382	Cours de triangle	Apprentissage du triangle. Exemples : percussion classique, orchestre, technique de frappe, metal.	Formation	\N	\N	\N	\N	cours-de-triangle	\N	candidatures
+384	Cours de cymbales	Apprentissage des cymbales. Exemples : orchestre, percussion, technique de frappe, resonance.	Formation	\N	\N	\N	\N	cours-de-cymbales	\N	candidatures
+386	Cours de cloche tubulaire	Apprentissage des cloches tubulaires. Exemples : orchestre, percussion melodique, mailloche, grave.	Formation	\N	\N	\N	\N	cours-de-cloche-tubulaire	\N	candidatures
+479	Chef cuisinier	Direction de cuisine, création de menus, encadrement d'équipe	Restauration	\N	\N	\N	\N	chef-cuisinier	\N	candidatures
+388	Cours de gong	Apprentissage du gong. Exemples : meditation, therapie sonore, relaxation, vibrations.	Formation	\N	\N	\N	\N	cours-de-gong	\N	candidatures
+390	Cours de bol tibetain	Apprentissage du bol chantant tibetain. Exemples : meditation, therapie sonore, relaxation, spiritualite.	Formation	\N	\N	\N	\N	cours-de-bol-tibetain	\N	candidatures
+392	Cours de carillon	Apprentissage du carillon. Exemples : cloches, melodie, tradition, technique de frappe.	Formation	\N	\N	\N	\N	cours-de-carillon	\N	candidatures
+394	Cours de lithophone	Apprentissage du lithophone. Exemples : percussion sur pierre, sons naturels, musique primitive.	Formation	\N	\N	\N	\N	cours-de-lithophone	\N	candidatures
+365	Service de potager	Creation et entretien de potagers. Exemples : plantation, permaculture, legumes bio, jardinage ecologique.	Jardinage	\N	\N	\N	\N	service-de-potager	\N	candidatures
+367	Service de ruches	Installation et entretien de ruches. Exemples : apiculture, miel, pollinisation, ecologie, abeilles.	Agriculture	\N	\N	\N	\N	service-de-ruches	\N	candidatures
+371	Service de mare naturelle	Creation de mares et bassins naturels. Exemples : biodiversite, ecosysteme aquatique, faune, flore.	Jardinage	\N	\N	\N	\N	service-de-mare-naturelle	\N	candidatures
+375	Service de haie bocagere	Plantation de haies ecologiques. Exemples : biodiversite, protection, faune, corridors ecologiques.	Jardinage	\N	\N	\N	\N	service-de-haie-bocagere	\N	candidatures
+373	Service de nichoirs	Installation de nichoirs et mangeoires. Exemples : oiseaux, biodiversite, observation, ecologie.	Agriculture	\N	\N	\N	\N	service-de-nichoirs	\N	candidatures
+377	Service de prairie fleurie	Creation de prairies fleuries. Exemples : biodiversite, pollinisateurs, ecologie, fleurs sauvages.	Jardinage	\N	\N	\N	\N	service-de-prairie-fleurie	\N	candidatures
+379	Service de jardin therapeutique	Creation de jardins a visee therapeutique. Exemples : hortitherapie, bien-etre, plantes medicinales.	Jardinage	\N	\N	\N	\N	service-de-jardin-therapeutique	\N	candidatures
+383	Service de mur vegetal	Installation de murs vegetalises. Exemples : vegetalisation verticale, purification air, decoration verte.	Jardinage	\N	\N	\N	\N	service-de-mur-vegetal	\N	candidatures
+385	Service de jardin japonais	Creation de jardins zen japonais. Exemples : meditation, esthetique, minimalisme, harmonie.	Jardinage	\N	\N	\N	\N	service-de-jardin-japonais	\N	candidatures
+389	Service de foret comestible	Creation de forets nouricieres. Exemples : permaculture, arbres fruitiers, ecosysteme comestible.	Agriculture	\N	\N	\N	\N	service-de-foret-comestible	\N	candidatures
+391	Service de labyrinthe vegetal	Creation de labyrinthes de jardin. Exemples : meditation, jeu, esthetique, cheminement spirituel.	Jardinage	\N	\N	\N	\N	service-de-labyrinthe-vegetal	\N	candidatures
+387	Service de spirale aromatique	Creation de spirales d'herbes aromatiques. Exemples : permaculture, cuisine, medecine douce, biodiversite.	Jardinage	\N	\N	\N	\N	service-de-spirale-aromatique	\N	candidatures
+393	Service de jardin de pluie	Creation de jardins de recuperation d'eau. Exemples : gestion eaux pluviales, ecologie, infiltration.	Jardinage	\N	\N	\N	\N	service-de-jardin-de-pluie	\N	candidatures
+72	Montage barnum	Service de montage barnum.	Événementiel	\N	2025-06-26 12:48:30.522148	30	f	montage-barnum	\N	candidatures
+55	Petites réparations	Service de petites réparations.	Dépannage & Réparation	\N	2025-06-26 12:48:30.522148	90	f	petites-r-parations	\N	candidatures
+40	Montage de meubles	Service de montage de meubles.	Bricolage	\N	2025-06-26 12:48:30.522148	120	f	montage-de-meubles	\N	candidatures
+44	Réparation porte/fenêtre	Service de réparation porte/fenêtre.	Bricolage	\N	2025-06-26 12:48:30.522148	120	f	r-paration-porte-fen-tre	\N	candidatures
+395	Service de toit terrasse	Amenagement de toits terrasses. Exemples : espace vert urbain, detente, jardinage en hauteur.	Jardinage	\N	\N	\N	\N	service-de-toit-terrasse	\N	candidatures
+359	Service d'eolienne	Installation de petites eoliennes domestiques. Exemples : electricite verte, autonomie energetique, vent.	Dépannage & Réparation	\N	\N	\N	\N	service-d-eolienne	\N	candidatures
+361	Service de recuperation d'eau	Installation de systemes de recuperation d'eau de pluie. Exemples : cuve, filtration, arrosage, ecologie.	Dépannage & Réparation	\N	\N	\N	\N	service-de-recuperation-d-eau	\N	candidatures
+400	Cours de tongue drum	Apprentissage du tongue drum. Exemples : percussion melodique, relaxation, musique therapeutique.	Formation	\N	\N	\N	\N	cours-de-tongue-drum	\N	candidatures
+423	Vitrerie / Miroiterie	Travaux de vitrerie et pose de miroirs.	Bâtiment	\N	\N	\N	\N	vitrerie-miroiterie	\N	candidatures
+402	Cours de cajon flamenco	Apprentissage du cajon specialise flamenco. Exemples : compas, palmas, technique percussive andalouse.	Formation	\N	\N	\N	\N	cours-de-cajon-flamenco	\N	candidatures
+411	Peinture & Revêtements muraux	Travaux de peinture et décoration murale.	Peinture & revêtements muraux	\N	\N	\N	\N	peinture-revetements-muraux	\N	candidatures
+413	Plâtrerie / Staff / Décors moulés	Travaux de plâtrerie décorative.	Plâtrerie / staff / décors moulés	\N	\N	\N	\N	platrerie-staff-decors-moules	\N	candidatures
+414	Plomberie / Sanitaires	Installation et dépannage plomberie.	Plomberie / sanitaires	\N	\N	\N	\N	plomberie-sanitaires	\N	candidatures
+416	Électricité courants forts	Installation électrique courants forts.	Électricité courants forts	\N	\N	\N	\N	electricite-courants-forts	\N	candidatures
+426	Piscines & bassins	Construction et rénovation de piscines.	Piscines & bassins	\N	\N	\N	\N	piscines-bassins	\N	candidatures
+429	Nettoyage de chantier	Nettoyage et remise en état post-travaux.	Nettoyage de chantier	\N	\N	\N	\N	nettoyage-de-chantier	\N	candidatures
+480	Second de cuisine	Assistance du chef, supervision de la préparation	Restauration	\N	\N	\N	\N	second-de-cuisine	\N	candidatures
+455	Suspension	Fourche, amortisseur arrière (VTT)	Mécanique vélo	\N	\N	\N	\N	suspension-velo	\N	candidatures
+456	Électricité (VAE)	Batterie, moteur, contrôleur, câblage	Mécanique vélo	\N	\N	\N	\N	electricite-vae-velo	\N	candidatures
+457	Accessoires	Éclairage, sonnette, porte-bagages, garde-boue	Mécanique vélo	\N	\N	\N	\N	accessoires-velo	\N	candidatures
+458	Révision complète	Check-up sécurité, graissage, nettoyage transmission	Mécanique vélo	\N	\N	\N	\N	revision-complete-velo	\N	candidatures
+482	Aide de cuisine / plongeur	Nettoyage, préparation de base, plonge	Restauration	\N	\N	\N	\N	aide-cuisine-plongeur	\N	candidatures
+483	Pâtissier / boulanger / pizzaiolo	Préparation desserts, pâtisseries, pizzas	Restauration	\N	\N	\N	\N	patissier-boulanger-pizzaiolo	\N	candidatures
+484	Traiteur / préparation buffets	Organisation de buffets, événements	Restauration	\N	\N	\N	\N	traiteur-buffets	\N	candidatures
+485	Serveur / chef de rang	Service en salle, accueil clientèle	Restauration	\N	\N	\N	\N	serveur-chef-rang	\N	candidatures
+486	Maître d'hôtel	Coordination du service, gestion équipe salle	Restauration	\N	\N	\N	\N	maitre-hotel	\N	candidatures
+487	Sommelier	Conseil vins, gestion cave, accord mets-vins	Restauration	\N	\N	\N	\N	sommelier	\N	candidatures
+488	Runner	Assistance service, transport plats	Restauration	\N	\N	\N	\N	runner	\N	candidatures
+489	Responsable restauration	Gestion globale restaurant, encadrement	Restauration	\N	\N	\N	\N	responsable-restauration	\N	candidatures
+490	Gestion des stocks	Approvisionnements, contrôle stocks	Restauration	\N	\N	\N	\N	gestion-stocks	\N	candidatures
+418	Systèmes de sécurité incendie	Installation de sécurité incendie.	Sécurité	\N	\N	\N	\N	systemes-securite-incendie	\N	candidatures
+397	Service de serre bioclimatique	Construction de serres ecologiques. Exemples : cultures 4 saisons, economie energie, autonomie alimentaire.	Agriculture	\N	\N	\N	\N	service-de-serre-bioclimatique	\N	candidatures
+399	Service de aquaponie	Installation de systemes aquaponiques. Exemples : poissons-legumes, ecologie, circuit ferme, innovation.	Agriculture	\N	\N	\N	\N	service-de-aquaponie	\N	candidatures
+403	Service de jardin therapeutique sensoriel	Creation de jardins sensoriels therapeutiques. Exemples : handicap, stimulation sens, hortitherapie.	Jardinage	\N	\N	\N	\N	service-de-jardin-therapeutique-sensoriel	\N	candidatures
+427	Traitement acoustique	Travaux d'isolation phonique.	Bâtiment	\N	\N	\N	\N	traitement-acoustique	\N	candidatures
+410	Revêtements de sols	Pose de revêtements de sols.	Bâtiment	\N	\N	\N	\N	revetements-de-sols	\N	candidatures
+422	Métallerie / Serrurerie	Travaux de métallerie et serrurerie.	Bâtiment	\N	\N	\N	\N	metallerie-serrurerie	\N	candidatures
+407	Menuiseries extérieures	Pose de menuiseries extérieures.	Bâtiment	\N	\N	\N	\N	menuiseries-exterieures	\N	candidatures
+409	Menuiserie intérieure	Installation de menuiseries intérieures.	Bâtiment	\N	\N	\N	\N	menuiserie-interieure	\N	candidatures
+412	Isolation intérieure	Travaux d'isolation phonique et thermique intérieure.	Bâtiment	\N	\N	\N	\N	isolation-interieure	\N	candidatures
+252	Recuperation express d'un objet	Depannage en urgence pour recuperer un objet oublie (telephone, clef, dossier...) dans un lieu precis et le rapporter rapidement au client. Exemples : objet oublie dans un taxi, restaurant, ou chez un ami.	Livraison	\N	\N	\N	\N	recuperation-express-d-un-objet	\N	direct
+1	Ménage	Service de ménage.	Nettoyage	\N	2025-06-26 12:48:30.522148	45	f	m-nage	\N	candidatures
+4	Grand nettoyage	Service de grand nettoyage.	Nettoyage	\N	2025-06-26 12:48:30.522148	30	f	grand-nettoyage	\N	candidatures
+3	Nettoyage vitres	Service de nettoyage vitres.	Nettoyage	\N	2025-06-26 12:48:30.522148	90	f	nettoyage-vitres	\N	candidatures
+32	Livraison express	Service de livraison express.	Livraison	\N	2025-06-26 12:48:30.522148	45	f	livraison-express	\N	direct
+33	Livraison courses	Service de livraison courses - Drive	Livraison	\N	2025-06-26 12:48:30.522148	90	f	livraison-courses	\N	direct
+35	Transport en voiture	Service de transport de personnes.	Transport	\N	2025-06-26 12:48:30.522148	30	f	transport-de-personnes	\N	direct
+34	Livraison colis	Service de livraison colis.	Livraison	\N	2025-06-26 12:48:30.522148	120	f	livraison-colis	\N	direct
+78	Livraison urgente médicament	Service de livraison urgente médicament.	Livraison	\N	2025-06-26 12:48:30.522148	120	f	livraison-urgente-m-dicament	\N	direct
+63	Transport meubles	Service de transport meubles.	Transport	\N	2025-06-26 12:48:30.522148	120	f	transport-meubles	\N	direct
+48	Tonte de pelouse	Service de tonte de pelouse.	Jardinage	\N	2025-06-26 12:48:30.522148	45	f	tonte-de-pelouse	\N	candidatures
+49	Taille de haie	Service de taille de haie.	Jardinage	\N	2025-06-26 12:48:30.522148	60	f	taille-de-haie	\N	candidatures
+50	Entretien jardin	Service de entretien jardin.	Jardinage	\N	2025-06-26 12:48:30.522148	30	f	entretien-jardin	\N	candidatures
+97	Organisation d’anniversaires clé-en-main	Animations, décoration, gâteaux et logistique.	Enfance & famille	\N	\N	120	f	organisation-d-anniversaires-cl-en-main	\N	candidatures
+38	Dépannage véhicule	Service de dépannage véhicule.	Dépannage & Réparation	\N	2025-06-26 12:48:30.522148	90	f	d-pannage-v-hicule	\N	candidatures
+62	Aide au déménagement	Service d'aide au déménagement.	Déménagement	\N	2025-06-26 12:48:30.522148	120	f	aide-au-d-m-nagement	\N	candidatures
+338	Cours de trombone	Apprentissage du trombone. Exemples : coulisse, jazz, classique, harmonie, technique de souffle.	Formation	\N	\N	\N	\N	cours-de-trombone	\N	candidatures
+27	Promenade de chien	Service de promenade de chien.	Soins aux animaux	\N	2025-06-26 12:48:30.522148	45	f	promenade-de-chien	\N	candidatures
+141	Location / prêt de matériel	Prêt ou location de matériel : vaisselle, sono, vélos, outils, déco...	Location	\N	\N	60	f	location-pr-t-de-mat-riel-1	\N	candidatures
+146	Transport de véhicule interville	Conduite de véhicule à transporter d'un endroit à un autre avec pris en charge des frais de retour	Livraison	\N	\N	\N	\N	dog-walking	\N	direct
+5	Organisation maison	Service d'organisation maison.	Service à domicile	\N	2025-06-26 12:48:30.522148	45	f	organisation-maison	\N	candidatures
+153	Livraison Boulangerie	Livraison de pains, viennoiseries et produits de boulangerie à domicile.	Livraison	\N	\N	30	f	livraison-boulangerie	bread	direct
+154	Livraison Fleurs	Livraison de bouquets de fleurs à domicile pour toute occasion.	Livraison	\N	\N	30	f	livraison-fleurs	flower	direct
+6	Préparation repas	Service de préparation repas.	Service à domicile	\N	2025-06-26 12:48:30.522148	30	f	pr-paration-repas	\N	candidatures
+254	Livraison express ou specialisee	Transport rapide ou delicat d'objets fragiles, precieux ou urgents. Exemples : livraison de medicaments, transport d'oeuvres d'art, acheminement de documents importants.	Livraison	\N	\N	\N	\N	livraison-express-ou-specialisee	\N	direct
+24	Promenade senior	Service de promenade senior.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	promenade-senior	\N	candidatures
+268	Service de transport personnalise	Deplacement sur mesure de personnes ou d'objets. Exemples : transport VIP, accompagnement pour courses, demenagement leger, navette privee.	Transport	\N	\N	\N	\N	service-de-transport-personnalise	\N	direct
+273	Service de jardinage	Entretien et amenagement d'espaces verts. Exemples : taille de haies, plantation, arrosage, creation de jardin, entretien de pelouse.	Jardinage	\N	\N	\N	\N	service-de-jardinage	\N	candidatures
+7	Courses alimentaires	Service de courses alimentaires.	Livraison	\N	2025-06-26 12:48:30.522148	45	f	courses-alimentaires	\N	direct
+22	Accompagnement médical	Service d'accompagnement médical.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	90	f	accompagnement-m-dical	\N	candidatures
+18	Animation anniversaire	Service d'animation pour un  anniversaire.	Enfance & famille	\N	2025-06-26 12:48:30.522148	30	f	animation-anniversaire	\N	candidatures
+19	Accompagnement activité	Service d'accompagnement activité.	Enfance & famille	\N	2025-06-26 12:48:30.522148	60	f	accompagnement-activit-	\N	candidatures
+16	Aide aux devoirs	Service d'aide aux devoirs.	Enfance & famille	\N	2025-06-26 12:48:30.522148	60	f	aide-aux-devoirs	\N	candidatures
+279	Service de demenagement	Transport et manutention pour changement de domicile. Exemples : emballage, transport, deballage, montage de meubles.	Transport	\N	\N	\N	\N	service-de-demenagement	\N	direct
+8	Aide à la toilette	Service d'aide à la toilette.	Seniors & dépendance	\N	2025-06-26 12:48:30.522148	45	f	aide-la-toilette	\N	candidatures
+287	Service de livraison de courses	Achat et livraison de produits alimentaires. Exemples : courses alimentaires, produits frais, livraison express.	Livraison	\N	\N	\N	\N	service-de-livraison-de-courses	\N	direct
+36	Covoiturage solidaire	Service de covoiturage solidaire.	Transport	\N	2025-06-26 12:48:30.522148	30	f	covoiturage-solidaire	\N	direct
+39	Conduite accompagnée	Service de conduite accompagnée.	Transport	\N	2025-06-26 12:48:30.522148	45	f	conduite-accompagn-e	\N	direct
+41	Petits travaux	Service de petits travaux.	Bricolage	\N	2025-06-26 12:48:30.522148	45	f	petits-travaux	\N	candidatures
+42	Fixation étagères	Service de fixation étagères.	Bricolage	\N	2025-06-26 12:48:30.522148	60	f	fixation-tag-res	\N	candidatures
+43	Peinture	Service de peinture.	Bricolage	\N	2025-06-26 12:48:30.522148	120	f	peinture	\N	candidatures
+45	Pose de tringles	Service de pose de tringles.	Bricolage	\N	2025-06-26 12:48:30.522148	90	f	pose-de-tringles	\N	candidatures
+46	Pose de rideaux	Service de pose de rideaux.	Bricolage	\N	2025-06-26 12:48:30.522148	30	f	pose-de-rideaux	\N	candidatures
+47	Pose de papier peint	Service de pose de papier peint.	Bricolage	\N	2025-06-26 12:48:30.522148	30	f	pose-de-papier-peint	\N	candidatures
+303	Cours de couture	Apprentissage de la couture et confection. Exemples : techniques de base, patron, machine a coudre, retouches.	Formation	\N	\N	\N	\N	cours-de-couture	\N	candidatures
+103	Recyclage et évacuation d’encombrants	Débarras d’objets inutiles avec tri et orientation vers la bonne filière.	Transport	\N	\N	60	f	recyclage-et-vacuation-d-encombrants	\N	direct
+110	Livraison entre particuliers	Transport sécurisé d’objets achetés sur Leboncoin, Vinted, etc.	Livraison	\N	\N	60	f	livraison-entre-particuliers	\N	direct
+157	Transport scolaire	Accompagnement des enfants entre le domicile et l’établissement scolaire, en toute sécurité.	Transport	\N	\N	\N	f	transport-scolaire	\N	direct
+109	Transport vers déchèterie	Acheminement d’objets encombrants ou déchets.	Transport	\N	\N	60	f	transport-vers-les-d-ch-teries	\N	direct
+102	Installation d’équipements PMR	Pose de barres d’appui, rampes, etc. pour personnes à mobilité réduite.	Bricolage	\N	\N	60	f	installation-d-quipements-pmr	\N	candidatures
+104	Création de potagers urbains	Installation de potagers sur balcon, terrasse ou petit jardin.	Jardinage	\N	\N	90	f	cr-ation-de-potagers-urbains	\N	candidatures
+105	Entretien de tombes, caveaux & pierres tombales	Nettoyage régulier ou ponctuel des sépultures.	Jardinage	\N	\N	45	f	entretien-de-tombes-caveaux-pierres-tombales	\N	candidatures
+106	Dératisation ou désinsectisation simple	Intervention de premier niveau contre nuisibles (fourmis, rongeurs...).	Jardinage	\N	\N	60	f	d-ratisation-ou-d-sinsectisation-simple	\N	candidatures
+139	Assistant virtuel à domicile	Délégation de tâches récurrentes : emails, réservations, factures.	Secrétariat	\N	\N	60	f	assistant-virtuel-domicile-1	\N	candidatures
+136	Réception de colis à domicile	Réception de colis en ton absence avec remise en main propre.	Livraison	\N	\N	30	f	r-ception-de-colis-domicile-1	\N	direct
+319	Service de tapisserie	Refection et creation de tapisserie. Exemples : fauteuil, canape, rideaux, restauration, tissu.	Bricolage	\N	\N	\N	\N	service-de-tapisserie	\N	candidatures
+128	Recyclage et évacuation d’encombrants	Débarras d’objets inutiles avec tri et orientation vers la bonne filière.	Bricolage	\N	\N	60	f	recyclage-et-vacuation-d-encombrants-1	\N	candidatures
+351	Service de pompe a chaleur	Installation et entretien de pompes a chaleur. Exemples : air-air, air-eau, geothermie, maintenance.	Bâtiment	\N	\N	\N	\N	service-de-pompe-a-chaleur	\N	candidatures
+133	Aide au changement d’adresse	Accompagnement physique et administratif lors du déménagement.	Déménagement	\N	\N	90	f	aide-au-changement-d-adresse-1	\N	candidatures
+320	Cours de batterie	Apprentissage de la batterie. Exemples : rythme, coordination, rock, jazz, techniques de frappe.	Formation	\N	\N	\N	\N	cours-de-batterie	\N	candidatures
+322	Cours de violon	Apprentissage du violon. Exemples : technique d'archet, doigtes, classique, folk, improvisation.	Formation	\N	\N	\N	\N	cours-de-violon	\N	candidatures
+134	Transport vers les déchèteries	Acheminement d’objets encombrants ou déchets.	Déménagement	\N	\N	60	f	transport-vers-les-d-ch-teries-1	\N	candidatures
+420	Installation Gaz	Raccordement et installation gaz.	Bâtiment	\N	\N	\N	\N	installation-gaz	\N	candidatures
+358	Cours de didgeridoo	Apprentissage du didgeridoo aborigene. Exemples : respiration circulaire, sons harmoniques, culture aborigene.	Formation	\N	\N	\N	\N	cours-de-didgeridoo	\N	candidatures
+360	Cours de hang drum	Apprentissage du hang drum. Exemples : percussion melodique, meditation, relaxation, musique therapeutique.	Formation	\N	\N	\N	\N	cours-de-hang-drum	\N	candidatures
+362	Cours de steel drum	Apprentissage du steel drum antillais. Exemples : musique caribeenne, rythmes tropicaux, percussion melodique.	Formation	\N	\N	\N	\N	cours-de-steel-drum	\N	candidatures
+364	Cours de cajon	Apprentissage du cajon peruvien. Exemples : percussion assise, flamenco, world music, rythmes latins.	Formation	\N	\N	\N	\N	cours-de-cajon	\N	candidatures
+396	Cours de kalimba electronique	Apprentissage du kalimba amplifie. Exemples : musique moderne, effets sonores, creativite electronique.	Formation	\N	\N	\N	\N	cours-de-kalimba-electronique	\N	candidatures
+398	Cours de handpan	Apprentissage du handpan. Exemples : percussion melodique moderne, meditation, musique intuitive.	Formation	\N	\N	\N	\N	cours-de-handpan	\N	candidatures
+405	Gros œuvre béton armé	Réalisation de structures béton armé.	Bâtiment	\N	\N	\N	\N	gros-oeuvre-beton-arme	\N	candidatures
+404	Fondations / Maçonnerie	Travaux de fondations et maçonnerie générale.	Bâtiment	\N	\N	\N	\N	fondations-maconnerie	\N	candidatures
+421	Étanchéité	Travaux d'étanchéité.	Bâtiment	\N	\N	\N	\N	etancheite	\N	candidatures
+417	Électricité courants faibles	Installation courants faibles.	Bâtiment	\N	\N	\N	\N	electricite-courants-faibles	\N	candidatures
+428	Désamiantage / Déplombage	Décontamination amiante et plomb.	Bâtiment	\N	\N	\N	\N	desamiantage-deplombage	\N	candidatures
+408	Cloisons / Doublages / Faux-plafonds	Travaux de plâtrerie et aménagement intérieur.	Bâtiment	\N	\N	\N	\N	cloisons-doublages-faux-plafonds	\N	candidatures
+415	Chauffage / Ventilation / Climatisation	Installation et maintenance CVC.	Bâtiment	\N	\N	\N	\N	chauffage-ventilation-climatisation	\N	candidatures
+406	Charpente métallique	Installation et montage de charpentes métalliques.	Bâtiment	\N	\N	\N	\N	charpente-metallique	\N	candidatures
+419	Ascenseurs / Monte-charges	Installation et maintenance d'ascenseurs.	Bâtiment	\N	\N	\N	\N	ascenseurs-monte-charges	\N	candidatures
+424	Aménagements paysagers	Création et entretien d'espaces verts.	Jardinage	\N	\N	\N	\N	amenagements-paysagers	\N	candidatures
+425	Voiries, parkings & clôtures	Aménagements extérieurs.	Jardinage	\N	\N	\N	\N	voiries-parkings-clotures	\N	candidatures
+149	Demande personnalisée	Décrivez votre besoin spécifique en choisissant d'abord une catégorie. Idéal pour des services non listés.	Demande personnalisée	\N	\N	\N	\N	dog-walking-1	\N	candidatures
+491	Hygiène & sécurité alimentaire	Application normes HACCP, contrôle qualité	Restauration	\N	\N	\N	\N	hygiene-securite-alimentaire	\N	candidatures
+492	Barman / barmaid	Préparation cocktails, service bar	Bar & cafétéria	\N	\N	\N	\N	barman-barmaid	\N	candidatures
+493	Barista	Préparation café, boissons chaudes spécialisées	Bar & cafétéria	\N	\N	\N	\N	barista	\N	candidatures
+494	Mixologue	Création cocktails élaborés, bar à cocktails	Bar & cafétéria	\N	\N	\N	\N	mixologue	\N	candidatures
+495	Serveur de bar	Service boissons, accueil clientèle bar	Bar & cafétéria	\N	\N	\N	\N	serveur-bar	\N	candidatures
+496	Responsable bar	Gestion bar, encadrement équipe	Bar & cafétéria	\N	\N	\N	\N	responsable-bar	\N	candidatures
+497	Réceptionniste	Accueil clients, check-in/check-out	Hôtellerie	\N	\N	\N	\N	receptionniste	\N	candidatures
+498	Concierge	Services personnalisés, informations touristiques	Hôtellerie	\N	\N	\N	\N	concierge	\N	candidatures
+499	Voiturier / bagagiste	Service voiturier, transport bagages	Hôtellerie	\N	\N	\N	\N	voiturier-bagagiste	\N	candidatures
+500	Gouvernant(e)	Supervision étages, gestion équipe ménage	Hôtellerie	\N	\N	\N	\N	gouvernante	\N	candidatures
+502	Lingère / blanchisserie	Gestion linge, blanchisserie	Hôtellerie	\N	\N	\N	\N	lingere-blanchisserie	\N	candidatures
+503	Responsable hébergement	Gestion hébergement, coordination services	Hôtellerie	\N	\N	\N	\N	responsable-hebergement	\N	candidatures
+504	Directeur d'hôtel	Direction générale établissement	Hôtellerie	\N	\N	\N	\N	directeur-hotel	\N	candidatures
+505	Responsable réservation	Gestion réservations, planification	Hôtellerie	\N	\N	\N	\N	responsable-reservation	\N	candidatures
+506	Technicien de maintenance	Maintenance hôtelière, dépannages	Hôtellerie	\N	\N	\N	\N	technicien-maintenance	\N	candidatures
+507	Sécurité / gardiennage	Surveillance, sécurité établissement	Hôtellerie	\N	\N	\N	\N	securite-gardiennage	\N	candidatures
+542	Audit sécurité	Audit bâtiments, sites, entreprises	Sécurité	\N	\N	\N	\N	audit-securite	\N	candidatures
+543	Plan de sûreté	Gestion de crise, plans sécurité	Sécurité	\N	\N	\N	\N	plan-surete	\N	candidatures
+544	Formation sécurité privée	Formation agents sécurité	Sécurité	\N	\N	\N	\N	formation-securite-privee	\N	candidatures
+545	Formation self-défense	Gestes sécurité, auto-défense	Sécurité	\N	\N	\N	\N	formation-self-defense	\N	candidatures
+546	Prévention risques professionnels	PAPRIPACT, DUERP, sécurité travail	Sécurité	\N	\N	\N	\N	prevention-risques-professionnels	\N	candidatures
+513	Agent de sécurité / rondier	Surveillance générale, rondes de sécurité	Sécurité	\N	\N	\N	\N	agent-securite-rondier	\N	candidatures
+514	Agent de sécurité incendie	SSIAP 1, 2, 3, prévention incendie	Sécurité	\N	\N	\N	\N	agent-securite-incendie	\N	candidatures
+515	Agent cynophile	Maître-chien, sécurité avec chien	Sécurité	\N	\N	\N	\N	agent-cynophile	\N	candidatures
+516	Vigile / gardien de site	Gardiennage fixe, surveillance site	Sécurité	\N	\N	\N	\N	vigile-gardien-site	\N	candidatures
+566	Nettoyage verrerie	Entretien matériel bar, nettoyage verrerie	Nettoyage	\N	\N	\N	\N	bar-nettoyage-verrerie	\N	candidatures
+565	Gestion cave / stocks	Gestion stocks boissons, cave à vins	Bar & cafétéria	\N	\N	\N	\N	bar-gestion-cave-stocks	\N	candidatures
+571	Valet de chambre	Nettoyage chambres, préparation literie	Hôtellerie	\N	\N	\N	\N	hotellerie-femme-valet-chambre	\N	candidatures
 \.
 
 
 --
--- TOC entry 5732 (class 0 OID 34587)
+-- TOC entry 5738 (class 0 OID 34587)
 -- Dependencies: 423
 -- Data for Name: services_gains; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -15056,7 +15271,7 @@ COPY public.services_gains (id, fourmiz_id, order_id, amount, created_at) FROM s
 
 
 --
--- TOC entry 5708 (class 0 OID 25854)
+-- TOC entry 5714 (class 0 OID 25854)
 -- Dependencies: 398
 -- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -15068,7 +15283,26 @@ referral_commission_percent	10
 
 
 --
--- TOC entry 5696 (class 0 OID 22992)
+-- TOC entry 5809 (class 0 OID 169789)
+-- Dependencies: 525
+-- Data for Name: system_logs; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.system_logs (id, action, details, order_id, created_at) FROM stdin;
+1	auto_cancel_expired	Auto-cancelled order 120 for client b9821771-9882-4505-a198-78eeedecc42e (service was 2025-09-20 at 09:00:00)	120	2025-09-21 09:09:28.638122+00
+2	auto_cancel_expired	Auto-cancelled order 121 for client 43af2b91-be63-47e1-b013-d55a97e6a11a (service was 2025-09-17 at 16:30:00)	121	2025-09-21 09:09:28.638122+00
+3	auto_cancel_expired	Auto-cancelled order 122 for client 33daffd3-5c20-4f6f-bcee-30d2e4379f52 (service was 2025-09-18 at 14:00:00)	122	2025-09-21 09:09:28.638122+00
+4	auto_cancel_expired	Auto-cancelled order 123 for client 65586e4e-0006-4308-bb21-d6cc13945294 (service was 2025-09-19 at 17:00:00)	123	2025-09-21 09:09:28.638122+00
+5	auto_cancel_expired	Auto-cancelled order 124 for client 3f7a2d00-ea31-48f8-813c-27345f14375a (service was 2025-09-21 at 08:00:00)	124	2025-09-21 09:09:28.638122+00
+6	auto_cancel_expired	Auto-cancelled order 101 for client 3a974bf5-a0df-44fe-be9e-603910ef9a4e (service was 2025-09-07 at 09:00:00)	101	2025-09-21 09:09:28.638122+00
+7	auto_cancel_expired	Auto-cancelled order 102 for client 3a974bf5-a0df-44fe-be9e-603910ef9a4e (service was 2025-09-07 at 09:00:00)	102	2025-09-21 09:09:28.638122+00
+8	auto_cancel_summary	Auto-cancellation run completed: 7 orders cancelled	\N	2025-09-21 09:09:28.638122+00
+9	auto_cancel_summary	Auto-cancellation run completed: 0 orders cancelled	\N	2025-09-21 09:27:19.223774+00
+\.
+
+
+--
+-- TOC entry 5702 (class 0 OID 22992)
 -- Dependencies: 386
 -- Data for Name: test; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -15079,7 +15313,7 @@ COPY public.test (id, created_at, message) FROM stdin;
 
 --
 -- TOC entry 5800 (class 0 OID 160797)
--- Dependencies: 521
+-- Dependencies: 514
 -- Data for Name: tracking_consent_history; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -15114,7 +15348,7 @@ a0478777-99b4-44b3-b022-28319e8cb380	79872df9-f084-4e5f-8151-926488c657b3	off_du
 
 
 --
--- TOC entry 5728 (class 0 OID 34354)
+-- TOC entry 5734 (class 0 OID 34354)
 -- Dependencies: 419
 -- Data for Name: user_badges; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -15124,8 +15358,8 @@ COPY public.user_badges (id, user_id, badge_id, is_unlocked, unlocked_date, prog
 
 
 --
--- TOC entry 5768 (class 0 OID 81442)
--- Dependencies: 477
+-- TOC entry 5773 (class 0 OID 81442)
+-- Dependencies: 476
 -- Data for Name: user_credits; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -15136,8 +15370,8 @@ COPY public.user_credits (id, user_id, amount, type, description, source, create
 
 
 --
--- TOC entry 5788 (class 0 OID 147643)
--- Dependencies: 503
+-- TOC entry 5793 (class 0 OID 147643)
+-- Dependencies: 502
 -- Data for Name: user_legal_engagements; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -15146,20 +15380,20 @@ COPY public.user_legal_engagements (id, user_id, engagement_type_id, is_accepted
 
 
 --
--- TOC entry 5772 (class 0 OID 90493)
--- Dependencies: 483
+-- TOC entry 5777 (class 0 OID 90493)
+-- Dependencies: 482
 -- Data for Name: user_push_tokens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.user_push_tokens (id, user_id, token, platform, created_at, updated_at) FROM stdin;
 78	61d84e96-5fa1-44fb-a537-b753f1cb540f	ExponentPushToken[E0r0ehHR3qCXBxABpURi9_]	ios	2025-08-08 09:27:27.455744+00	2025-08-14 14:23:54.578+00
-1	3a974bf5-a0df-44fe-be9e-603910ef9a4e	ExponentPushToken[E0r0ehHR3qCXBxABpURi9_]	ios	2025-08-03 15:41:51.068801+00	2025-08-15 16:41:45.408+00
+1	3a974bf5-a0df-44fe-be9e-603910ef9a4e	ExponentPushToken[E0r0ehHR3qCXBxABpURi9_]	ios	2025-08-03 15:41:51.068801+00	2025-09-20 10:52:35.323+00
 \.
 
 
 --
--- TOC entry 5786 (class 0 OID 144140)
--- Dependencies: 501
+-- TOC entry 5791 (class 0 OID 144140)
+-- Dependencies: 500
 -- Data for Name: user_references; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -15171,8 +15405,8 @@ c2099955-5086-4b17-8139-e4f5c1c276db	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Ref 4	
 
 
 --
--- TOC entry 5760 (class 0 OID 67707)
--- Dependencies: 463
+-- TOC entry 5765 (class 0 OID 67707)
+-- Dependencies: 462
 -- Data for Name: user_referral_codes; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -15205,8 +15439,8 @@ f8b0bf5c-2463-4310-9f11-a7a17a153317	cb9b0f98-1160-43e3-aa8f-4f1e2125eda5	RB83R3
 
 
 --
--- TOC entry 5761 (class 0 OID 67723)
--- Dependencies: 464
+-- TOC entry 5766 (class 0 OID 67723)
+-- Dependencies: 463
 -- Data for Name: user_referrals; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -15220,16 +15454,17 @@ d9952ce7-fea5-441f-b9a0-2558530c67f6	61d84e96-5fa1-44fb-a537-b753f1cb540f	8c5e4f
 0ebffc50-98dc-4be6-8ac5-c8d53aebc773	3a974bf5-a0df-44fe-be9e-603910ef9a4e	88969662-72db-4aa7-88e0-94e768b15e6a	5B2X5F	completed	50.00	0.00	f	\N	2025-08-31 18:58:19.948+00	2025-08-31 18:58:19.948+00	88969662-72db-4aa7-88e0-94e768b15e6a	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Garrec Gildas
 de5a523b-b260-4aff-a425-48471d7f017a	3a974bf5-a0df-44fe-be9e-603910ef9a4e	407e4c14-6976-44bb-9307-bc8e83f15c83	5B2X5F	completed	50.00	0.00	f	\N	2025-08-31 21:04:39.881+00	2025-08-31 21:04:39.881+00	407e4c14-6976-44bb-9307-bc8e83f15c83	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Garrec Gildas
 3067f3d7-4a2a-4162-8e34-f56b387fa983	3a974bf5-a0df-44fe-be9e-603910ef9a4e	a7019c60-ce0c-4123-955a-4a82f3a492d3	5B2X5F	completed	50.00	0.00	f	\N	2025-09-01 10:08:18.54+00	2025-09-01 10:08:18.54+00	a7019c60-ce0c-4123-955a-4a82f3a492d3	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Garrec Gildas
+606508e1-c430-48fa-b261-b544d15f5c7a	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	43af2b91-be63-47e1-b013-d55a97e6a11a	UW3BDI	active	50.00	1.75	t	2025-09-16 15:52:30.421362+00	2025-09-10 18:21:01.406+00	2025-09-16 15:52:30.421362+00	43af2b91-be63-47e1-b013-d55a97e6a11a	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	T11 Test11
 6d36243c-582f-40a2-a403-83415cffaedb	3a974bf5-a0df-44fe-be9e-603910ef9a4e	c410752c-1639-487c-9e47-4393b21a99a8	5B2X5F	active	50.00	0.00	t	2025-09-01 08:44:40+00	2025-08-31 21:59:00.642+00	2025-08-31 21:59:00.643+00	c410752c-1639-487c-9e47-4393b21a99a8	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Garrec Gildas
+777084ea-bc0e-4d4d-b347-f0ccd3bebb45	3a974bf5-a0df-44fe-be9e-603910ef9a4e	79872df9-f084-4e5f-8151-926488c657b3	5B2X5F	active	50.00	2.75	t	2025-09-16 15:52:30.421362+00	2025-09-13 11:11:59.454+00	2025-09-16 15:52:30.421362+00	79872df9-f084-4e5f-8151-926488c657b3	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Garrec Gildas
 56c7dbab-4b70-481c-84af-94fc0bafa8f5	3a974bf5-a0df-44fe-be9e-603910ef9a4e	61d84e96-5fa1-44fb-a537-b753f1cb540f	5B2X5F	active	50.00	2.00	t	2025-09-02 12:57:22.082807+00	2025-07-29 14:50:43.618+00	2025-09-02 12:57:22.082807+00	\N	\N	Jean Dupont
+acf8934a-c929-4a6b-8140-3938f4b482f3	649f6274-cecb-464f-9a52-9a989bd7f0dd	b9c12b47-6545-456d-b6f7-2c37ee3681c6	ZQGJ92	active	50.00	4.00	t	2025-09-16 15:52:30.421362+00	2025-09-11 16:03:33.234+00	2025-09-16 15:52:30.421362+00	b9c12b47-6545-456d-b6f7-2c37ee3681c6	649f6274-cecb-464f-9a52-9a989bd7f0dd	Test4 Test4
 a1eb55fd-1b24-4aac-807e-02fda9a3d42b	3a974bf5-a0df-44fe-be9e-603910ef9a4e	aac7ef75-48e9-49b2-971e-00fe0cf2402a	5B2X5F	active	50.00	0.00	t	\N	2025-07-28 17:27:41.838+00	2025-09-02 13:04:34.698152+00	\N	\N	Jean Dupont
 5dc82341-b130-479f-890a-a1d4b75a63b4	3a974bf5-a0df-44fe-be9e-603910ef9a4e	324a41c4-8404-436f-8874-a2b64f2bb073	5B2X5F	active	50.00	1.50	t	2025-09-02 14:08:43.819934+00	2025-07-29 12:41:45.705+00	2025-09-02 14:08:43.819934+00	\N	\N	Jean Dupont
 ac538e74-6907-4356-b732-6f7796ea053a	a7019c60-ce0c-4123-955a-4a82f3a492d3	28c78e4b-6574-4595-a07a-83a7389a5dae	IOSA33	completed	50.00	0.00	f	\N	2025-09-10 14:15:47.316+00	2025-09-10 14:15:47.316+00	28c78e4b-6574-4595-a07a-83a7389a5dae	a7019c60-ce0c-4123-955a-4a82f3a492d3	T19 T19
 d1e12ad9-01e6-434e-be4a-7ae208415aef	324a41c4-8404-436f-8874-a2b64f2bb073	44a528b6-f6f9-4460-a874-a72aad2dd55b	Y7LBAJ	completed	50.00	0.00	f	\N	2025-09-10 15:06:39.417+00	2025-09-10 15:06:39.417+00	44a528b6-f6f9-4460-a874-a72aad2dd55b	324a41c4-8404-436f-8874-a2b64f2bb073	Test User Inconnu
 287f9702-2ef2-4b59-8c8b-5e0033d78bff	6bf223a1-1274-4d1c-865e-1a98eb098af6	b2d2d127-d12f-4db0-80c2-638d62986cbb	W7STV2	completed	50.00	0.00	f	\N	2025-09-10 18:19:19.139+00	2025-09-10 18:19:19.139+00	b2d2d127-d12f-4db0-80c2-638d62986cbb	6bf223a1-1274-4d1c-865e-1a98eb098af6	test2 test2
-606508e1-c430-48fa-b261-b544d15f5c7a	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	43af2b91-be63-47e1-b013-d55a97e6a11a	UW3BDI	completed	50.00	0.00	f	\N	2025-09-10 18:21:01.406+00	2025-09-10 18:21:01.406+00	43af2b91-be63-47e1-b013-d55a97e6a11a	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	T11 Test11
 f6e3d889-0602-4a0a-af98-3e91801f5881	61d84e96-5fa1-44fb-a537-b753f1cb540f	4cbcf214-2e19-4d34-aa30-410fd8c9aec8	Y39A8S	completed	50.00	0.00	f	\N	2025-09-11 15:47:31.967+00	2025-09-11 15:47:31.967+00	4cbcf214-2e19-4d34-aa30-410fd8c9aec8	61d84e96-5fa1-44fb-a537-b753f1cb540f	T7 Test7
-acf8934a-c929-4a6b-8140-3938f4b482f3	649f6274-cecb-464f-9a52-9a989bd7f0dd	b9c12b47-6545-456d-b6f7-2c37ee3681c6	ZQGJ92	completed	50.00	0.00	f	\N	2025-09-11 16:03:33.234+00	2025-09-11 16:03:33.234+00	b9c12b47-6545-456d-b6f7-2c37ee3681c6	649f6274-cecb-464f-9a52-9a989bd7f0dd	Test4 Test4
 ea4cc5d0-4044-407f-8a32-084d744b000d	61d84e96-5fa1-44fb-a537-b753f1cb540f	86f7c8b3-907c-40f8-960f-60f3688ce312	Y39A8S	completed	50.00	0.00	f	\N	2025-09-12 16:53:21.43+00	2025-09-12 16:53:21.43+00	86f7c8b3-907c-40f8-960f-60f3688ce312	61d84e96-5fa1-44fb-a537-b753f1cb540f	T7 Test7
 7b5c59ef-7671-4071-a91a-d1d160a95dff	6bf223a1-1274-4d1c-865e-1a98eb098af6	9c3c194c-0772-43f1-853d-92ac2af9646d	W7STV2	completed	50.00	0.00	f	\N	2025-09-13 08:25:20.837+00	2025-09-13 08:25:20.837+00	9c3c194c-0772-43f1-853d-92ac2af9646d	6bf223a1-1274-4d1c-865e-1a98eb098af6	test2 test2
 1c536a2d-95ab-4627-9f70-cce152482000	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	4b766453-4eb7-4138-9bb4-8cdf7508d0b3	UW3BDI	completed	50.00	0.00	f	\N	2025-09-13 08:34:28.714+00	2025-09-13 08:34:28.714+00	4b766453-4eb7-4138-9bb4-8cdf7508d0b3	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	T11 Test11
@@ -15238,12 +15473,11 @@ a75d54c9-acf6-47d7-a10b-c1ffc7c164a4	64dc0d0a-57e0-4a53-b0a7-7dd9a074216b	606703
 19409760-9f56-4d27-96d4-bf6561fc8fb9	649f6274-cecb-464f-9a52-9a989bd7f0dd	4dfbda13-f598-4d4d-9538-d9ac157d0efc	ZQGJ92	completed	50.00	0.00	f	\N	2025-09-13 09:14:21.343+00	2025-09-13 09:14:21.343+00	4dfbda13-f598-4d4d-9538-d9ac157d0efc	649f6274-cecb-464f-9a52-9a989bd7f0dd	Test4 Test4
 520d0a31-206f-4577-988f-d05a06e310fd	3a974bf5-a0df-44fe-be9e-603910ef9a4e	c2934cd2-6420-4a69-8b61-da6c08fc982a	5B2X5F	completed	50.00	0.00	f	\N	2025-09-13 09:57:08.822+00	2025-09-13 09:57:08.822+00	c2934cd2-6420-4a69-8b61-da6c08fc982a	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Garrec Gildas
 a050bb72-3ac4-4ed8-b4aa-e3b66eca3dfe	aac7ef75-48e9-49b2-971e-00fe0cf2402a	cb9b0f98-1160-43e3-aa8f-4f1e2125eda5	9Q5U6P	completed	50.00	0.00	f	\N	2025-09-13 10:27:35.476+00	2025-09-13 10:27:35.476+00	cb9b0f98-1160-43e3-aa8f-4f1e2125eda5	aac7ef75-48e9-49b2-971e-00fe0cf2402a	Test5 Test5
-777084ea-bc0e-4d4d-b347-f0ccd3bebb45	3a974bf5-a0df-44fe-be9e-603910ef9a4e	79872df9-f084-4e5f-8151-926488c657b3	5B2X5F	completed	50.00	0.00	f	\N	2025-09-13 11:11:59.454+00	2025-09-13 11:11:59.454+00	79872df9-f084-4e5f-8151-926488c657b3	3a974bf5-a0df-44fe-be9e-603910ef9a4e	Garrec Gildas
 \.
 
 
 --
--- TOC entry 5718 (class 0 OID 26158)
+-- TOC entry 5724 (class 0 OID 26158)
 -- Dependencies: 408
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -15253,7 +15487,7 @@ COPY public.users (id, full_name, email, avatar_url, role, created_at) FROM stdi
 
 
 --
--- TOC entry 5713 (class 0 OID 25908)
+-- TOC entry 5719 (class 0 OID 25908)
 -- Dependencies: 403
 -- Data for Name: wallets; Type: TABLE DATA; Schema: public; Owner: -
 --
@@ -15263,58 +15497,8 @@ COPY public.wallets (user_id, balance, stripe_customer_id, stripe_account_id, up
 
 
 --
--- TOC entry 5789 (class 0 OID 152893)
--- Dependencies: 505
--- Data for Name: messages_2025_09_13; Type: TABLE DATA; Schema: realtime; Owner: -
---
-
-COPY realtime.messages_2025_09_13 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
-\.
-
-
---
--- TOC entry 5790 (class 0 OID 154267)
--- Dependencies: 506
--- Data for Name: messages_2025_09_14; Type: TABLE DATA; Schema: realtime; Owner: -
---
-
-COPY realtime.messages_2025_09_14 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
-\.
-
-
---
--- TOC entry 5791 (class 0 OID 155421)
--- Dependencies: 507
--- Data for Name: messages_2025_09_15; Type: TABLE DATA; Schema: realtime; Owner: -
---
-
-COPY realtime.messages_2025_09_15 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
-\.
-
-
---
--- TOC entry 5792 (class 0 OID 156681)
--- Dependencies: 508
--- Data for Name: messages_2025_09_16; Type: TABLE DATA; Schema: realtime; Owner: -
---
-
-COPY realtime.messages_2025_09_16 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
-\.
-
-
---
--- TOC entry 5793 (class 0 OID 158429)
--- Dependencies: 510
--- Data for Name: messages_2025_09_17; Type: TABLE DATA; Schema: realtime; Owner: -
---
-
-COPY realtime.messages_2025_09_17 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
-\.
-
-
---
 -- TOC entry 5794 (class 0 OID 159543)
--- Dependencies: 511
+-- Dependencies: 505
 -- Data for Name: messages_2025_09_18; Type: TABLE DATA; Schema: realtime; Owner: -
 --
 
@@ -15324,7 +15508,7 @@ COPY realtime.messages_2025_09_18 (topic, extension, payload, event, private, up
 
 --
 -- TOC entry 5802 (class 0 OID 160938)
--- Dependencies: 524
+-- Dependencies: 517
 -- Data for Name: messages_2025_09_19; Type: TABLE DATA; Schema: realtime; Owner: -
 --
 
@@ -15333,7 +15517,57 @@ COPY realtime.messages_2025_09_19 (topic, extension, payload, event, private, up
 
 
 --
--- TOC entry 5690 (class 0 OID 17000)
+-- TOC entry 5803 (class 0 OID 163481)
+-- Dependencies: 518
+-- Data for Name: messages_2025_09_20; Type: TABLE DATA; Schema: realtime; Owner: -
+--
+
+COPY realtime.messages_2025_09_20 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5804 (class 0 OID 165095)
+-- Dependencies: 519
+-- Data for Name: messages_2025_09_21; Type: TABLE DATA; Schema: realtime; Owner: -
+--
+
+COPY realtime.messages_2025_09_21 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5805 (class 0 OID 167345)
+-- Dependencies: 521
+-- Data for Name: messages_2025_09_22; Type: TABLE DATA; Schema: realtime; Owner: -
+--
+
+COPY realtime.messages_2025_09_22 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5806 (class 0 OID 167356)
+-- Dependencies: 522
+-- Data for Name: messages_2025_09_23; Type: TABLE DATA; Schema: realtime; Owner: -
+--
+
+COPY realtime.messages_2025_09_23 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5807 (class 0 OID 168674)
+-- Dependencies: 523
+-- Data for Name: messages_2025_09_24; Type: TABLE DATA; Schema: realtime; Owner: -
+--
+
+COPY realtime.messages_2025_09_24 (topic, extension, payload, event, private, updated_at, inserted_at, id) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5696 (class 0 OID 17000)
 -- Dependencies: 376
 -- Data for Name: schema_migrations; Type: TABLE DATA; Schema: realtime; Owner: -
 --
@@ -15406,7 +15640,7 @@ COPY realtime.schema_migrations (version, inserted_at) FROM stdin;
 
 
 --
--- TOC entry 5694 (class 0 OID 17107)
+-- TOC entry 5700 (class 0 OID 17107)
 -- Dependencies: 381
 -- Data for Name: subscription; Type: TABLE DATA; Schema: realtime; Owner: -
 --
@@ -15416,7 +15650,7 @@ COPY realtime.subscription (id, subscription_id, entity, filters, claims, create
 
 
 --
--- TOC entry 5676 (class 0 OID 16544)
+-- TOC entry 5682 (class 0 OID 16544)
 -- Dependencies: 359
 -- Data for Name: buckets; Type: TABLE DATA; Schema: storage; Owner: -
 --
@@ -15428,8 +15662,8 @@ user-documents	user-documents	\N	2025-07-02 11:56:24.9872+00	2025-07-02 11:56:24
 
 
 --
--- TOC entry 5776 (class 0 OID 120754)
--- Dependencies: 488
+-- TOC entry 5781 (class 0 OID 120754)
+-- Dependencies: 487
 -- Data for Name: buckets_analytics; Type: TABLE DATA; Schema: storage; Owner: -
 --
 
@@ -15438,7 +15672,7 @@ COPY storage.buckets_analytics (id, type, format, created_at, updated_at) FROM s
 
 
 --
--- TOC entry 5678 (class 0 OID 16586)
+-- TOC entry 5684 (class 0 OID 16586)
 -- Dependencies: 361
 -- Data for Name: migrations; Type: TABLE DATA; Schema: storage; Owner: -
 --
@@ -15487,7 +15721,7 @@ COPY storage.migrations (id, name, hash, executed_at) FROM stdin;
 
 
 --
--- TOC entry 5677 (class 0 OID 16559)
+-- TOC entry 5683 (class 0 OID 16559)
 -- Dependencies: 360
 -- Data for Name: objects; Type: TABLE DATA; Schema: storage; Owner: -
 --
@@ -15621,8 +15855,8 @@ a29503e6-5ad4-4b12-973b-6bf9bcbfac68	user-documents	references/reference_3a974bf
 
 
 --
--- TOC entry 5775 (class 0 OID 120710)
--- Dependencies: 487
+-- TOC entry 5780 (class 0 OID 120710)
+-- Dependencies: 486
 -- Data for Name: prefixes; Type: TABLE DATA; Schema: storage; Owner: -
 --
 
@@ -15657,7 +15891,7 @@ user-documents	8c5e4fc0-12f2-4181-8408-32c18693f7e3	2025-09-15 09:28:18.816751+0
 
 
 --
--- TOC entry 5691 (class 0 OID 17037)
+-- TOC entry 5697 (class 0 OID 17037)
 -- Dependencies: 377
 -- Data for Name: s3_multipart_uploads; Type: TABLE DATA; Schema: storage; Owner: -
 --
@@ -15667,7 +15901,7 @@ COPY storage.s3_multipart_uploads (id, in_progress_size, upload_signature, bucke
 
 
 --
--- TOC entry 5692 (class 0 OID 17051)
+-- TOC entry 5698 (class 0 OID 17051)
 -- Dependencies: 378
 -- Data for Name: s3_multipart_uploads_parts; Type: TABLE DATA; Schema: storage; Owner: -
 --
@@ -15677,7 +15911,7 @@ COPY storage.s3_multipart_uploads_parts (id, upload_id, size, part_number, bucke
 
 
 --
--- TOC entry 5695 (class 0 OID 17270)
+-- TOC entry 5701 (class 0 OID 17270)
 -- Dependencies: 385
 -- Data for Name: schema_migrations; Type: TABLE DATA; Schema: supabase_migrations; Owner: -
 --
@@ -15687,7 +15921,17 @@ COPY supabase_migrations.schema_migrations (version, statements, name) FROM stdi
 
 
 --
--- TOC entry 4268 (class 0 OID 16656)
+-- TOC entry 5810 (class 0 OID 169884)
+-- Dependencies: 526
+-- Data for Name: seed_files; Type: TABLE DATA; Schema: supabase_migrations; Owner: -
+--
+
+COPY supabase_migrations.seed_files (path, hash) FROM stdin;
+\.
+
+
+--
+-- TOC entry 4274 (class 0 OID 16656)
 -- Dependencies: 362
 -- Data for Name: secrets; Type: TABLE DATA; Schema: vault; Owner: -
 --
@@ -15697,26 +15941,26 @@ COPY vault.secrets (id, name, description, secret, key_id, nonce, created_at, up
 
 
 --
--- TOC entry 5893 (class 0 OID 0)
+-- TOC entry 5902 (class 0 OID 0)
 -- Dependencies: 354
 -- Name: refresh_tokens_id_seq; Type: SEQUENCE SET; Schema: auth; Owner: -
 --
 
-SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 988, true);
+SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 1031, true);
 
 
 --
--- TOC entry 5894 (class 0 OID 0)
--- Dependencies: 445
+-- TOC entry 5903 (class 0 OID 0)
+-- Dependencies: 444
 -- Name: chat_messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.chat_messages_id_seq', 27, true);
+SELECT pg_catalog.setval('public.chat_messages_id_seq', 28, true);
 
 
 --
--- TOC entry 5895 (class 0 OID 0)
--- Dependencies: 447
+-- TOC entry 5904 (class 0 OID 0)
+-- Dependencies: 446
 -- Name: chat_participants_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15724,8 +15968,8 @@ SELECT pg_catalog.setval('public.chat_participants_id_seq', 1, false);
 
 
 --
--- TOC entry 5896 (class 0 OID 0)
--- Dependencies: 449
+-- TOC entry 5905 (class 0 OID 0)
+-- Dependencies: 448
 -- Name: chat_typing_status_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15733,7 +15977,7 @@ SELECT pg_catalog.setval('public.chat_typing_status_id_seq', 1, false);
 
 
 --
--- TOC entry 5897 (class 0 OID 0)
+-- TOC entry 5906 (class 0 OID 0)
 -- Dependencies: 431
 -- Name: criteria_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15742,7 +15986,7 @@ SELECT pg_catalog.setval('public.criteria_id_seq', 12, true);
 
 
 --
--- TOC entry 5898 (class 0 OID 0)
+-- TOC entry 5907 (class 0 OID 0)
 -- Dependencies: 390
 -- Name: fourmiz_criteria_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15751,7 +15995,7 @@ SELECT pg_catalog.setval('public.fourmiz_criteria_id_seq', 5, true);
 
 
 --
--- TOC entry 5899 (class 0 OID 0)
+-- TOC entry 5908 (class 0 OID 0)
 -- Dependencies: 392
 -- Name: fourmiz_services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15760,7 +16004,7 @@ SELECT pg_catalog.setval('public.fourmiz_services_id_seq', 1, false);
 
 
 --
--- TOC entry 5900 (class 0 OID 0)
+-- TOC entry 5909 (class 0 OID 0)
 -- Dependencies: 404
 -- Name: iban_requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15769,7 +16013,7 @@ SELECT pg_catalog.setval('public.iban_requests_id_seq', 1, false);
 
 
 --
--- TOC entry 5901 (class 0 OID 0)
+-- TOC entry 5910 (class 0 OID 0)
 -- Dependencies: 429
 -- Name: missions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15778,17 +16022,17 @@ SELECT pg_catalog.setval('public.missions_id_seq', 1, false);
 
 
 --
--- TOC entry 5902 (class 0 OID 0)
--- Dependencies: 453
+-- TOC entry 5911 (class 0 OID 0)
+-- Dependencies: 452
 -- Name: notification_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.notification_history_id_seq', 114, true);
+SELECT pg_catalog.setval('public.notification_history_id_seq', 122, true);
 
 
 --
--- TOC entry 5903 (class 0 OID 0)
--- Dependencies: 455
+-- TOC entry 5912 (class 0 OID 0)
+-- Dependencies: 454
 -- Name: notification_preferences_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15796,17 +16040,17 @@ SELECT pg_catalog.setval('public.notification_preferences_id_seq', 3, true);
 
 
 --
--- TOC entry 5904 (class 0 OID 0)
--- Dependencies: 493
+-- TOC entry 5913 (class 0 OID 0)
+-- Dependencies: 492
 -- Name: order_applications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.order_applications_id_seq', 1, true);
+SELECT pg_catalog.setval('public.order_applications_id_seq', 11, true);
 
 
 --
--- TOC entry 5905 (class 0 OID 0)
--- Dependencies: 479
+-- TOC entry 5914 (class 0 OID 0)
+-- Dependencies: 478
 -- Name: order_details_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15814,16 +16058,16 @@ SELECT pg_catalog.setval('public.order_details_id_seq', 2, true);
 
 
 --
--- TOC entry 5906 (class 0 OID 0)
--- Dependencies: 441
+-- TOC entry 5915 (class 0 OID 0)
+-- Dependencies: 440
 -- Name: orders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.orders_id_seq', 105, true);
+SELECT pg_catalog.setval('public.orders_id_seq', 107, true);
 
 
 --
--- TOC entry 5907 (class 0 OID 0)
+-- TOC entry 5916 (class 0 OID 0)
 -- Dependencies: 394
 -- Name: other_services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15832,8 +16076,8 @@ SELECT pg_catalog.setval('public.other_services_id_seq', 1, false);
 
 
 --
--- TOC entry 5908 (class 0 OID 0)
--- Dependencies: 495
+-- TOC entry 5917 (class 0 OID 0)
+-- Dependencies: 494
 -- Name: pre_selection_chats_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15841,8 +16085,8 @@ SELECT pg_catalog.setval('public.pre_selection_chats_id_seq', 1, false);
 
 
 --
--- TOC entry 5909 (class 0 OID 0)
--- Dependencies: 497
+-- TOC entry 5918 (class 0 OID 0)
+-- Dependencies: 496
 -- Name: pre_selection_messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15850,8 +16094,8 @@ SELECT pg_catalog.setval('public.pre_selection_messages_id_seq', 1, false);
 
 
 --
--- TOC entry 5910 (class 0 OID 0)
--- Dependencies: 451
+-- TOC entry 5919 (class 0 OID 0)
+-- Dependencies: 450
 -- Name: push_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15859,16 +16103,16 @@ SELECT pg_catalog.setval('public.push_tokens_id_seq', 140, true);
 
 
 --
--- TOC entry 5911 (class 0 OID 0)
+-- TOC entry 5920 (class 0 OID 0)
 -- Dependencies: 396
 -- Name: ratings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ratings_id_seq', 22, true);
+SELECT pg_catalog.setval('public.ratings_id_seq', 23, true);
 
 
 --
--- TOC entry 5912 (class 0 OID 0)
+-- TOC entry 5921 (class 0 OID 0)
 -- Dependencies: 401
 -- Name: referral_commissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15877,8 +16121,8 @@ SELECT pg_catalog.setval('public.referral_commissions_id_seq', 1, false);
 
 
 --
--- TOC entry 5913 (class 0 OID 0)
--- Dependencies: 472
+-- TOC entry 5922 (class 0 OID 0)
+-- Dependencies: 471
 -- Name: referral_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15886,7 +16130,7 @@ SELECT pg_catalog.setval('public.referral_config_id_seq', 7, true);
 
 
 --
--- TOC entry 5914 (class 0 OID 0)
+-- TOC entry 5923 (class 0 OID 0)
 -- Dependencies: 420
 -- Name: referral_gains_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15895,7 +16139,7 @@ SELECT pg_catalog.setval('public.referral_gains_id_seq', 3, true);
 
 
 --
--- TOC entry 5915 (class 0 OID 0)
+-- TOC entry 5924 (class 0 OID 0)
 -- Dependencies: 399
 -- Name: referrals_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15904,7 +16148,7 @@ SELECT pg_catalog.setval('public.referrals_id_seq', 23, true);
 
 
 --
--- TOC entry 5916 (class 0 OID 0)
+-- TOC entry 5925 (class 0 OID 0)
 -- Dependencies: 425
 -- Name: rewards_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15913,8 +16157,8 @@ SELECT pg_catalog.setval('public.rewards_id_seq', 1, false);
 
 
 --
--- TOC entry 5917 (class 0 OID 0)
--- Dependencies: 484
+-- TOC entry 5926 (class 0 OID 0)
+-- Dependencies: 483
 -- Name: security_incidents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -15922,7 +16166,7 @@ SELECT pg_catalog.setval('public.security_incidents_id_seq', 1, false);
 
 
 --
--- TOC entry 5918 (class 0 OID 0)
+-- TOC entry 5927 (class 0 OID 0)
 -- Dependencies: 422
 -- Name: services_gains_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15931,7 +16175,7 @@ SELECT pg_catalog.setval('public.services_gains_id_seq', 1, false);
 
 
 --
--- TOC entry 5919 (class 0 OID 0)
+-- TOC entry 5928 (class 0 OID 0)
 -- Dependencies: 389
 -- Name: services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15940,7 +16184,16 @@ SELECT pg_catalog.setval('public.services_id_seq', 625, true);
 
 
 --
--- TOC entry 5920 (class 0 OID 0)
+-- TOC entry 5929 (class 0 OID 0)
+-- Dependencies: 524
+-- Name: system_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.system_logs_id_seq', 9, true);
+
+
+--
+-- TOC entry 5930 (class 0 OID 0)
 -- Dependencies: 387
 -- Name: test_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
@@ -15949,16 +16202,16 @@ SELECT pg_catalog.setval('public.test_id_seq', 1, false);
 
 
 --
--- TOC entry 5921 (class 0 OID 0)
--- Dependencies: 482
+-- TOC entry 5931 (class 0 OID 0)
+-- Dependencies: 481
 -- Name: user_push_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.user_push_tokens_id_seq', 306, true);
+SELECT pg_catalog.setval('public.user_push_tokens_id_seq', 310, true);
 
 
 --
--- TOC entry 5922 (class 0 OID 0)
+-- TOC entry 5932 (class 0 OID 0)
 -- Dependencies: 380
 -- Name: subscription_id_seq; Type: SEQUENCE SET; Schema: realtime; Owner: -
 --
@@ -15967,7 +16220,7 @@ SELECT pg_catalog.setval('realtime.subscription_id_seq', 1, false);
 
 
 --
--- TOC entry 4806 (class 2606 OID 16825)
+-- TOC entry 4813 (class 2606 OID 16825)
 -- Name: mfa_amr_claims amr_id_pk; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -15976,7 +16229,7 @@ ALTER TABLE ONLY auth.mfa_amr_claims
 
 
 --
--- TOC entry 4761 (class 2606 OID 16529)
+-- TOC entry 4768 (class 2606 OID 16529)
 -- Name: audit_log_entries audit_log_entries_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -15985,7 +16238,7 @@ ALTER TABLE ONLY auth.audit_log_entries
 
 
 --
--- TOC entry 4829 (class 2606 OID 16931)
+-- TOC entry 4836 (class 2606 OID 16931)
 -- Name: flow_state flow_state_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -15994,7 +16247,7 @@ ALTER TABLE ONLY auth.flow_state
 
 
 --
--- TOC entry 4785 (class 2606 OID 16949)
+-- TOC entry 4792 (class 2606 OID 16949)
 -- Name: identities identities_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16003,7 +16256,7 @@ ALTER TABLE ONLY auth.identities
 
 
 --
--- TOC entry 4787 (class 2606 OID 16959)
+-- TOC entry 4794 (class 2606 OID 16959)
 -- Name: identities identities_provider_id_provider_unique; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16012,7 +16265,7 @@ ALTER TABLE ONLY auth.identities
 
 
 --
--- TOC entry 4759 (class 2606 OID 16522)
+-- TOC entry 4766 (class 2606 OID 16522)
 -- Name: instances instances_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16021,7 +16274,7 @@ ALTER TABLE ONLY auth.instances
 
 
 --
--- TOC entry 4808 (class 2606 OID 16818)
+-- TOC entry 4815 (class 2606 OID 16818)
 -- Name: mfa_amr_claims mfa_amr_claims_session_id_authentication_method_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16030,7 +16283,7 @@ ALTER TABLE ONLY auth.mfa_amr_claims
 
 
 --
--- TOC entry 4804 (class 2606 OID 16806)
+-- TOC entry 4811 (class 2606 OID 16806)
 -- Name: mfa_challenges mfa_challenges_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16039,7 +16292,7 @@ ALTER TABLE ONLY auth.mfa_challenges
 
 
 --
--- TOC entry 4796 (class 2606 OID 16999)
+-- TOC entry 4803 (class 2606 OID 16999)
 -- Name: mfa_factors mfa_factors_last_challenged_at_key; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16048,7 +16301,7 @@ ALTER TABLE ONLY auth.mfa_factors
 
 
 --
--- TOC entry 4798 (class 2606 OID 16793)
+-- TOC entry 4805 (class 2606 OID 16793)
 -- Name: mfa_factors mfa_factors_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16057,7 +16310,7 @@ ALTER TABLE ONLY auth.mfa_factors
 
 
 --
--- TOC entry 5089 (class 2606 OID 136620)
+-- TOC entry 5093 (class 2606 OID 136620)
 -- Name: oauth_clients oauth_clients_client_id_key; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16066,7 +16319,7 @@ ALTER TABLE ONLY auth.oauth_clients
 
 
 --
--- TOC entry 5092 (class 2606 OID 136618)
+-- TOC entry 5096 (class 2606 OID 136618)
 -- Name: oauth_clients oauth_clients_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16075,7 +16328,7 @@ ALTER TABLE ONLY auth.oauth_clients
 
 
 --
--- TOC entry 4833 (class 2606 OID 16984)
+-- TOC entry 4840 (class 2606 OID 16984)
 -- Name: one_time_tokens one_time_tokens_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16084,7 +16337,7 @@ ALTER TABLE ONLY auth.one_time_tokens
 
 
 --
--- TOC entry 4753 (class 2606 OID 16512)
+-- TOC entry 4760 (class 2606 OID 16512)
 -- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16093,7 +16346,7 @@ ALTER TABLE ONLY auth.refresh_tokens
 
 
 --
--- TOC entry 4756 (class 2606 OID 16736)
+-- TOC entry 4763 (class 2606 OID 16736)
 -- Name: refresh_tokens refresh_tokens_token_unique; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16102,7 +16355,7 @@ ALTER TABLE ONLY auth.refresh_tokens
 
 
 --
--- TOC entry 4818 (class 2606 OID 16865)
+-- TOC entry 4825 (class 2606 OID 16865)
 -- Name: saml_providers saml_providers_entity_id_key; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16111,7 +16364,7 @@ ALTER TABLE ONLY auth.saml_providers
 
 
 --
--- TOC entry 4820 (class 2606 OID 16863)
+-- TOC entry 4827 (class 2606 OID 16863)
 -- Name: saml_providers saml_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16120,7 +16373,7 @@ ALTER TABLE ONLY auth.saml_providers
 
 
 --
--- TOC entry 4825 (class 2606 OID 16879)
+-- TOC entry 4832 (class 2606 OID 16879)
 -- Name: saml_relay_states saml_relay_states_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16129,7 +16382,7 @@ ALTER TABLE ONLY auth.saml_relay_states
 
 
 --
--- TOC entry 4764 (class 2606 OID 16535)
+-- TOC entry 4771 (class 2606 OID 16535)
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16138,7 +16391,7 @@ ALTER TABLE ONLY auth.schema_migrations
 
 
 --
--- TOC entry 4791 (class 2606 OID 16757)
+-- TOC entry 4798 (class 2606 OID 16757)
 -- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16147,7 +16400,7 @@ ALTER TABLE ONLY auth.sessions
 
 
 --
--- TOC entry 4815 (class 2606 OID 16846)
+-- TOC entry 4822 (class 2606 OID 16846)
 -- Name: sso_domains sso_domains_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16156,7 +16409,7 @@ ALTER TABLE ONLY auth.sso_domains
 
 
 --
--- TOC entry 4810 (class 2606 OID 16837)
+-- TOC entry 4817 (class 2606 OID 16837)
 -- Name: sso_providers sso_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16165,7 +16418,7 @@ ALTER TABLE ONLY auth.sso_providers
 
 
 --
--- TOC entry 4746 (class 2606 OID 16919)
+-- TOC entry 4753 (class 2606 OID 16919)
 -- Name: users users_phone_key; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16174,7 +16427,7 @@ ALTER TABLE ONLY auth.users
 
 
 --
--- TOC entry 4748 (class 2606 OID 16499)
+-- TOC entry 4755 (class 2606 OID 16499)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -16183,7 +16436,7 @@ ALTER TABLE ONLY auth.users
 
 
 --
--- TOC entry 5140 (class 2606 OID 160221)
+-- TOC entry 5134 (class 2606 OID 160221)
 -- Name: active_service_tracking active_service_tracking_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16192,7 +16445,7 @@ ALTER TABLE ONLY public.active_service_tracking
 
 
 --
--- TOC entry 4932 (class 2606 OID 30050)
+-- TOC entry 4938 (class 2606 OID 30050)
 -- Name: admin_notifications admin_notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16201,7 +16454,7 @@ ALTER TABLE ONLY public.admin_notifications
 
 
 --
--- TOC entry 5015 (class 2606 OID 67704)
+-- TOC entry 5019 (class 2606 OID 67704)
 -- Name: admin_settings admin_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16210,7 +16463,7 @@ ALTER TABLE ONLY public.admin_settings
 
 
 --
--- TOC entry 5017 (class 2606 OID 67706)
+-- TOC entry 5021 (class 2606 OID 67706)
 -- Name: admin_settings admin_settings_setting_key_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16219,7 +16472,7 @@ ALTER TABLE ONLY public.admin_settings
 
 
 --
--- TOC entry 4947 (class 2606 OID 35862)
+-- TOC entry 4953 (class 2606 OID 35862)
 -- Name: app_settings app_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16228,7 +16481,7 @@ ALTER TABLE ONLY public.app_settings
 
 
 --
--- TOC entry 4889 (class 2606 OID 26046)
+-- TOC entry 4896 (class 2606 OID 26046)
 -- Name: badge_settings badge_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16237,7 +16490,7 @@ ALTER TABLE ONLY public.badge_settings
 
 
 --
--- TOC entry 5037 (class 2606 OID 69530)
+-- TOC entry 5041 (class 2606 OID 69530)
 -- Name: badges_catalog badges_catalog_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16246,7 +16499,7 @@ ALTER TABLE ONLY public.badges_catalog
 
 
 --
--- TOC entry 4887 (class 2606 OID 26019)
+-- TOC entry 4894 (class 2606 OID 26019)
 -- Name: badges badges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16255,16 +16508,7 @@ ALTER TABLE ONLY public.badges
 
 
 --
--- TOC entry 4969 (class 2606 OID 44276)
--- Name: categories categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.categories
-    ADD CONSTRAINT categories_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4975 (class 2606 OID 54800)
+-- TOC entry 4979 (class 2606 OID 54800)
 -- Name: chat_messages chat_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16273,7 +16517,7 @@ ALTER TABLE ONLY public.chat_messages
 
 
 --
--- TOC entry 4982 (class 2606 OID 54829)
+-- TOC entry 4986 (class 2606 OID 54829)
 -- Name: chat_participants chat_participants_order_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16282,7 +16526,7 @@ ALTER TABLE ONLY public.chat_participants
 
 
 --
--- TOC entry 4984 (class 2606 OID 54827)
+-- TOC entry 4988 (class 2606 OID 54827)
 -- Name: chat_participants chat_participants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16291,7 +16535,7 @@ ALTER TABLE ONLY public.chat_participants
 
 
 --
--- TOC entry 4988 (class 2606 OID 54852)
+-- TOC entry 4992 (class 2606 OID 54852)
 -- Name: chat_typing_status chat_typing_status_order_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16300,7 +16544,7 @@ ALTER TABLE ONLY public.chat_typing_status
 
 
 --
--- TOC entry 4990 (class 2606 OID 54850)
+-- TOC entry 4994 (class 2606 OID 54850)
 -- Name: chat_typing_status chat_typing_status_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16309,7 +16553,7 @@ ALTER TABLE ONLY public.chat_typing_status
 
 
 --
--- TOC entry 5033 (class 2606 OID 69438)
+-- TOC entry 5037 (class 2606 OID 69438)
 -- Name: client_badges client_badges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16318,7 +16562,7 @@ ALTER TABLE ONLY public.client_badges
 
 
 --
--- TOC entry 4893 (class 2606 OID 26294)
+-- TOC entry 4900 (class 2606 OID 26294)
 -- Name: client_reviews client_reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16327,7 +16571,7 @@ ALTER TABLE ONLY public.client_reviews
 
 
 --
--- TOC entry 4962 (class 2606 OID 37705)
+-- TOC entry 4968 (class 2606 OID 37705)
 -- Name: criteria criteria_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16336,7 +16580,7 @@ ALTER TABLE ONLY public.criteria
 
 
 --
--- TOC entry 4964 (class 2606 OID 156845)
+-- TOC entry 4970 (class 2606 OID 156845)
 -- Name: criteria criteria_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16345,7 +16589,7 @@ ALTER TABLE ONLY public.criteria
 
 
 --
--- TOC entry 4899 (class 2606 OID 27566)
+-- TOC entry 4906 (class 2606 OID 27566)
 -- Name: favorite_orders favorite_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16354,7 +16598,7 @@ ALTER TABLE ONLY public.favorite_orders
 
 
 --
--- TOC entry 5035 (class 2606 OID 69447)
+-- TOC entry 5039 (class 2606 OID 69447)
 -- Name: fourmiz_badges fourmiz_badges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16363,7 +16607,7 @@ ALTER TABLE ONLY public.fourmiz_badges
 
 
 --
--- TOC entry 4858 (class 2606 OID 25578)
+-- TOC entry 4865 (class 2606 OID 25578)
 -- Name: fourmiz_criteria fourmiz_criteria_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16372,7 +16616,7 @@ ALTER TABLE ONLY public.fourmiz_criteria
 
 
 --
--- TOC entry 4860 (class 2606 OID 59932)
+-- TOC entry 4867 (class 2606 OID 59932)
 -- Name: fourmiz_criteria fourmiz_criteria_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16381,7 +16625,7 @@ ALTER TABLE ONLY public.fourmiz_criteria
 
 
 --
--- TOC entry 5155 (class 2606 OID 160821)
+-- TOC entry 5149 (class 2606 OID 160821)
 -- Name: fourmiz_mission_status fourmiz_mission_status_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16390,7 +16634,7 @@ ALTER TABLE ONLY public.fourmiz_mission_status
 
 
 --
--- TOC entry 4897 (class 2606 OID 26397)
+-- TOC entry 4904 (class 2606 OID 26397)
 -- Name: fourmiz_reviews fourmiz_reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16399,7 +16643,7 @@ ALTER TABLE ONLY public.fourmiz_reviews
 
 
 --
--- TOC entry 4869 (class 2606 OID 25589)
+-- TOC entry 4876 (class 2606 OID 25589)
 -- Name: fourmiz_services fourmiz_services_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16408,7 +16652,7 @@ ALTER TABLE ONLY public.fourmiz_services
 
 
 --
--- TOC entry 4885 (class 2606 OID 25931)
+-- TOC entry 4892 (class 2606 OID 25931)
 -- Name: iban_requests iban_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16417,7 +16661,7 @@ ALTER TABLE ONLY public.iban_requests
 
 
 --
--- TOC entry 5115 (class 2606 OID 147642)
+-- TOC entry 5119 (class 2606 OID 147642)
 -- Name: legal_engagement_types legal_engagement_types_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16426,7 +16670,7 @@ ALTER TABLE ONLY public.legal_engagement_types
 
 
 --
--- TOC entry 5117 (class 2606 OID 147640)
+-- TOC entry 5121 (class 2606 OID 147640)
 -- Name: legal_engagement_types legal_engagement_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16435,7 +16679,7 @@ ALTER TABLE ONLY public.legal_engagement_types
 
 
 --
--- TOC entry 5138 (class 2606 OID 159930)
+-- TOC entry 5132 (class 2606 OID 159930)
 -- Name: location_cache location_cache_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16444,7 +16688,7 @@ ALTER TABLE ONLY public.location_cache
 
 
 --
--- TOC entry 5150 (class 2606 OID 160691)
+-- TOC entry 5144 (class 2606 OID 160691)
 -- Name: location_history location_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16453,7 +16697,7 @@ ALTER TABLE ONLY public.location_history
 
 
 --
--- TOC entry 4936 (class 2606 OID 33994)
+-- TOC entry 4942 (class 2606 OID 33994)
 -- Name: locations locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16462,7 +16706,7 @@ ALTER TABLE ONLY public.locations
 
 
 --
--- TOC entry 4904 (class 2606 OID 27695)
+-- TOC entry 4911 (class 2606 OID 27695)
 -- Name: messages messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16471,7 +16715,7 @@ ALTER TABLE ONLY public.messages
 
 
 --
--- TOC entry 4960 (class 2606 OID 37668)
+-- TOC entry 4966 (class 2606 OID 37668)
 -- Name: missions missions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16480,7 +16724,7 @@ ALTER TABLE ONLY public.missions
 
 
 --
--- TOC entry 5008 (class 2606 OID 55193)
+-- TOC entry 5012 (class 2606 OID 55193)
 -- Name: notification_history notification_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16489,7 +16733,7 @@ ALTER TABLE ONLY public.notification_history
 
 
 --
--- TOC entry 5011 (class 2606 OID 55224)
+-- TOC entry 5015 (class 2606 OID 55224)
 -- Name: notification_preferences notification_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16498,7 +16742,7 @@ ALTER TABLE ONLY public.notification_preferences
 
 
 --
--- TOC entry 5013 (class 2606 OID 55226)
+-- TOC entry 5017 (class 2606 OID 55226)
 -- Name: notification_preferences notification_preferences_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16507,7 +16751,7 @@ ALTER TABLE ONLY public.notification_preferences
 
 
 --
--- TOC entry 4930 (class 2606 OID 30013)
+-- TOC entry 4936 (class 2606 OID 30013)
 -- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16516,7 +16760,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5098 (class 2606 OID 143699)
+-- TOC entry 5102 (class 2606 OID 143699)
 -- Name: order_applications order_applications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16525,7 +16769,7 @@ ALTER TABLE ONLY public.order_applications
 
 
 --
--- TOC entry 5060 (class 2606 OID 84476)
+-- TOC entry 5064 (class 2606 OID 84476)
 -- Name: order_details order_details_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16534,7 +16778,7 @@ ALTER TABLE ONLY public.order_details
 
 
 --
--- TOC entry 4934 (class 2606 OID 31981)
+-- TOC entry 4940 (class 2606 OID 31981)
 -- Name: order_steps order_steps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16543,7 +16787,7 @@ ALTER TABLE ONLY public.order_steps
 
 
 --
--- TOC entry 4973 (class 2606 OID 53062)
+-- TOC entry 4977 (class 2606 OID 53062)
 -- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16552,7 +16796,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 4871 (class 2606 OID 25604)
+-- TOC entry 4878 (class 2606 OID 25604)
 -- Name: other_services other_services_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16561,7 +16805,7 @@ ALTER TABLE ONLY public.other_services
 
 
 --
--- TOC entry 5084 (class 2606 OID 133737)
+-- TOC entry 5088 (class 2606 OID 133737)
 -- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16570,7 +16814,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5078 (class 2606 OID 132510)
+-- TOC entry 5082 (class 2606 OID 132510)
 -- Name: payout_requests payout_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16579,7 +16823,7 @@ ALTER TABLE ONLY public.payout_requests
 
 
 --
--- TOC entry 5052 (class 2606 OID 81085)
+-- TOC entry 5056 (class 2606 OID 81085)
 -- Name: pending_uploads pending_uploads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16588,7 +16832,7 @@ ALTER TABLE ONLY public.pending_uploads
 
 
 --
--- TOC entry 5104 (class 2606 OID 143730)
+-- TOC entry 5108 (class 2606 OID 143730)
 -- Name: pre_selection_chats pre_selection_chats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16597,7 +16841,7 @@ ALTER TABLE ONLY public.pre_selection_chats
 
 
 --
--- TOC entry 5110 (class 2606 OID 143766)
+-- TOC entry 5114 (class 2606 OID 143766)
 -- Name: pre_selection_messages pre_selection_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16606,7 +16850,7 @@ ALTER TABLE ONLY public.pre_selection_messages
 
 
 --
--- TOC entry 4922 (class 2606 OID 29948)
+-- TOC entry 4928 (class 2606 OID 29948)
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16615,7 +16859,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4924 (class 2606 OID 113346)
+-- TOC entry 4930 (class 2606 OID 113346)
 -- Name: profiles profiles_referral_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16624,7 +16868,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 4926 (class 2606 OID 80881)
+-- TOC entry 4932 (class 2606 OID 80881)
 -- Name: profiles profiles_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16633,7 +16877,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5000 (class 2606 OID 55174)
+-- TOC entry 5004 (class 2606 OID 55174)
 -- Name: push_tokens push_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16642,7 +16886,7 @@ ALTER TABLE ONLY public.push_tokens
 
 
 --
--- TOC entry 5002 (class 2606 OID 55176)
+-- TOC entry 5006 (class 2606 OID 55176)
 -- Name: push_tokens push_tokens_user_id_token_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16651,7 +16895,7 @@ ALTER TABLE ONLY public.push_tokens
 
 
 --
--- TOC entry 4873 (class 2606 OID 25638)
+-- TOC entry 4880 (class 2606 OID 25638)
 -- Name: ratings ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16660,7 +16904,7 @@ ALTER TABLE ONLY public.ratings
 
 
 --
--- TOC entry 4881 (class 2606 OID 25892)
+-- TOC entry 4888 (class 2606 OID 25892)
 -- Name: referral_commissions referral_commissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16669,7 +16913,7 @@ ALTER TABLE ONLY public.referral_commissions
 
 
 --
--- TOC entry 5045 (class 2606 OID 76855)
+-- TOC entry 5049 (class 2606 OID 76855)
 -- Name: referral_config referral_config_key_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16678,7 +16922,7 @@ ALTER TABLE ONLY public.referral_config
 
 
 --
--- TOC entry 5047 (class 2606 OID 76853)
+-- TOC entry 5051 (class 2606 OID 76853)
 -- Name: referral_config referral_config_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16687,7 +16931,7 @@ ALTER TABLE ONLY public.referral_config
 
 
 --
--- TOC entry 4943 (class 2606 OID 34540)
+-- TOC entry 4949 (class 2606 OID 34540)
 -- Name: referral_gains referral_gains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16696,7 +16940,7 @@ ALTER TABLE ONLY public.referral_gains
 
 
 --
--- TOC entry 4877 (class 2606 OID 25873)
+-- TOC entry 4884 (class 2606 OID 25873)
 -- Name: referrals referrals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16705,7 +16949,7 @@ ALTER TABLE ONLY public.referrals
 
 
 --
--- TOC entry 4957 (class 2606 OID 36123)
+-- TOC entry 4963 (class 2606 OID 36123)
 -- Name: revenues revenues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16714,7 +16958,7 @@ ALTER TABLE ONLY public.revenues
 
 
 --
--- TOC entry 4952 (class 2606 OID 36011)
+-- TOC entry 4958 (class 2606 OID 36011)
 -- Name: revenus revenus_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16723,7 +16967,7 @@ ALTER TABLE ONLY public.revenus
 
 
 --
--- TOC entry 4949 (class 2606 OID 35952)
+-- TOC entry 4955 (class 2606 OID 35952)
 -- Name: rewards rewards_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16732,7 +16976,7 @@ ALTER TABLE ONLY public.rewards
 
 
 --
--- TOC entry 5068 (class 2606 OID 102799)
+-- TOC entry 5072 (class 2606 OID 102799)
 -- Name: security_incidents security_incidents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16741,7 +16985,7 @@ ALTER TABLE ONLY public.security_incidents
 
 
 --
--- TOC entry 4967 (class 2606 OID 42262)
+-- TOC entry 4973 (class 2606 OID 42262)
 -- Name: service_assignments service_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16750,7 +16994,7 @@ ALTER TABLE ONLY public.service_assignments
 
 
 --
--- TOC entry 5146 (class 2606 OID 160257)
+-- TOC entry 5140 (class 2606 OID 160257)
 -- Name: service_tracking_history service_tracking_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16759,7 +17003,7 @@ ALTER TABLE ONLY public.service_tracking_history
 
 
 --
--- TOC entry 4945 (class 2606 OID 34594)
+-- TOC entry 4951 (class 2606 OID 34594)
 -- Name: services_gains services_gains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16768,7 +17012,7 @@ ALTER TABLE ONLY public.services_gains
 
 
 --
--- TOC entry 4855 (class 2606 OID 25224)
+-- TOC entry 4862 (class 2606 OID 25224)
 -- Name: services services_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16777,7 +17021,7 @@ ALTER TABLE ONLY public.services
 
 
 --
--- TOC entry 4875 (class 2606 OID 25860)
+-- TOC entry 4882 (class 2606 OID 25860)
 -- Name: settings settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16786,7 +17030,16 @@ ALTER TABLE ONLY public.settings
 
 
 --
--- TOC entry 4853 (class 2606 OID 23001)
+-- TOC entry 5164 (class 2606 OID 169797)
+-- Name: system_logs system_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.system_logs
+    ADD CONSTRAINT system_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4860 (class 2606 OID 23001)
 -- Name: test test_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16795,7 +17048,7 @@ ALTER TABLE ONLY public.test
 
 
 --
--- TOC entry 5153 (class 2606 OID 160806)
+-- TOC entry 5147 (class 2606 OID 160806)
 -- Name: tracking_consent_history tracking_consent_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16804,7 +17057,7 @@ ALTER TABLE ONLY public.tracking_consent_history
 
 
 --
--- TOC entry 5100 (class 2606 OID 143701)
+-- TOC entry 5104 (class 2606 OID 143701)
 -- Name: order_applications unique_application_per_order_fourmiz; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16813,7 +17066,7 @@ ALTER TABLE ONLY public.order_applications
 
 
 --
--- TOC entry 5106 (class 2606 OID 143732)
+-- TOC entry 5110 (class 2606 OID 143732)
 -- Name: pre_selection_chats unique_chat_per_application; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16822,7 +17075,7 @@ ALTER TABLE ONLY public.pre_selection_chats
 
 
 --
--- TOC entry 5062 (class 2606 OID 84478)
+-- TOC entry 5066 (class 2606 OID 84478)
 -- Name: order_details unique_order_details; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16831,7 +17084,7 @@ ALTER TABLE ONLY public.order_details
 
 
 --
--- TOC entry 4928 (class 2606 OID 160481)
+-- TOC entry 4934 (class 2606 OID 160481)
 -- Name: profiles unique_phone_number; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16840,7 +17093,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5086 (class 2606 OID 133744)
+-- TOC entry 5090 (class 2606 OID 133744)
 -- Name: payments unique_stripe_intent; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16849,7 +17102,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 4938 (class 2606 OID 34364)
+-- TOC entry 4944 (class 2606 OID 34364)
 -- Name: user_badges user_badges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16858,7 +17111,7 @@ ALTER TABLE ONLY public.user_badges
 
 
 --
--- TOC entry 5057 (class 2606 OID 81452)
+-- TOC entry 5061 (class 2606 OID 81452)
 -- Name: user_credits user_credits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16867,7 +17120,7 @@ ALTER TABLE ONLY public.user_credits
 
 
 --
--- TOC entry 5122 (class 2606 OID 147654)
+-- TOC entry 5126 (class 2606 OID 147654)
 -- Name: user_legal_engagements user_legal_engagements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16876,7 +17129,7 @@ ALTER TABLE ONLY public.user_legal_engagements
 
 
 --
--- TOC entry 5124 (class 2606 OID 147656)
+-- TOC entry 5128 (class 2606 OID 147656)
 -- Name: user_legal_engagements user_legal_engagements_user_id_engagement_type_id_accepted__key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16885,7 +17138,7 @@ ALTER TABLE ONLY public.user_legal_engagements
 
 
 --
--- TOC entry 5064 (class 2606 OID 90502)
+-- TOC entry 5068 (class 2606 OID 90502)
 -- Name: user_push_tokens user_push_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16894,7 +17147,7 @@ ALTER TABLE ONLY public.user_push_tokens
 
 
 --
--- TOC entry 5066 (class 2606 OID 90504)
+-- TOC entry 5070 (class 2606 OID 90504)
 -- Name: user_push_tokens user_push_tokens_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16903,7 +17156,7 @@ ALTER TABLE ONLY public.user_push_tokens
 
 
 --
--- TOC entry 5113 (class 2606 OID 144149)
+-- TOC entry 5117 (class 2606 OID 144149)
 -- Name: user_references user_references_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16912,7 +17165,7 @@ ALTER TABLE ONLY public.user_references
 
 
 --
--- TOC entry 5023 (class 2606 OID 67717)
+-- TOC entry 5027 (class 2606 OID 67717)
 -- Name: user_referral_codes user_referral_codes_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16921,7 +17174,7 @@ ALTER TABLE ONLY public.user_referral_codes
 
 
 --
--- TOC entry 5025 (class 2606 OID 67715)
+-- TOC entry 5029 (class 2606 OID 67715)
 -- Name: user_referral_codes user_referral_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16930,7 +17183,7 @@ ALTER TABLE ONLY public.user_referral_codes
 
 
 --
--- TOC entry 5029 (class 2606 OID 67734)
+-- TOC entry 5033 (class 2606 OID 67734)
 -- Name: user_referrals user_referrals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16939,7 +17192,7 @@ ALTER TABLE ONLY public.user_referrals
 
 
 --
--- TOC entry 5031 (class 2606 OID 67736)
+-- TOC entry 5035 (class 2606 OID 67736)
 -- Name: user_referrals user_referrals_referred_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16948,7 +17201,7 @@ ALTER TABLE ONLY public.user_referrals
 
 
 --
--- TOC entry 4891 (class 2606 OID 26167)
+-- TOC entry 4898 (class 2606 OID 26167)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16957,7 +17210,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 4883 (class 2606 OID 25916)
+-- TOC entry 4890 (class 2606 OID 25916)
 -- Name: wallets wallets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16966,7 +17219,7 @@ ALTER TABLE ONLY public.wallets
 
 
 --
--- TOC entry 4849 (class 2606 OID 17267)
+-- TOC entry 4856 (class 2606 OID 17267)
 -- Name: messages messages_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
 --
 
@@ -16975,52 +17228,7 @@ ALTER TABLE ONLY realtime.messages
 
 
 --
--- TOC entry 5126 (class 2606 OID 152901)
--- Name: messages_2025_09_13 messages_2025_09_13_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2025_09_13
-    ADD CONSTRAINT messages_2025_09_13_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- TOC entry 5128 (class 2606 OID 154275)
--- Name: messages_2025_09_14 messages_2025_09_14_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2025_09_14
-    ADD CONSTRAINT messages_2025_09_14_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- TOC entry 5130 (class 2606 OID 155429)
--- Name: messages_2025_09_15 messages_2025_09_15_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2025_09_15
-    ADD CONSTRAINT messages_2025_09_15_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- TOC entry 5132 (class 2606 OID 156689)
--- Name: messages_2025_09_16 messages_2025_09_16_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2025_09_16
-    ADD CONSTRAINT messages_2025_09_16_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- TOC entry 5134 (class 2606 OID 158437)
--- Name: messages_2025_09_17 messages_2025_09_17_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
---
-
-ALTER TABLE ONLY realtime.messages_2025_09_17
-    ADD CONSTRAINT messages_2025_09_17_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- TOC entry 5136 (class 2606 OID 159551)
+-- TOC entry 5130 (class 2606 OID 159551)
 -- Name: messages_2025_09_18 messages_2025_09_18_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
 --
 
@@ -17029,7 +17237,7 @@ ALTER TABLE ONLY realtime.messages_2025_09_18
 
 
 --
--- TOC entry 5158 (class 2606 OID 160946)
+-- TOC entry 5152 (class 2606 OID 160946)
 -- Name: messages_2025_09_19 messages_2025_09_19_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
 --
 
@@ -17038,7 +17246,52 @@ ALTER TABLE ONLY realtime.messages_2025_09_19
 
 
 --
--- TOC entry 4846 (class 2606 OID 17115)
+-- TOC entry 5154 (class 2606 OID 163489)
+-- Name: messages_2025_09_20 messages_2025_09_20_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2025_09_20
+    ADD CONSTRAINT messages_2025_09_20_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- TOC entry 5156 (class 2606 OID 165103)
+-- Name: messages_2025_09_21 messages_2025_09_21_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2025_09_21
+    ADD CONSTRAINT messages_2025_09_21_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- TOC entry 5158 (class 2606 OID 167353)
+-- Name: messages_2025_09_22 messages_2025_09_22_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2025_09_22
+    ADD CONSTRAINT messages_2025_09_22_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- TOC entry 5160 (class 2606 OID 167364)
+-- Name: messages_2025_09_23 messages_2025_09_23_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2025_09_23
+    ADD CONSTRAINT messages_2025_09_23_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- TOC entry 5162 (class 2606 OID 168682)
+-- Name: messages_2025_09_24 messages_2025_09_24_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
+--
+
+ALTER TABLE ONLY realtime.messages_2025_09_24
+    ADD CONSTRAINT messages_2025_09_24_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- TOC entry 4853 (class 2606 OID 17115)
 -- Name: subscription pk_subscription; Type: CONSTRAINT; Schema: realtime; Owner: -
 --
 
@@ -17047,7 +17300,7 @@ ALTER TABLE ONLY realtime.subscription
 
 
 --
--- TOC entry 4838 (class 2606 OID 17004)
+-- TOC entry 4845 (class 2606 OID 17004)
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: realtime; Owner: -
 --
 
@@ -17056,7 +17309,7 @@ ALTER TABLE ONLY realtime.schema_migrations
 
 
 --
--- TOC entry 5073 (class 2606 OID 120764)
+-- TOC entry 5077 (class 2606 OID 120764)
 -- Name: buckets_analytics buckets_analytics_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -17065,7 +17318,7 @@ ALTER TABLE ONLY storage.buckets_analytics
 
 
 --
--- TOC entry 4767 (class 2606 OID 16552)
+-- TOC entry 4774 (class 2606 OID 16552)
 -- Name: buckets buckets_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -17074,7 +17327,7 @@ ALTER TABLE ONLY storage.buckets
 
 
 --
--- TOC entry 4777 (class 2606 OID 16593)
+-- TOC entry 4784 (class 2606 OID 16593)
 -- Name: migrations migrations_name_key; Type: CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -17083,7 +17336,7 @@ ALTER TABLE ONLY storage.migrations
 
 
 --
--- TOC entry 4779 (class 2606 OID 16591)
+-- TOC entry 4786 (class 2606 OID 16591)
 -- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -17092,7 +17345,7 @@ ALTER TABLE ONLY storage.migrations
 
 
 --
--- TOC entry 4775 (class 2606 OID 16569)
+-- TOC entry 4782 (class 2606 OID 16569)
 -- Name: objects objects_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -17101,7 +17354,7 @@ ALTER TABLE ONLY storage.objects
 
 
 --
--- TOC entry 5071 (class 2606 OID 120719)
+-- TOC entry 5075 (class 2606 OID 120719)
 -- Name: prefixes prefixes_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -17110,7 +17363,7 @@ ALTER TABLE ONLY storage.prefixes
 
 
 --
--- TOC entry 4843 (class 2606 OID 17060)
+-- TOC entry 4850 (class 2606 OID 17060)
 -- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -17119,7 +17372,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads_parts
 
 
 --
--- TOC entry 4841 (class 2606 OID 17045)
+-- TOC entry 4848 (class 2606 OID 17045)
 -- Name: s3_multipart_uploads s3_multipart_uploads_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -17128,7 +17381,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads
 
 
 --
--- TOC entry 4851 (class 2606 OID 17276)
+-- TOC entry 4858 (class 2606 OID 17276)
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: supabase_migrations; Owner: -
 --
 
@@ -17137,7 +17390,16 @@ ALTER TABLE ONLY supabase_migrations.schema_migrations
 
 
 --
--- TOC entry 4762 (class 1259 OID 16530)
+-- TOC entry 5166 (class 2606 OID 169890)
+-- Name: seed_files seed_files_pkey; Type: CONSTRAINT; Schema: supabase_migrations; Owner: -
+--
+
+ALTER TABLE ONLY supabase_migrations.seed_files
+    ADD CONSTRAINT seed_files_pkey PRIMARY KEY (path);
+
+
+--
+-- TOC entry 4769 (class 1259 OID 16530)
 -- Name: audit_logs_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17145,7 +17407,7 @@ CREATE INDEX audit_logs_instance_id_idx ON auth.audit_log_entries USING btree (i
 
 
 --
--- TOC entry 4736 (class 1259 OID 16746)
+-- TOC entry 4743 (class 1259 OID 16746)
 -- Name: confirmation_token_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17153,7 +17415,7 @@ CREATE UNIQUE INDEX confirmation_token_idx ON auth.users USING btree (confirmati
 
 
 --
--- TOC entry 4737 (class 1259 OID 16748)
+-- TOC entry 4744 (class 1259 OID 16748)
 -- Name: email_change_token_current_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17161,7 +17423,7 @@ CREATE UNIQUE INDEX email_change_token_current_idx ON auth.users USING btree (em
 
 
 --
--- TOC entry 4738 (class 1259 OID 16749)
+-- TOC entry 4745 (class 1259 OID 16749)
 -- Name: email_change_token_new_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17169,7 +17431,7 @@ CREATE UNIQUE INDEX email_change_token_new_idx ON auth.users USING btree (email_
 
 
 --
--- TOC entry 4794 (class 1259 OID 16827)
+-- TOC entry 4801 (class 1259 OID 16827)
 -- Name: factor_id_created_at_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17177,7 +17439,7 @@ CREATE INDEX factor_id_created_at_idx ON auth.mfa_factors USING btree (user_id, 
 
 
 --
--- TOC entry 4827 (class 1259 OID 16935)
+-- TOC entry 4834 (class 1259 OID 16935)
 -- Name: flow_state_created_at_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17185,7 +17447,7 @@ CREATE INDEX flow_state_created_at_idx ON auth.flow_state USING btree (created_a
 
 
 --
--- TOC entry 4783 (class 1259 OID 16915)
+-- TOC entry 4790 (class 1259 OID 16915)
 -- Name: identities_email_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17193,8 +17455,8 @@ CREATE INDEX identities_email_idx ON auth.identities USING btree (email text_pat
 
 
 --
--- TOC entry 5923 (class 0 OID 0)
--- Dependencies: 4783
+-- TOC entry 5933 (class 0 OID 0)
+-- Dependencies: 4790
 -- Name: INDEX identities_email_idx; Type: COMMENT; Schema: auth; Owner: -
 --
 
@@ -17202,7 +17464,7 @@ COMMENT ON INDEX auth.identities_email_idx IS 'Auth: Ensures indexed queries on 
 
 
 --
--- TOC entry 4788 (class 1259 OID 16743)
+-- TOC entry 4795 (class 1259 OID 16743)
 -- Name: identities_user_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17210,7 +17472,7 @@ CREATE INDEX identities_user_id_idx ON auth.identities USING btree (user_id);
 
 
 --
--- TOC entry 4830 (class 1259 OID 16932)
+-- TOC entry 4837 (class 1259 OID 16932)
 -- Name: idx_auth_code; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17218,7 +17480,7 @@ CREATE INDEX idx_auth_code ON auth.flow_state USING btree (auth_code);
 
 
 --
--- TOC entry 4831 (class 1259 OID 16933)
+-- TOC entry 4838 (class 1259 OID 16933)
 -- Name: idx_user_id_auth_method; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17226,7 +17488,7 @@ CREATE INDEX idx_user_id_auth_method ON auth.flow_state USING btree (user_id, au
 
 
 --
--- TOC entry 4802 (class 1259 OID 16938)
+-- TOC entry 4809 (class 1259 OID 16938)
 -- Name: mfa_challenge_created_at_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17234,7 +17496,7 @@ CREATE INDEX mfa_challenge_created_at_idx ON auth.mfa_challenges USING btree (cr
 
 
 --
--- TOC entry 4799 (class 1259 OID 16799)
+-- TOC entry 4806 (class 1259 OID 16799)
 -- Name: mfa_factors_user_friendly_name_unique; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17242,7 +17504,7 @@ CREATE UNIQUE INDEX mfa_factors_user_friendly_name_unique ON auth.mfa_factors US
 
 
 --
--- TOC entry 4800 (class 1259 OID 16944)
+-- TOC entry 4807 (class 1259 OID 16944)
 -- Name: mfa_factors_user_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17250,7 +17512,7 @@ CREATE INDEX mfa_factors_user_id_idx ON auth.mfa_factors USING btree (user_id);
 
 
 --
--- TOC entry 5087 (class 1259 OID 136621)
+-- TOC entry 5091 (class 1259 OID 136621)
 -- Name: oauth_clients_client_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17258,7 +17520,7 @@ CREATE INDEX oauth_clients_client_id_idx ON auth.oauth_clients USING btree (clie
 
 
 --
--- TOC entry 5090 (class 1259 OID 136622)
+-- TOC entry 5094 (class 1259 OID 136622)
 -- Name: oauth_clients_deleted_at_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17266,7 +17528,7 @@ CREATE INDEX oauth_clients_deleted_at_idx ON auth.oauth_clients USING btree (del
 
 
 --
--- TOC entry 4834 (class 1259 OID 16991)
+-- TOC entry 4841 (class 1259 OID 16991)
 -- Name: one_time_tokens_relates_to_hash_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17274,7 +17536,7 @@ CREATE INDEX one_time_tokens_relates_to_hash_idx ON auth.one_time_tokens USING h
 
 
 --
--- TOC entry 4835 (class 1259 OID 16990)
+-- TOC entry 4842 (class 1259 OID 16990)
 -- Name: one_time_tokens_token_hash_hash_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17282,7 +17544,7 @@ CREATE INDEX one_time_tokens_token_hash_hash_idx ON auth.one_time_tokens USING h
 
 
 --
--- TOC entry 4836 (class 1259 OID 16992)
+-- TOC entry 4843 (class 1259 OID 16992)
 -- Name: one_time_tokens_user_id_token_type_key; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17290,7 +17552,7 @@ CREATE UNIQUE INDEX one_time_tokens_user_id_token_type_key ON auth.one_time_toke
 
 
 --
--- TOC entry 4739 (class 1259 OID 16750)
+-- TOC entry 4746 (class 1259 OID 16750)
 -- Name: reauthentication_token_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17298,7 +17560,7 @@ CREATE UNIQUE INDEX reauthentication_token_idx ON auth.users USING btree (reauth
 
 
 --
--- TOC entry 4740 (class 1259 OID 16747)
+-- TOC entry 4747 (class 1259 OID 16747)
 -- Name: recovery_token_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17306,7 +17568,7 @@ CREATE UNIQUE INDEX recovery_token_idx ON auth.users USING btree (recovery_token
 
 
 --
--- TOC entry 4749 (class 1259 OID 16513)
+-- TOC entry 4756 (class 1259 OID 16513)
 -- Name: refresh_tokens_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17314,7 +17576,7 @@ CREATE INDEX refresh_tokens_instance_id_idx ON auth.refresh_tokens USING btree (
 
 
 --
--- TOC entry 4750 (class 1259 OID 16514)
+-- TOC entry 4757 (class 1259 OID 16514)
 -- Name: refresh_tokens_instance_id_user_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17322,7 +17584,7 @@ CREATE INDEX refresh_tokens_instance_id_user_id_idx ON auth.refresh_tokens USING
 
 
 --
--- TOC entry 4751 (class 1259 OID 16742)
+-- TOC entry 4758 (class 1259 OID 16742)
 -- Name: refresh_tokens_parent_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17330,7 +17592,7 @@ CREATE INDEX refresh_tokens_parent_idx ON auth.refresh_tokens USING btree (paren
 
 
 --
--- TOC entry 4754 (class 1259 OID 16829)
+-- TOC entry 4761 (class 1259 OID 16829)
 -- Name: refresh_tokens_session_id_revoked_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17338,7 +17600,7 @@ CREATE INDEX refresh_tokens_session_id_revoked_idx ON auth.refresh_tokens USING 
 
 
 --
--- TOC entry 4757 (class 1259 OID 16934)
+-- TOC entry 4764 (class 1259 OID 16934)
 -- Name: refresh_tokens_updated_at_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17346,7 +17608,7 @@ CREATE INDEX refresh_tokens_updated_at_idx ON auth.refresh_tokens USING btree (u
 
 
 --
--- TOC entry 4821 (class 1259 OID 16871)
+-- TOC entry 4828 (class 1259 OID 16871)
 -- Name: saml_providers_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17354,7 +17616,7 @@ CREATE INDEX saml_providers_sso_provider_id_idx ON auth.saml_providers USING btr
 
 
 --
--- TOC entry 4822 (class 1259 OID 16936)
+-- TOC entry 4829 (class 1259 OID 16936)
 -- Name: saml_relay_states_created_at_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17362,7 +17624,7 @@ CREATE INDEX saml_relay_states_created_at_idx ON auth.saml_relay_states USING bt
 
 
 --
--- TOC entry 4823 (class 1259 OID 16886)
+-- TOC entry 4830 (class 1259 OID 16886)
 -- Name: saml_relay_states_for_email_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17370,7 +17632,7 @@ CREATE INDEX saml_relay_states_for_email_idx ON auth.saml_relay_states USING btr
 
 
 --
--- TOC entry 4826 (class 1259 OID 16885)
+-- TOC entry 4833 (class 1259 OID 16885)
 -- Name: saml_relay_states_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17378,7 +17640,7 @@ CREATE INDEX saml_relay_states_sso_provider_id_idx ON auth.saml_relay_states USI
 
 
 --
--- TOC entry 4789 (class 1259 OID 16937)
+-- TOC entry 4796 (class 1259 OID 16937)
 -- Name: sessions_not_after_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17386,7 +17648,7 @@ CREATE INDEX sessions_not_after_idx ON auth.sessions USING btree (not_after DESC
 
 
 --
--- TOC entry 4792 (class 1259 OID 16828)
+-- TOC entry 4799 (class 1259 OID 16828)
 -- Name: sessions_user_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17394,7 +17656,7 @@ CREATE INDEX sessions_user_id_idx ON auth.sessions USING btree (user_id);
 
 
 --
--- TOC entry 4813 (class 1259 OID 16853)
+-- TOC entry 4820 (class 1259 OID 16853)
 -- Name: sso_domains_domain_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17402,7 +17664,7 @@ CREATE UNIQUE INDEX sso_domains_domain_idx ON auth.sso_domains USING btree (lowe
 
 
 --
--- TOC entry 4816 (class 1259 OID 16852)
+-- TOC entry 4823 (class 1259 OID 16852)
 -- Name: sso_domains_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17410,7 +17672,7 @@ CREATE INDEX sso_domains_sso_provider_id_idx ON auth.sso_domains USING btree (ss
 
 
 --
--- TOC entry 4811 (class 1259 OID 16838)
+-- TOC entry 4818 (class 1259 OID 16838)
 -- Name: sso_providers_resource_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17418,7 +17680,7 @@ CREATE UNIQUE INDEX sso_providers_resource_id_idx ON auth.sso_providers USING bt
 
 
 --
--- TOC entry 4812 (class 1259 OID 114471)
+-- TOC entry 4819 (class 1259 OID 114471)
 -- Name: sso_providers_resource_id_pattern_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17426,7 +17688,7 @@ CREATE INDEX sso_providers_resource_id_pattern_idx ON auth.sso_providers USING b
 
 
 --
--- TOC entry 4801 (class 1259 OID 16997)
+-- TOC entry 4808 (class 1259 OID 16997)
 -- Name: unique_phone_factor_per_user; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17434,7 +17696,7 @@ CREATE UNIQUE INDEX unique_phone_factor_per_user ON auth.mfa_factors USING btree
 
 
 --
--- TOC entry 4793 (class 1259 OID 16826)
+-- TOC entry 4800 (class 1259 OID 16826)
 -- Name: user_id_created_at_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17442,7 +17704,7 @@ CREATE INDEX user_id_created_at_idx ON auth.sessions USING btree (user_id, creat
 
 
 --
--- TOC entry 4741 (class 1259 OID 16906)
+-- TOC entry 4748 (class 1259 OID 16906)
 -- Name: users_email_partial_key; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17450,8 +17712,8 @@ CREATE UNIQUE INDEX users_email_partial_key ON auth.users USING btree (email) WH
 
 
 --
--- TOC entry 5924 (class 0 OID 0)
--- Dependencies: 4741
+-- TOC entry 5934 (class 0 OID 0)
+-- Dependencies: 4748
 -- Name: INDEX users_email_partial_key; Type: COMMENT; Schema: auth; Owner: -
 --
 
@@ -17459,7 +17721,7 @@ COMMENT ON INDEX auth.users_email_partial_key IS 'Auth: A partial unique index t
 
 
 --
--- TOC entry 4742 (class 1259 OID 16744)
+-- TOC entry 4749 (class 1259 OID 16744)
 -- Name: users_instance_id_email_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17467,7 +17729,7 @@ CREATE INDEX users_instance_id_email_idx ON auth.users USING btree (instance_id,
 
 
 --
--- TOC entry 4743 (class 1259 OID 16503)
+-- TOC entry 4750 (class 1259 OID 16503)
 -- Name: users_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17475,7 +17737,7 @@ CREATE INDEX users_instance_id_idx ON auth.users USING btree (instance_id);
 
 
 --
--- TOC entry 4744 (class 1259 OID 16961)
+-- TOC entry 4751 (class 1259 OID 16961)
 -- Name: users_is_anonymous_idx; Type: INDEX; Schema: auth; Owner: -
 --
 
@@ -17483,7 +17745,7 @@ CREATE INDEX users_is_anonymous_idx ON auth.users USING btree (is_anonymous);
 
 
 --
--- TOC entry 5141 (class 1259 OID 160233)
+-- TOC entry 5135 (class 1259 OID 160233)
 -- Name: idx_active_tracking_client; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17491,7 +17753,7 @@ CREATE INDEX idx_active_tracking_client ON public.active_service_tracking USING 
 
 
 --
--- TOC entry 5142 (class 1259 OID 160232)
+-- TOC entry 5136 (class 1259 OID 160232)
 -- Name: idx_active_tracking_fourmiz; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17499,7 +17761,7 @@ CREATE INDEX idx_active_tracking_fourmiz ON public.active_service_tracking USING
 
 
 --
--- TOC entry 5143 (class 1259 OID 160235)
+-- TOC entry 5137 (class 1259 OID 160235)
 -- Name: idx_active_tracking_location; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17507,7 +17769,7 @@ CREATE INDEX idx_active_tracking_location ON public.active_service_tracking USIN
 
 
 --
--- TOC entry 5144 (class 1259 OID 160234)
+-- TOC entry 5138 (class 1259 OID 160234)
 -- Name: idx_active_tracking_service; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17515,7 +17777,7 @@ CREATE INDEX idx_active_tracking_service ON public.active_service_tracking USING
 
 
 --
--- TOC entry 5038 (class 1259 OID 69532)
+-- TOC entry 5042 (class 1259 OID 69532)
 -- Name: idx_badges_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17523,7 +17785,7 @@ CREATE INDEX idx_badges_active ON public.badges_catalog USING btree (is_active);
 
 
 --
--- TOC entry 5039 (class 1259 OID 69531)
+-- TOC entry 5043 (class 1259 OID 69531)
 -- Name: idx_badges_category; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17531,7 +17793,7 @@ CREATE INDEX idx_badges_category ON public.badges_catalog USING btree (category)
 
 
 --
--- TOC entry 5040 (class 1259 OID 69534)
+-- TOC entry 5044 (class 1259 OID 69534)
 -- Name: idx_badges_display_order; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17539,7 +17801,7 @@ CREATE INDEX idx_badges_display_order ON public.badges_catalog USING btree (disp
 
 
 --
--- TOC entry 5041 (class 1259 OID 69535)
+-- TOC entry 5045 (class 1259 OID 69535)
 -- Name: idx_badges_rarity; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17547,7 +17809,7 @@ CREATE INDEX idx_badges_rarity ON public.badges_catalog USING btree (rarity);
 
 
 --
--- TOC entry 5042 (class 1259 OID 69533)
+-- TOC entry 5046 (class 1259 OID 69533)
 -- Name: idx_badges_visible; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17555,7 +17817,7 @@ CREATE INDEX idx_badges_visible ON public.badges_catalog USING btree (is_visible
 
 
 --
--- TOC entry 4976 (class 1259 OID 54813)
+-- TOC entry 4980 (class 1259 OID 54813)
 -- Name: idx_chat_messages_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17563,7 +17825,7 @@ CREATE INDEX idx_chat_messages_created_at ON public.chat_messages USING btree (c
 
 
 --
--- TOC entry 4977 (class 1259 OID 54811)
+-- TOC entry 4981 (class 1259 OID 54811)
 -- Name: idx_chat_messages_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17571,7 +17833,7 @@ CREATE INDEX idx_chat_messages_order_id ON public.chat_messages USING btree (ord
 
 
 --
--- TOC entry 4978 (class 1259 OID 88153)
+-- TOC entry 4982 (class 1259 OID 88153)
 -- Name: idx_chat_messages_read; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17579,7 +17841,7 @@ CREATE INDEX idx_chat_messages_read ON public.chat_messages USING btree (read);
 
 
 --
--- TOC entry 4979 (class 1259 OID 54812)
+-- TOC entry 4983 (class 1259 OID 54812)
 -- Name: idx_chat_messages_sender_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17587,7 +17849,7 @@ CREATE INDEX idx_chat_messages_sender_id ON public.chat_messages USING btree (se
 
 
 --
--- TOC entry 4980 (class 1259 OID 54814)
+-- TOC entry 4984 (class 1259 OID 54814)
 -- Name: idx_chat_messages_unread; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17595,7 +17857,7 @@ CREATE INDEX idx_chat_messages_unread ON public.chat_messages USING btree (read_
 
 
 --
--- TOC entry 4985 (class 1259 OID 54840)
+-- TOC entry 4989 (class 1259 OID 54840)
 -- Name: idx_chat_participants_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17603,7 +17865,7 @@ CREATE INDEX idx_chat_participants_order_id ON public.chat_participants USING bt
 
 
 --
--- TOC entry 4986 (class 1259 OID 54841)
+-- TOC entry 4990 (class 1259 OID 54841)
 -- Name: idx_chat_participants_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17611,7 +17873,7 @@ CREATE INDEX idx_chat_participants_user_id ON public.chat_participants USING btr
 
 
 --
--- TOC entry 4991 (class 1259 OID 54863)
+-- TOC entry 4995 (class 1259 OID 54863)
 -- Name: idx_chat_typing_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17619,7 +17881,7 @@ CREATE INDEX idx_chat_typing_order_id ON public.chat_typing_status USING btree (
 
 
 --
--- TOC entry 4992 (class 1259 OID 54864)
+-- TOC entry 4996 (class 1259 OID 54864)
 -- Name: idx_chat_typing_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17627,7 +17889,7 @@ CREATE INDEX idx_chat_typing_user_id ON public.chat_typing_status USING btree (u
 
 
 --
--- TOC entry 4894 (class 1259 OID 26310)
+-- TOC entry 4901 (class 1259 OID 26310)
 -- Name: idx_client_reviews_client_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17635,7 +17897,7 @@ CREATE INDEX idx_client_reviews_client_id ON public.client_reviews USING btree (
 
 
 --
--- TOC entry 4895 (class 1259 OID 26311)
+-- TOC entry 4902 (class 1259 OID 26311)
 -- Name: idx_client_reviews_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17643,7 +17905,7 @@ CREATE INDEX idx_client_reviews_order_id ON public.client_reviews USING btree (o
 
 
 --
--- TOC entry 4878 (class 1259 OID 67772)
+-- TOC entry 4885 (class 1259 OID 67772)
 -- Name: idx_commissions_referral; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17651,7 +17913,7 @@ CREATE INDEX idx_commissions_referral ON public.referral_commissions USING btree
 
 
 --
--- TOC entry 5151 (class 1259 OID 160827)
+-- TOC entry 5145 (class 1259 OID 160827)
 -- Name: idx_consent_history_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17659,7 +17921,7 @@ CREATE INDEX idx_consent_history_user ON public.tracking_consent_history USING b
 
 
 --
--- TOC entry 4965 (class 1259 OID 37706)
+-- TOC entry 4971 (class 1259 OID 37706)
 -- Name: idx_criteria_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17667,7 +17929,7 @@ CREATE INDEX idx_criteria_user_id ON public.criteria USING btree (user_id);
 
 
 --
--- TOC entry 4861 (class 1259 OID 59295)
+-- TOC entry 4868 (class 1259 OID 59295)
 -- Name: idx_fourmiz_criteria_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17675,7 +17937,7 @@ CREATE INDEX idx_fourmiz_criteria_active ON public.fourmiz_criteria USING btree 
 
 
 --
--- TOC entry 4862 (class 1259 OID 59296)
+-- TOC entry 4869 (class 1259 OID 59296)
 -- Name: idx_fourmiz_criteria_available; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17683,7 +17945,7 @@ CREATE INDEX idx_fourmiz_criteria_available ON public.fourmiz_criteria USING btr
 
 
 --
--- TOC entry 4863 (class 1259 OID 59934)
+-- TOC entry 4870 (class 1259 OID 59934)
 -- Name: idx_fourmiz_criteria_categories_gin; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17691,7 +17953,7 @@ CREATE INDEX idx_fourmiz_criteria_categories_gin ON public.fourmiz_criteria USIN
 
 
 --
--- TOC entry 4864 (class 1259 OID 59936)
+-- TOC entry 4871 (class 1259 OID 59936)
 -- Name: idx_fourmiz_criteria_mots_cles_gin; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17699,7 +17961,7 @@ CREATE INDEX idx_fourmiz_criteria_mots_cles_gin ON public.fourmiz_criteria USING
 
 
 --
--- TOC entry 4865 (class 1259 OID 59933)
+-- TOC entry 4872 (class 1259 OID 59933)
 -- Name: idx_fourmiz_criteria_search; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17707,7 +17969,7 @@ CREATE INDEX idx_fourmiz_criteria_search ON public.fourmiz_criteria USING btree 
 
 
 --
--- TOC entry 4866 (class 1259 OID 59935)
+-- TOC entry 4873 (class 1259 OID 59935)
 -- Name: idx_fourmiz_criteria_services_gin; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17715,7 +17977,7 @@ CREATE INDEX idx_fourmiz_criteria_services_gin ON public.fourmiz_criteria USING 
 
 
 --
--- TOC entry 4867 (class 1259 OID 59294)
+-- TOC entry 4874 (class 1259 OID 59294)
 -- Name: idx_fourmiz_criteria_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17723,7 +17985,7 @@ CREATE INDEX idx_fourmiz_criteria_user_id ON public.fourmiz_criteria USING btree
 
 
 --
--- TOC entry 5147 (class 1259 OID 160698)
+-- TOC entry 5141 (class 1259 OID 160698)
 -- Name: idx_location_history_recent; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17731,7 +17993,7 @@ CREATE INDEX idx_location_history_recent ON public.location_history USING btree 
 
 
 --
--- TOC entry 5148 (class 1259 OID 160697)
+-- TOC entry 5142 (class 1259 OID 160697)
 -- Name: idx_location_history_user_time; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17739,7 +18001,7 @@ CREATE INDEX idx_location_history_user_time ON public.location_history USING btr
 
 
 --
--- TOC entry 4900 (class 1259 OID 32034)
+-- TOC entry 4907 (class 1259 OID 32034)
 -- Name: idx_messages_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17747,7 +18009,7 @@ CREATE INDEX idx_messages_created_at ON public.messages USING btree (created_at 
 
 
 --
--- TOC entry 4901 (class 1259 OID 32033)
+-- TOC entry 4908 (class 1259 OID 32033)
 -- Name: idx_messages_receiver; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17755,7 +18017,7 @@ CREATE INDEX idx_messages_receiver ON public.messages USING btree (receiver_id);
 
 
 --
--- TOC entry 4902 (class 1259 OID 32032)
+-- TOC entry 4909 (class 1259 OID 32032)
 -- Name: idx_messages_sender; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17763,7 +18025,7 @@ CREATE INDEX idx_messages_sender ON public.messages USING btree (sender_id);
 
 
 --
--- TOC entry 5156 (class 1259 OID 160828)
+-- TOC entry 5150 (class 1259 OID 160828)
 -- Name: idx_mission_status_user_current; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17771,7 +18033,7 @@ CREATE INDEX idx_mission_status_user_current ON public.fourmiz_mission_status US
 
 
 --
--- TOC entry 5003 (class 1259 OID 55236)
+-- TOC entry 5007 (class 1259 OID 55236)
 -- Name: idx_notification_history_sent_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17779,7 +18041,7 @@ CREATE INDEX idx_notification_history_sent_at ON public.notification_history USI
 
 
 --
--- TOC entry 5004 (class 1259 OID 55237)
+-- TOC entry 5008 (class 1259 OID 55237)
 -- Name: idx_notification_history_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17787,7 +18049,7 @@ CREATE INDEX idx_notification_history_type ON public.notification_history USING 
 
 
 --
--- TOC entry 5005 (class 1259 OID 55238)
+-- TOC entry 5009 (class 1259 OID 55238)
 -- Name: idx_notification_history_unread; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17795,7 +18057,7 @@ CREATE INDEX idx_notification_history_unread ON public.notification_history USIN
 
 
 --
--- TOC entry 5006 (class 1259 OID 55235)
+-- TOC entry 5010 (class 1259 OID 55235)
 -- Name: idx_notification_history_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17803,7 +18065,7 @@ CREATE INDEX idx_notification_history_user_id ON public.notification_history USI
 
 
 --
--- TOC entry 5009 (class 1259 OID 55239)
+-- TOC entry 5013 (class 1259 OID 55239)
 -- Name: idx_notification_preferences_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17811,7 +18073,7 @@ CREATE INDEX idx_notification_preferences_user_id ON public.notification_prefere
 
 
 --
--- TOC entry 5093 (class 1259 OID 143715)
+-- TOC entry 5097 (class 1259 OID 143715)
 -- Name: idx_order_applications_applied_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17819,7 +18081,7 @@ CREATE INDEX idx_order_applications_applied_at ON public.order_applications USIN
 
 
 --
--- TOC entry 5094 (class 1259 OID 143713)
+-- TOC entry 5098 (class 1259 OID 143713)
 -- Name: idx_order_applications_fourmiz_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17827,7 +18089,7 @@ CREATE INDEX idx_order_applications_fourmiz_id ON public.order_applications USIN
 
 
 --
--- TOC entry 5095 (class 1259 OID 143712)
+-- TOC entry 5099 (class 1259 OID 143712)
 -- Name: idx_order_applications_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17835,7 +18097,7 @@ CREATE INDEX idx_order_applications_order_id ON public.order_applications USING 
 
 
 --
--- TOC entry 5096 (class 1259 OID 143714)
+-- TOC entry 5100 (class 1259 OID 143714)
 -- Name: idx_order_applications_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17843,7 +18105,7 @@ CREATE INDEX idx_order_applications_status ON public.order_applications USING bt
 
 
 --
--- TOC entry 5058 (class 1259 OID 84484)
+-- TOC entry 5062 (class 1259 OID 84484)
 -- Name: idx_order_details_order_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17851,7 +18113,7 @@ CREATE INDEX idx_order_details_order_id ON public.order_details USING btree (ord
 
 
 --
--- TOC entry 4970 (class 1259 OID 132527)
+-- TOC entry 4974 (class 1259 OID 132527)
 -- Name: idx_orders_payment_method; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17859,7 +18121,7 @@ CREATE INDEX idx_orders_payment_method ON public.orders USING btree (payment_met
 
 
 --
--- TOC entry 4971 (class 1259 OID 132526)
+-- TOC entry 4975 (class 1259 OID 132526)
 -- Name: idx_orders_validation; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17867,7 +18129,7 @@ CREATE INDEX idx_orders_validation ON public.orders USING btree (client_validate
 
 
 --
--- TOC entry 5079 (class 1259 OID 133751)
+-- TOC entry 5083 (class 1259 OID 133751)
 -- Name: idx_payments_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17875,7 +18137,7 @@ CREATE INDEX idx_payments_created_at ON public.payments USING btree (created_at 
 
 
 --
--- TOC entry 5080 (class 1259 OID 133750)
+-- TOC entry 5084 (class 1259 OID 133750)
 -- Name: idx_payments_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17883,7 +18145,7 @@ CREATE INDEX idx_payments_status ON public.payments USING btree (status);
 
 
 --
--- TOC entry 5081 (class 1259 OID 133749)
+-- TOC entry 5085 (class 1259 OID 133749)
 -- Name: idx_payments_stripe_intent; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17891,7 +18153,7 @@ CREATE INDEX idx_payments_stripe_intent ON public.payments USING btree (stripe_p
 
 
 --
--- TOC entry 5082 (class 1259 OID 133748)
+-- TOC entry 5086 (class 1259 OID 133748)
 -- Name: idx_payments_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17899,7 +18161,7 @@ CREATE INDEX idx_payments_user_id ON public.payments USING btree (user_id);
 
 
 --
--- TOC entry 5074 (class 1259 OID 132518)
+-- TOC entry 5078 (class 1259 OID 132518)
 -- Name: idx_payout_requests_requested_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17907,7 +18169,7 @@ CREATE INDEX idx_payout_requests_requested_at ON public.payout_requests USING bt
 
 
 --
--- TOC entry 5075 (class 1259 OID 132517)
+-- TOC entry 5079 (class 1259 OID 132517)
 -- Name: idx_payout_requests_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17915,7 +18177,7 @@ CREATE INDEX idx_payout_requests_status ON public.payout_requests USING btree (s
 
 
 --
--- TOC entry 5076 (class 1259 OID 132516)
+-- TOC entry 5080 (class 1259 OID 132516)
 -- Name: idx_payout_requests_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17923,7 +18185,7 @@ CREATE INDEX idx_payout_requests_user_id ON public.payout_requests USING btree (
 
 
 --
--- TOC entry 5048 (class 1259 OID 81093)
+-- TOC entry 5052 (class 1259 OID 81093)
 -- Name: idx_pending_uploads_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17931,7 +18193,7 @@ CREATE INDEX idx_pending_uploads_created_at ON public.pending_uploads USING btre
 
 
 --
--- TOC entry 5049 (class 1259 OID 81092)
+-- TOC entry 5053 (class 1259 OID 81092)
 -- Name: idx_pending_uploads_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17939,7 +18201,7 @@ CREATE INDEX idx_pending_uploads_status ON public.pending_uploads USING btree (s
 
 
 --
--- TOC entry 5050 (class 1259 OID 81091)
+-- TOC entry 5054 (class 1259 OID 81091)
 -- Name: idx_pending_uploads_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17947,7 +18209,7 @@ CREATE INDEX idx_pending_uploads_user_id ON public.pending_uploads USING btree (
 
 
 --
--- TOC entry 5101 (class 1259 OID 143777)
+-- TOC entry 5105 (class 1259 OID 143777)
 -- Name: idx_pre_selection_chats_application; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17955,7 +18217,7 @@ CREATE INDEX idx_pre_selection_chats_application ON public.pre_selection_chats U
 
 
 --
--- TOC entry 5102 (class 1259 OID 143778)
+-- TOC entry 5106 (class 1259 OID 143778)
 -- Name: idx_pre_selection_chats_order; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17963,7 +18225,7 @@ CREATE INDEX idx_pre_selection_chats_order ON public.pre_selection_chats USING b
 
 
 --
--- TOC entry 5107 (class 1259 OID 143779)
+-- TOC entry 5111 (class 1259 OID 143779)
 -- Name: idx_pre_selection_messages_chat; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17971,7 +18233,7 @@ CREATE INDEX idx_pre_selection_messages_chat ON public.pre_selection_messages US
 
 
 --
--- TOC entry 5108 (class 1259 OID 143780)
+-- TOC entry 5112 (class 1259 OID 143780)
 -- Name: idx_pre_selection_messages_time; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17979,7 +18241,7 @@ CREATE INDEX idx_pre_selection_messages_time ON public.pre_selection_messages US
 
 
 --
--- TOC entry 4905 (class 1259 OID 159997)
+-- TOC entry 4912 (class 1259 OID 159997)
 -- Name: idx_profiles_address_confidence; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17987,7 +18249,7 @@ CREATE INDEX idx_profiles_address_confidence ON public.profiles USING btree (add
 
 
 --
--- TOC entry 4906 (class 1259 OID 159998)
+-- TOC entry 4913 (class 1259 OID 159998)
 -- Name: idx_profiles_address_validated_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -17995,15 +18257,7 @@ CREATE INDEX idx_profiles_address_validated_at ON public.profiles USING btree (a
 
 
 --
--- TOC entry 4907 (class 1259 OID 159864)
--- Name: idx_profiles_available_category; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_profiles_available_category ON public.profiles USING btree (is_available, service_category_id) WHERE (is_available = true);
-
-
---
--- TOC entry 4908 (class 1259 OID 160829)
+-- TOC entry 4914 (class 1259 OID 160829)
 -- Name: idx_profiles_consent; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18011,7 +18265,7 @@ CREATE INDEX idx_profiles_consent ON public.profiles USING btree (tracking_conse
 
 
 --
--- TOC entry 4909 (class 1259 OID 156713)
+-- TOC entry 4915 (class 1259 OID 156713)
 -- Name: idx_profiles_criteria_completed; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18019,7 +18273,7 @@ CREATE INDEX idx_profiles_criteria_completed ON public.profiles USING btree (use
 
 
 --
--- TOC entry 4910 (class 1259 OID 160699)
+-- TOC entry 4916 (class 1259 OID 160699)
 -- Name: idx_profiles_current_location; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18027,7 +18281,7 @@ CREATE INDEX idx_profiles_current_location ON public.profiles USING btree (curre
 
 
 --
--- TOC entry 4911 (class 1259 OID 159999)
+-- TOC entry 4917 (class 1259 OID 159999)
 -- Name: idx_profiles_fourmiz_geolocation; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18035,7 +18289,7 @@ CREATE INDEX idx_profiles_fourmiz_geolocation ON public.profiles USING btree (la
 
 
 --
--- TOC entry 4912 (class 1259 OID 159996)
+-- TOC entry 4918 (class 1259 OID 159996)
 -- Name: idx_profiles_geolocation; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18043,7 +18297,7 @@ CREATE INDEX idx_profiles_geolocation ON public.profiles USING btree (latitude, 
 
 
 --
--- TOC entry 4913 (class 1259 OID 147707)
+-- TOC entry 4919 (class 1259 OID 147707)
 -- Name: idx_profiles_grandfathered; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18051,7 +18305,7 @@ CREATE INDEX idx_profiles_grandfathered ON public.profiles USING btree (grandfat
 
 
 --
--- TOC entry 4914 (class 1259 OID 159865)
+-- TOC entry 4920 (class 1259 OID 159865)
 -- Name: idx_profiles_lat_lng; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18059,7 +18313,7 @@ CREATE INDEX idx_profiles_lat_lng ON public.profiles USING btree (latitude, long
 
 
 --
--- TOC entry 4915 (class 1259 OID 159952)
+-- TOC entry 4921 (class 1259 OID 159952)
 -- Name: idx_profiles_lat_lng_available; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18067,7 +18321,7 @@ CREATE INDEX idx_profiles_lat_lng_available ON public.profiles USING btree (lati
 
 
 --
--- TOC entry 4916 (class 1259 OID 147708)
+-- TOC entry 4922 (class 1259 OID 147708)
 -- Name: idx_profiles_legal_engagements; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18075,7 +18329,7 @@ CREATE INDEX idx_profiles_legal_engagements ON public.profiles USING btree (lega
 
 
 --
--- TOC entry 4917 (class 1259 OID 153068)
+-- TOC entry 4923 (class 1259 OID 153068)
 -- Name: idx_profiles_referral_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18083,7 +18337,7 @@ CREATE INDEX idx_profiles_referral_code ON public.profiles USING btree (referral
 
 
 --
--- TOC entry 4918 (class 1259 OID 76832)
+-- TOC entry 4924 (class 1259 OID 76832)
 -- Name: idx_profiles_roles; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18091,7 +18345,7 @@ CREATE INDEX idx_profiles_roles ON public.profiles USING gin (roles);
 
 
 --
--- TOC entry 4919 (class 1259 OID 160700)
+-- TOC entry 4925 (class 1259 OID 160700)
 -- Name: idx_profiles_tracking; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18099,7 +18353,7 @@ CREATE INDEX idx_profiles_tracking ON public.profiles USING btree (tracking_enab
 
 
 --
--- TOC entry 4920 (class 1259 OID 80535)
+-- TOC entry 4926 (class 1259 OID 80535)
 -- Name: idx_profiles_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18107,7 +18361,7 @@ CREATE INDEX idx_profiles_user_id ON public.profiles USING btree (user_id);
 
 
 --
--- TOC entry 4993 (class 1259 OID 55233)
+-- TOC entry 4997 (class 1259 OID 55233)
 -- Name: idx_push_tokens_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18115,7 +18369,7 @@ CREATE INDEX idx_push_tokens_active ON public.push_tokens USING btree (is_active
 
 
 --
--- TOC entry 4994 (class 1259 OID 80447)
+-- TOC entry 4998 (class 1259 OID 80447)
 -- Name: idx_push_tokens_device_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18123,7 +18377,7 @@ CREATE INDEX idx_push_tokens_device_type ON public.push_tokens USING btree (devi
 
 
 --
--- TOC entry 4995 (class 1259 OID 55234)
+-- TOC entry 4999 (class 1259 OID 55234)
 -- Name: idx_push_tokens_platform; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18131,7 +18385,7 @@ CREATE INDEX idx_push_tokens_platform ON public.push_tokens USING btree (platfor
 
 
 --
--- TOC entry 4996 (class 1259 OID 80370)
+-- TOC entry 5000 (class 1259 OID 80370)
 -- Name: idx_push_tokens_token; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18139,7 +18393,7 @@ CREATE INDEX idx_push_tokens_token ON public.push_tokens USING btree (token);
 
 
 --
--- TOC entry 4997 (class 1259 OID 55232)
+-- TOC entry 5001 (class 1259 OID 55232)
 -- Name: idx_push_tokens_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18147,7 +18401,7 @@ CREATE INDEX idx_push_tokens_user_id ON public.push_tokens USING btree (user_id)
 
 
 --
--- TOC entry 4998 (class 1259 OID 80446)
+-- TOC entry 5002 (class 1259 OID 80446)
 -- Name: idx_push_tokens_user_id_v2; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18155,7 +18409,7 @@ CREATE INDEX idx_push_tokens_user_id_v2 ON public.push_tokens USING btree (user_
 
 
 --
--- TOC entry 5018 (class 1259 OID 67768)
+-- TOC entry 5022 (class 1259 OID 67768)
 -- Name: idx_referral_codes_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18163,7 +18417,7 @@ CREATE INDEX idx_referral_codes_code ON public.user_referral_codes USING btree (
 
 
 --
--- TOC entry 5019 (class 1259 OID 67769)
+-- TOC entry 5023 (class 1259 OID 67769)
 -- Name: idx_referral_codes_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18171,7 +18425,7 @@ CREATE INDEX idx_referral_codes_user ON public.user_referral_codes USING btree (
 
 
 --
--- TOC entry 4879 (class 1259 OID 76294)
+-- TOC entry 4886 (class 1259 OID 76294)
 -- Name: idx_referral_commissions_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18179,7 +18433,7 @@ CREATE INDEX idx_referral_commissions_status ON public.referral_commissions USIN
 
 
 --
--- TOC entry 5043 (class 1259 OID 76866)
+-- TOC entry 5047 (class 1259 OID 76866)
 -- Name: idx_referral_config_key_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18187,7 +18441,7 @@ CREATE INDEX idx_referral_config_key_active ON public.referral_config USING btre
 
 
 --
--- TOC entry 4939 (class 1259 OID 76292)
+-- TOC entry 4945 (class 1259 OID 76292)
 -- Name: idx_referral_gains_referred_date; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18195,7 +18449,7 @@ CREATE INDEX idx_referral_gains_referred_date ON public.referral_gains USING btr
 
 
 --
--- TOC entry 4940 (class 1259 OID 76291)
+-- TOC entry 4946 (class 1259 OID 76291)
 -- Name: idx_referral_gains_sponsor_date; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18203,7 +18457,7 @@ CREATE INDEX idx_referral_gains_sponsor_date ON public.referral_gains USING btre
 
 
 --
--- TOC entry 4941 (class 1259 OID 76293)
+-- TOC entry 4947 (class 1259 OID 76293)
 -- Name: idx_referral_gains_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18211,7 +18465,7 @@ CREATE INDEX idx_referral_gains_status ON public.referral_gains USING btree (sta
 
 
 --
--- TOC entry 5026 (class 1259 OID 67771)
+-- TOC entry 5030 (class 1259 OID 67771)
 -- Name: idx_referrals_referred; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18219,7 +18473,7 @@ CREATE INDEX idx_referrals_referred ON public.user_referrals USING btree (referr
 
 
 --
--- TOC entry 5027 (class 1259 OID 67770)
+-- TOC entry 5031 (class 1259 OID 67770)
 -- Name: idx_referrals_referrer; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18227,7 +18481,7 @@ CREATE INDEX idx_referrals_referrer ON public.user_referrals USING btree (referr
 
 
 --
--- TOC entry 5053 (class 1259 OID 132525)
+-- TOC entry 5057 (class 1259 OID 132525)
 -- Name: idx_user_credits_source; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18235,7 +18489,7 @@ CREATE INDEX idx_user_credits_source ON public.user_credits USING btree (source)
 
 
 --
--- TOC entry 5054 (class 1259 OID 132524)
+-- TOC entry 5058 (class 1259 OID 132524)
 -- Name: idx_user_credits_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18243,7 +18497,7 @@ CREATE INDEX idx_user_credits_type ON public.user_credits USING btree (type);
 
 
 --
--- TOC entry 5055 (class 1259 OID 132523)
+-- TOC entry 5059 (class 1259 OID 132523)
 -- Name: idx_user_credits_user_status; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18251,7 +18505,7 @@ CREATE INDEX idx_user_credits_user_status ON public.user_credits USING btree (us
 
 
 --
--- TOC entry 5118 (class 1259 OID 147669)
+-- TOC entry 5122 (class 1259 OID 147669)
 -- Name: idx_user_legal_engagements_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18259,7 +18513,7 @@ CREATE INDEX idx_user_legal_engagements_active ON public.user_legal_engagements 
 
 
 --
--- TOC entry 5119 (class 1259 OID 147668)
+-- TOC entry 5123 (class 1259 OID 147668)
 -- Name: idx_user_legal_engagements_type; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18267,7 +18521,7 @@ CREATE INDEX idx_user_legal_engagements_type ON public.user_legal_engagements US
 
 
 --
--- TOC entry 5120 (class 1259 OID 147667)
+-- TOC entry 5124 (class 1259 OID 147667)
 -- Name: idx_user_legal_engagements_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18275,7 +18529,7 @@ CREATE INDEX idx_user_legal_engagements_user_id ON public.user_legal_engagements
 
 
 --
--- TOC entry 5111 (class 1259 OID 144155)
+-- TOC entry 5115 (class 1259 OID 144155)
 -- Name: idx_user_references_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18283,7 +18537,7 @@ CREATE INDEX idx_user_references_user_id ON public.user_references USING btree (
 
 
 --
--- TOC entry 5020 (class 1259 OID 80448)
+-- TOC entry 5024 (class 1259 OID 80448)
 -- Name: idx_user_referral_codes_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18291,7 +18545,7 @@ CREATE INDEX idx_user_referral_codes_code ON public.user_referral_codes USING bt
 
 
 --
--- TOC entry 5021 (class 1259 OID 76295)
+-- TOC entry 5025 (class 1259 OID 76295)
 -- Name: idx_user_referral_codes_code_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18299,7 +18553,7 @@ CREATE INDEX idx_user_referral_codes_code_active ON public.user_referral_codes U
 
 
 --
--- TOC entry 4958 (class 1259 OID 36176)
+-- TOC entry 4964 (class 1259 OID 36176)
 -- Name: revenues_user_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18307,7 +18561,7 @@ CREATE INDEX revenues_user_idx ON public.revenues USING btree (user_id);
 
 
 --
--- TOC entry 4950 (class 1259 OID 36088)
+-- TOC entry 4956 (class 1259 OID 36088)
 -- Name: revenus_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18315,7 +18569,7 @@ CREATE INDEX revenus_created_at_idx ON public.revenus USING btree (created_at);
 
 
 --
--- TOC entry 4953 (class 1259 OID 36023)
+-- TOC entry 4959 (class 1259 OID 36023)
 -- Name: revenus_source_user_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18323,7 +18577,7 @@ CREATE INDEX revenus_source_user_id_idx ON public.revenus USING btree (source_us
 
 
 --
--- TOC entry 4954 (class 1259 OID 36024)
+-- TOC entry 4960 (class 1259 OID 36024)
 -- Name: revenus_type_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18331,7 +18585,7 @@ CREATE INDEX revenus_type_idx ON public.revenus USING btree (type);
 
 
 --
--- TOC entry 4955 (class 1259 OID 36022)
+-- TOC entry 4961 (class 1259 OID 36022)
 -- Name: revenus_user_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18339,7 +18593,7 @@ CREATE INDEX revenus_user_id_idx ON public.revenus USING btree (user_id);
 
 
 --
--- TOC entry 4856 (class 1259 OID 43618)
+-- TOC entry 4863 (class 1259 OID 43618)
 -- Name: services_slug_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18347,7 +18601,7 @@ CREATE UNIQUE INDEX services_slug_idx ON public.services USING btree (slug);
 
 
 --
--- TOC entry 4844 (class 1259 OID 17268)
+-- TOC entry 4851 (class 1259 OID 17268)
 -- Name: ix_realtime_subscription_entity; Type: INDEX; Schema: realtime; Owner: -
 --
 
@@ -18355,7 +18609,7 @@ CREATE INDEX ix_realtime_subscription_entity ON realtime.subscription USING btre
 
 
 --
--- TOC entry 4847 (class 1259 OID 17168)
+-- TOC entry 4854 (class 1259 OID 17168)
 -- Name: subscription_subscription_id_entity_filters_key; Type: INDEX; Schema: realtime; Owner: -
 --
 
@@ -18363,7 +18617,7 @@ CREATE UNIQUE INDEX subscription_subscription_id_entity_filters_key ON realtime.
 
 
 --
--- TOC entry 4765 (class 1259 OID 16558)
+-- TOC entry 4772 (class 1259 OID 16558)
 -- Name: bname; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18371,7 +18625,7 @@ CREATE UNIQUE INDEX bname ON storage.buckets USING btree (name);
 
 
 --
--- TOC entry 4768 (class 1259 OID 16580)
+-- TOC entry 4775 (class 1259 OID 16580)
 -- Name: bucketid_objname; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18379,7 +18633,7 @@ CREATE UNIQUE INDEX bucketid_objname ON storage.objects USING btree (bucket_id, 
 
 
 --
--- TOC entry 4839 (class 1259 OID 17071)
+-- TOC entry 4846 (class 1259 OID 17071)
 -- Name: idx_multipart_uploads_list; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18387,7 +18641,7 @@ CREATE INDEX idx_multipart_uploads_list ON storage.s3_multipart_uploads USING bt
 
 
 --
--- TOC entry 4769 (class 1259 OID 120737)
+-- TOC entry 4776 (class 1259 OID 120737)
 -- Name: idx_name_bucket_level_unique; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18395,7 +18649,7 @@ CREATE UNIQUE INDEX idx_name_bucket_level_unique ON storage.objects USING btree 
 
 
 --
--- TOC entry 4770 (class 1259 OID 17036)
+-- TOC entry 4777 (class 1259 OID 17036)
 -- Name: idx_objects_bucket_id_name; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18403,7 +18657,7 @@ CREATE INDEX idx_objects_bucket_id_name ON storage.objects USING btree (bucket_i
 
 
 --
--- TOC entry 4771 (class 1259 OID 120739)
+-- TOC entry 4778 (class 1259 OID 120739)
 -- Name: idx_objects_lower_name; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18411,7 +18665,7 @@ CREATE INDEX idx_objects_lower_name ON storage.objects USING btree ((path_tokens
 
 
 --
--- TOC entry 5069 (class 1259 OID 120740)
+-- TOC entry 5073 (class 1259 OID 120740)
 -- Name: idx_prefixes_lower_name; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18419,7 +18673,7 @@ CREATE INDEX idx_prefixes_lower_name ON storage.prefixes USING btree (bucket_id,
 
 
 --
--- TOC entry 4772 (class 1259 OID 16581)
+-- TOC entry 4779 (class 1259 OID 16581)
 -- Name: name_prefix_search; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18427,7 +18681,7 @@ CREATE INDEX name_prefix_search ON storage.objects USING btree (name text_patter
 
 
 --
--- TOC entry 4773 (class 1259 OID 120738)
+-- TOC entry 4780 (class 1259 OID 120738)
 -- Name: objects_bucket_id_level_idx; Type: INDEX; Schema: storage; Owner: -
 --
 
@@ -18435,47 +18689,7 @@ CREATE UNIQUE INDEX objects_bucket_id_level_idx ON storage.objects USING btree (
 
 
 --
--- TOC entry 5159 (class 0 OID 0)
--- Name: messages_2025_09_13_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_13_pkey;
-
-
---
--- TOC entry 5160 (class 0 OID 0)
--- Name: messages_2025_09_14_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_14_pkey;
-
-
---
--- TOC entry 5161 (class 0 OID 0)
--- Name: messages_2025_09_15_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_15_pkey;
-
-
---
--- TOC entry 5162 (class 0 OID 0)
--- Name: messages_2025_09_16_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_16_pkey;
-
-
---
--- TOC entry 5163 (class 0 OID 0)
--- Name: messages_2025_09_17_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_17_pkey;
-
-
---
--- TOC entry 5164 (class 0 OID 0)
+-- TOC entry 5167 (class 0 OID 0)
 -- Name: messages_2025_09_18_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
 --
 
@@ -18483,7 +18697,7 @@ ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_18
 
 
 --
--- TOC entry 5165 (class 0 OID 0)
+-- TOC entry 5168 (class 0 OID 0)
 -- Name: messages_2025_09_19_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
 --
 
@@ -18491,7 +18705,47 @@ ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_19
 
 
 --
--- TOC entry 5271 (class 2620 OID 96452)
+-- TOC entry 5169 (class 0 OID 0)
+-- Name: messages_2025_09_20_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_20_pkey;
+
+
+--
+-- TOC entry 5170 (class 0 OID 0)
+-- Name: messages_2025_09_21_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_21_pkey;
+
+
+--
+-- TOC entry 5171 (class 0 OID 0)
+-- Name: messages_2025_09_22_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_22_pkey;
+
+
+--
+-- TOC entry 5172 (class 0 OID 0)
+-- Name: messages_2025_09_23_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_23_pkey;
+
+
+--
+-- TOC entry 5173 (class 0 OID 0)
+-- Name: messages_2025_09_24_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: -
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2025_09_24_pkey;
+
+
+--
+-- TOC entry 5277 (class 2620 OID 96452)
 -- Name: users on_auth_user_created; Type: TRIGGER; Schema: auth; Owner: -
 --
 
@@ -18499,7 +18753,7 @@ CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXEC
 
 
 --
--- TOC entry 5296 (class 2620 OID 153112)
+-- TOC entry 5302 (class 2620 OID 153112)
 -- Name: user_referral_codes auto_sync_referral_code; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18507,7 +18761,7 @@ CREATE TRIGGER auto_sync_referral_code AFTER INSERT OR UPDATE ON public.user_ref
 
 
 --
--- TOC entry 5301 (class 2620 OID 133756)
+-- TOC entry 5307 (class 2620 OID 133756)
 -- Name: payments payments_updated_at_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18515,7 +18769,7 @@ CREATE TRIGGER payments_updated_at_trigger BEFORE UPDATE ON public.payments FOR 
 
 
 --
--- TOC entry 5278 (class 2620 OID 43682)
+-- TOC entry 5284 (class 2620 OID 43682)
 -- Name: services services_generate_slug; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18523,7 +18777,7 @@ CREATE TRIGGER services_generate_slug BEFORE INSERT ON public.services FOR EACH 
 
 
 --
--- TOC entry 5287 (class 2620 OID 123282)
+-- TOC entry 5293 (class 2620 OID 123282)
 -- Name: orders trg_update_profile_counters; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18531,7 +18785,7 @@ CREATE TRIGGER trg_update_profile_counters AFTER INSERT OR DELETE OR UPDATE ON p
 
 
 --
--- TOC entry 5282 (class 2620 OID 123285)
+-- TOC entry 5288 (class 2620 OID 123285)
 -- Name: profiles trg_update_profile_timestamp; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18539,7 +18793,7 @@ CREATE TRIGGER trg_update_profile_timestamp BEFORE UPDATE ON public.profiles FOR
 
 
 --
--- TOC entry 5292 (class 2620 OID 55246)
+-- TOC entry 5298 (class 2620 OID 55246)
 -- Name: chat_messages trigger_chat_notification; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18547,7 +18801,7 @@ CREATE TRIGGER trigger_chat_notification AFTER INSERT ON public.chat_messages FO
 
 
 --
--- TOC entry 5288 (class 2620 OID 143782)
+-- TOC entry 5294 (class 2620 OID 143782)
 -- Name: orders trigger_copy_service_workflow; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18555,7 +18809,7 @@ CREATE TRIGGER trigger_copy_service_workflow BEFORE INSERT ON public.orders FOR 
 
 
 --
--- TOC entry 5289 (class 2620 OID 138018)
+-- TOC entry 5295 (class 2620 OID 138018)
 -- Name: orders trigger_first_order_referral; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18563,7 +18817,7 @@ CREATE TRIGGER trigger_first_order_referral AFTER INSERT ON public.orders FOR EA
 
 
 --
--- TOC entry 5286 (class 2620 OID 138484)
+-- TOC entry 5292 (class 2620 OID 138484)
 -- Name: missions trigger_mission_referral; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18571,7 +18825,7 @@ CREATE TRIGGER trigger_mission_referral AFTER UPDATE ON public.missions FOR EACH
 
 
 --
--- TOC entry 5290 (class 2620 OID 65210)
+-- TOC entry 5296 (class 2620 OID 65210)
 -- Name: orders trigger_order_accepted_message; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18579,7 +18833,7 @@ CREATE TRIGGER trigger_order_accepted_message AFTER UPDATE ON public.orders FOR 
 
 
 --
--- TOC entry 5291 (class 2620 OID 65211)
+-- TOC entry 5297 (class 2620 OID 65211)
 -- Name: orders trigger_order_notification; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18587,7 +18841,7 @@ CREATE TRIGGER trigger_order_notification AFTER UPDATE ON public.orders FOR EACH
 
 
 --
--- TOC entry 5279 (class 2620 OID 44142)
+-- TOC entry 5285 (class 2620 OID 44142)
 -- Name: services trigger_set_slug; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18595,7 +18849,7 @@ CREATE TRIGGER trigger_set_slug BEFORE INSERT OR UPDATE ON public.services FOR E
 
 
 --
--- TOC entry 5280 (class 2620 OID 59940)
+-- TOC entry 5286 (class 2620 OID 59940)
 -- Name: fourmiz_criteria trigger_update_fourmiz_simple; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18603,7 +18857,7 @@ CREATE TRIGGER trigger_update_fourmiz_simple BEFORE INSERT OR UPDATE ON public.f
 
 
 --
--- TOC entry 5283 (class 2620 OID 143785)
+-- TOC entry 5289 (class 2620 OID 143785)
 -- Name: profiles trigger_update_profile_completion; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18611,7 +18865,7 @@ CREATE TRIGGER trigger_update_profile_completion BEFORE INSERT OR UPDATE ON publ
 
 
 --
--- TOC entry 5302 (class 2620 OID 160237)
+-- TOC entry 5308 (class 2620 OID 160237)
 -- Name: active_service_tracking trigger_update_tracking_timestamp; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18619,7 +18873,7 @@ CREATE TRIGGER trigger_update_tracking_timestamp BEFORE UPDATE ON public.active_
 
 
 --
--- TOC entry 5293 (class 2620 OID 54865)
+-- TOC entry 5299 (class 2620 OID 54865)
 -- Name: chat_messages update_chat_messages_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18627,7 +18881,7 @@ CREATE TRIGGER update_chat_messages_updated_at BEFORE UPDATE ON public.chat_mess
 
 
 --
--- TOC entry 5294 (class 2620 OID 54866)
+-- TOC entry 5300 (class 2620 OID 54866)
 -- Name: chat_participants update_chat_participants_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18635,7 +18889,7 @@ CREATE TRIGGER update_chat_participants_updated_at BEFORE UPDATE ON public.chat_
 
 
 --
--- TOC entry 5298 (class 2620 OID 84486)
+-- TOC entry 5304 (class 2620 OID 84486)
 -- Name: order_details update_order_details_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18643,7 +18897,7 @@ CREATE TRIGGER update_order_details_updated_at BEFORE UPDATE ON public.order_det
 
 
 --
--- TOC entry 5284 (class 2620 OID 49512)
+-- TOC entry 5290 (class 2620 OID 49512)
 -- Name: profiles update_profiles_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18651,7 +18905,7 @@ CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR E
 
 
 --
--- TOC entry 5295 (class 2620 OID 80372)
+-- TOC entry 5301 (class 2620 OID 80372)
 -- Name: push_tokens update_push_tokens_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18659,7 +18913,7 @@ CREATE TRIGGER update_push_tokens_updated_at BEFORE UPDATE ON public.push_tokens
 
 
 --
--- TOC entry 5281 (class 2620 OID 114740)
+-- TOC entry 5287 (class 2620 OID 114740)
 -- Name: ratings update_ratings_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18667,7 +18921,7 @@ CREATE TRIGGER update_ratings_trigger AFTER INSERT OR DELETE OR UPDATE ON public
 
 
 --
--- TOC entry 5285 (class 2620 OID 76311)
+-- TOC entry 5291 (class 2620 OID 76311)
 -- Name: referral_gains update_referral_gains_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18675,7 +18929,7 @@ CREATE TRIGGER update_referral_gains_updated_at BEFORE UPDATE ON public.referral
 
 
 --
--- TOC entry 5297 (class 2620 OID 76312)
+-- TOC entry 5303 (class 2620 OID 76312)
 -- Name: user_referral_codes update_user_referral_codes_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -18683,7 +18937,7 @@ CREATE TRIGGER update_user_referral_codes_updated_at BEFORE UPDATE ON public.use
 
 
 --
--- TOC entry 5277 (class 2620 OID 17120)
+-- TOC entry 5283 (class 2620 OID 17120)
 -- Name: subscription tr_check_filters; Type: TRIGGER; Schema: realtime; Owner: -
 --
 
@@ -18691,7 +18945,7 @@ CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription
 
 
 --
--- TOC entry 5272 (class 2620 OID 120747)
+-- TOC entry 5278 (class 2620 OID 120747)
 -- Name: buckets enforce_bucket_name_length_trigger; Type: TRIGGER; Schema: storage; Owner: -
 --
 
@@ -18699,7 +18953,7 @@ CREATE TRIGGER enforce_bucket_name_length_trigger BEFORE INSERT OR UPDATE OF nam
 
 
 --
--- TOC entry 5273 (class 2620 OID 120735)
+-- TOC entry 5279 (class 2620 OID 120735)
 -- Name: objects objects_delete_delete_prefix; Type: TRIGGER; Schema: storage; Owner: -
 --
 
@@ -18707,7 +18961,7 @@ CREATE TRIGGER objects_delete_delete_prefix AFTER DELETE ON storage.objects FOR 
 
 
 --
--- TOC entry 5274 (class 2620 OID 120733)
+-- TOC entry 5280 (class 2620 OID 120733)
 -- Name: objects objects_insert_create_prefix; Type: TRIGGER; Schema: storage; Owner: -
 --
 
@@ -18715,7 +18969,7 @@ CREATE TRIGGER objects_insert_create_prefix BEFORE INSERT ON storage.objects FOR
 
 
 --
--- TOC entry 5275 (class 2620 OID 120734)
+-- TOC entry 5281 (class 2620 OID 120734)
 -- Name: objects objects_update_create_prefix; Type: TRIGGER; Schema: storage; Owner: -
 --
 
@@ -18723,7 +18977,7 @@ CREATE TRIGGER objects_update_create_prefix BEFORE UPDATE ON storage.objects FOR
 
 
 --
--- TOC entry 5299 (class 2620 OID 120743)
+-- TOC entry 5305 (class 2620 OID 120743)
 -- Name: prefixes prefixes_create_hierarchy; Type: TRIGGER; Schema: storage; Owner: -
 --
 
@@ -18731,7 +18985,7 @@ CREATE TRIGGER prefixes_create_hierarchy BEFORE INSERT ON storage.prefixes FOR E
 
 
 --
--- TOC entry 5300 (class 2620 OID 120732)
+-- TOC entry 5306 (class 2620 OID 120732)
 -- Name: prefixes prefixes_delete_hierarchy; Type: TRIGGER; Schema: storage; Owner: -
 --
 
@@ -18739,7 +18993,7 @@ CREATE TRIGGER prefixes_delete_hierarchy AFTER DELETE ON storage.prefixes FOR EA
 
 
 --
--- TOC entry 5276 (class 2620 OID 17024)
+-- TOC entry 5282 (class 2620 OID 17024)
 -- Name: objects update_objects_updated_at; Type: TRIGGER; Schema: storage; Owner: -
 --
 
@@ -18747,7 +19001,7 @@ CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EA
 
 
 --
--- TOC entry 5168 (class 2606 OID 16730)
+-- TOC entry 5176 (class 2606 OID 16730)
 -- Name: identities identities_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18756,7 +19010,7 @@ ALTER TABLE ONLY auth.identities
 
 
 --
--- TOC entry 5172 (class 2606 OID 16819)
+-- TOC entry 5180 (class 2606 OID 16819)
 -- Name: mfa_amr_claims mfa_amr_claims_session_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18765,7 +19019,7 @@ ALTER TABLE ONLY auth.mfa_amr_claims
 
 
 --
--- TOC entry 5171 (class 2606 OID 16807)
+-- TOC entry 5179 (class 2606 OID 16807)
 -- Name: mfa_challenges mfa_challenges_auth_factor_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18774,7 +19028,7 @@ ALTER TABLE ONLY auth.mfa_challenges
 
 
 --
--- TOC entry 5170 (class 2606 OID 16794)
+-- TOC entry 5178 (class 2606 OID 16794)
 -- Name: mfa_factors mfa_factors_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18783,7 +19037,7 @@ ALTER TABLE ONLY auth.mfa_factors
 
 
 --
--- TOC entry 5177 (class 2606 OID 16985)
+-- TOC entry 5185 (class 2606 OID 16985)
 -- Name: one_time_tokens one_time_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18792,7 +19046,7 @@ ALTER TABLE ONLY auth.one_time_tokens
 
 
 --
--- TOC entry 5166 (class 2606 OID 16763)
+-- TOC entry 5174 (class 2606 OID 16763)
 -- Name: refresh_tokens refresh_tokens_session_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18801,7 +19055,7 @@ ALTER TABLE ONLY auth.refresh_tokens
 
 
 --
--- TOC entry 5174 (class 2606 OID 16866)
+-- TOC entry 5182 (class 2606 OID 16866)
 -- Name: saml_providers saml_providers_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18810,7 +19064,7 @@ ALTER TABLE ONLY auth.saml_providers
 
 
 --
--- TOC entry 5175 (class 2606 OID 16939)
+-- TOC entry 5183 (class 2606 OID 16939)
 -- Name: saml_relay_states saml_relay_states_flow_state_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18819,7 +19073,7 @@ ALTER TABLE ONLY auth.saml_relay_states
 
 
 --
--- TOC entry 5176 (class 2606 OID 16880)
+-- TOC entry 5184 (class 2606 OID 16880)
 -- Name: saml_relay_states saml_relay_states_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18828,7 +19082,7 @@ ALTER TABLE ONLY auth.saml_relay_states
 
 
 --
--- TOC entry 5169 (class 2606 OID 16758)
+-- TOC entry 5177 (class 2606 OID 16758)
 -- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18837,7 +19091,7 @@ ALTER TABLE ONLY auth.sessions
 
 
 --
--- TOC entry 5173 (class 2606 OID 16847)
+-- TOC entry 5181 (class 2606 OID 16847)
 -- Name: sso_domains sso_domains_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
 --
 
@@ -18846,7 +19100,7 @@ ALTER TABLE ONLY auth.sso_domains
 
 
 --
--- TOC entry 5266 (class 2606 OID 160227)
+-- TOC entry 5272 (class 2606 OID 160227)
 -- Name: active_service_tracking active_service_tracking_client_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18855,7 +19109,7 @@ ALTER TABLE ONLY public.active_service_tracking
 
 
 --
--- TOC entry 5267 (class 2606 OID 160222)
+-- TOC entry 5273 (class 2606 OID 160222)
 -- Name: active_service_tracking active_service_tracking_fourmiz_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18864,7 +19118,7 @@ ALTER TABLE ONLY public.active_service_tracking
 
 
 --
--- TOC entry 5196 (class 2606 OID 26047)
+-- TOC entry 5203 (class 2606 OID 26047)
 -- Name: badge_settings badge_settings_badge_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18873,7 +19127,7 @@ ALTER TABLE ONLY public.badge_settings
 
 
 --
--- TOC entry 5229 (class 2606 OID 54801)
+-- TOC entry 5235 (class 2606 OID 54801)
 -- Name: chat_messages chat_messages_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18882,7 +19136,7 @@ ALTER TABLE ONLY public.chat_messages
 
 
 --
--- TOC entry 5230 (class 2606 OID 54806)
+-- TOC entry 5236 (class 2606 OID 54806)
 -- Name: chat_messages chat_messages_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18891,7 +19145,7 @@ ALTER TABLE ONLY public.chat_messages
 
 
 --
--- TOC entry 5231 (class 2606 OID 54830)
+-- TOC entry 5237 (class 2606 OID 54830)
 -- Name: chat_participants chat_participants_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18900,7 +19154,7 @@ ALTER TABLE ONLY public.chat_participants
 
 
 --
--- TOC entry 5232 (class 2606 OID 54835)
+-- TOC entry 5238 (class 2606 OID 54835)
 -- Name: chat_participants chat_participants_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18909,7 +19163,7 @@ ALTER TABLE ONLY public.chat_participants
 
 
 --
--- TOC entry 5233 (class 2606 OID 54853)
+-- TOC entry 5239 (class 2606 OID 54853)
 -- Name: chat_typing_status chat_typing_status_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18918,7 +19172,7 @@ ALTER TABLE ONLY public.chat_typing_status
 
 
 --
--- TOC entry 5234 (class 2606 OID 54858)
+-- TOC entry 5240 (class 2606 OID 54858)
 -- Name: chat_typing_status chat_typing_status_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18927,7 +19181,7 @@ ALTER TABLE ONLY public.chat_typing_status
 
 
 --
--- TOC entry 5198 (class 2606 OID 26305)
+-- TOC entry 5205 (class 2606 OID 26305)
 -- Name: client_reviews client_reviews_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18936,7 +19190,7 @@ ALTER TABLE ONLY public.client_reviews
 
 
 --
--- TOC entry 5199 (class 2606 OID 26300)
+-- TOC entry 5206 (class 2606 OID 26300)
 -- Name: client_reviews client_reviews_reviewer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18945,7 +19199,7 @@ ALTER TABLE ONLY public.client_reviews
 
 
 --
--- TOC entry 5202 (class 2606 OID 27567)
+-- TOC entry 5209 (class 2606 OID 27567)
 -- Name: favorite_orders favorite_orders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18954,7 +19208,7 @@ ALTER TABLE ONLY public.favorite_orders
 
 
 --
--- TOC entry 5182 (class 2606 OID 25804)
+-- TOC entry 5189 (class 2606 OID 25804)
 -- Name: fourmiz_criteria fk_fourmiz_criteria_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18963,7 +19217,7 @@ ALTER TABLE ONLY public.fourmiz_criteria
 
 
 --
--- TOC entry 5184 (class 2606 OID 25794)
+-- TOC entry 5191 (class 2606 OID 25794)
 -- Name: fourmiz_services fk_fourmiz_services_fourmiz; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18972,7 +19226,7 @@ ALTER TABLE ONLY public.fourmiz_services
 
 
 --
--- TOC entry 5185 (class 2606 OID 25799)
+-- TOC entry 5192 (class 2606 OID 25799)
 -- Name: fourmiz_services fk_fourmiz_services_service; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18981,7 +19235,7 @@ ALTER TABLE ONLY public.fourmiz_services
 
 
 --
--- TOC entry 5187 (class 2606 OID 25809)
+-- TOC entry 5194 (class 2606 OID 25809)
 -- Name: other_services fk_other_services_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18990,7 +19244,7 @@ ALTER TABLE ONLY public.other_services
 
 
 --
--- TOC entry 5254 (class 2606 OID 133738)
+-- TOC entry 5260 (class 2606 OID 133738)
 -- Name: payments fk_payments_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18999,16 +19253,7 @@ ALTER TABLE ONLY public.payments
 
 
 --
--- TOC entry 5205 (class 2606 OID 151190)
--- Name: profiles fk_profiles_service_category; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT fk_profiles_service_category FOREIGN KEY (service_category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
-
-
---
--- TOC entry 5235 (class 2606 OID 80280)
+-- TOC entry 5241 (class 2606 OID 80280)
 -- Name: push_tokens fk_push_tokens_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19017,7 +19262,7 @@ ALTER TABLE ONLY public.push_tokens
 
 
 --
--- TOC entry 5219 (class 2606 OID 42278)
+-- TOC entry 5225 (class 2606 OID 42278)
 -- Name: service_assignments fk_service; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19026,7 +19271,7 @@ ALTER TABLE ONLY public.service_assignments
 
 
 --
--- TOC entry 5220 (class 2606 OID 42273)
+-- TOC entry 5226 (class 2606 OID 42273)
 -- Name: service_assignments fk_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19035,7 +19280,7 @@ ALTER TABLE ONLY public.service_assignments
 
 
 --
--- TOC entry 5183 (class 2606 OID 25579)
+-- TOC entry 5190 (class 2606 OID 25579)
 -- Name: fourmiz_criteria fourmiz_criteria_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19044,7 +19289,7 @@ ALTER TABLE ONLY public.fourmiz_criteria
 
 
 --
--- TOC entry 5270 (class 2606 OID 160822)
+-- TOC entry 5276 (class 2606 OID 160822)
 -- Name: fourmiz_mission_status fourmiz_mission_status_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19053,7 +19298,7 @@ ALTER TABLE ONLY public.fourmiz_mission_status
 
 
 --
--- TOC entry 5200 (class 2606 OID 26403)
+-- TOC entry 5207 (class 2606 OID 26403)
 -- Name: fourmiz_reviews fourmiz_reviews_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19062,7 +19307,7 @@ ALTER TABLE ONLY public.fourmiz_reviews
 
 
 --
--- TOC entry 5201 (class 2606 OID 26408)
+-- TOC entry 5208 (class 2606 OID 26408)
 -- Name: fourmiz_reviews fourmiz_reviews_fourmiz_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19071,7 +19316,7 @@ ALTER TABLE ONLY public.fourmiz_reviews
 
 
 --
--- TOC entry 5186 (class 2606 OID 25590)
+-- TOC entry 5193 (class 2606 OID 25590)
 -- Name: fourmiz_services fourmiz_services_fourmiz_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19080,7 +19325,7 @@ ALTER TABLE ONLY public.fourmiz_services
 
 
 --
--- TOC entry 5195 (class 2606 OID 25932)
+-- TOC entry 5202 (class 2606 OID 25932)
 -- Name: iban_requests iban_requests_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19089,7 +19334,7 @@ ALTER TABLE ONLY public.iban_requests
 
 
 --
--- TOC entry 5268 (class 2606 OID 160692)
+-- TOC entry 5274 (class 2606 OID 160692)
 -- Name: location_history location_history_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19098,7 +19343,7 @@ ALTER TABLE ONLY public.location_history
 
 
 --
--- TOC entry 5208 (class 2606 OID 33995)
+-- TOC entry 5214 (class 2606 OID 33995)
 -- Name: locations locations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19107,7 +19352,7 @@ ALTER TABLE ONLY public.locations
 
 
 --
--- TOC entry 5203 (class 2606 OID 27701)
+-- TOC entry 5210 (class 2606 OID 27701)
 -- Name: messages messages_receiver_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19116,7 +19361,7 @@ ALTER TABLE ONLY public.messages
 
 
 --
--- TOC entry 5204 (class 2606 OID 27696)
+-- TOC entry 5211 (class 2606 OID 27696)
 -- Name: messages messages_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19125,7 +19370,7 @@ ALTER TABLE ONLY public.messages
 
 
 --
--- TOC entry 5218 (class 2606 OID 37669)
+-- TOC entry 5224 (class 2606 OID 37669)
 -- Name: missions missions_fourmiz_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19134,7 +19379,7 @@ ALTER TABLE ONLY public.missions
 
 
 --
--- TOC entry 5237 (class 2606 OID 55204)
+-- TOC entry 5243 (class 2606 OID 55204)
 -- Name: notification_history notification_history_related_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19143,7 +19388,7 @@ ALTER TABLE ONLY public.notification_history
 
 
 --
--- TOC entry 5238 (class 2606 OID 55199)
+-- TOC entry 5244 (class 2606 OID 55199)
 -- Name: notification_history notification_history_related_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19152,7 +19397,7 @@ ALTER TABLE ONLY public.notification_history
 
 
 --
--- TOC entry 5239 (class 2606 OID 55194)
+-- TOC entry 5245 (class 2606 OID 55194)
 -- Name: notification_history notification_history_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19161,7 +19406,7 @@ ALTER TABLE ONLY public.notification_history
 
 
 --
--- TOC entry 5240 (class 2606 OID 55227)
+-- TOC entry 5246 (class 2606 OID 55227)
 -- Name: notification_preferences notification_preferences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19170,7 +19415,7 @@ ALTER TABLE ONLY public.notification_preferences
 
 
 --
--- TOC entry 5207 (class 2606 OID 30014)
+-- TOC entry 5213 (class 2606 OID 30014)
 -- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19179,7 +19424,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- TOC entry 5255 (class 2606 OID 143707)
+-- TOC entry 5261 (class 2606 OID 143707)
 -- Name: order_applications order_applications_fourmiz_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19188,7 +19433,7 @@ ALTER TABLE ONLY public.order_applications
 
 
 --
--- TOC entry 5256 (class 2606 OID 143702)
+-- TOC entry 5262 (class 2606 OID 143702)
 -- Name: order_applications order_applications_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19197,7 +19442,7 @@ ALTER TABLE ONLY public.order_applications
 
 
 --
--- TOC entry 5250 (class 2606 OID 84479)
+-- TOC entry 5256 (class 2606 OID 84479)
 -- Name: order_details order_details_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19206,7 +19451,7 @@ ALTER TABLE ONLY public.order_details
 
 
 --
--- TOC entry 5223 (class 2606 OID 53198)
+-- TOC entry 5229 (class 2606 OID 53198)
 -- Name: orders orders_cancelled_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19215,7 +19460,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 5224 (class 2606 OID 53188)
+-- TOC entry 5230 (class 2606 OID 53188)
 -- Name: orders orders_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19224,7 +19469,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 5225 (class 2606 OID 53193)
+-- TOC entry 5231 (class 2606 OID 53193)
 -- Name: orders orders_fourmiz_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19233,7 +19478,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 5226 (class 2606 OID 53068)
+-- TOC entry 5232 (class 2606 OID 53068)
 -- Name: orders orders_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19242,7 +19487,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 5227 (class 2606 OID 53063)
+-- TOC entry 5233 (class 2606 OID 53063)
 -- Name: orders orders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19251,7 +19496,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 5228 (class 2606 OID 113340)
+-- TOC entry 5234 (class 2606 OID 113340)
 -- Name: orders orders_validated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19260,7 +19505,7 @@ ALTER TABLE ONLY public.orders
 
 
 --
--- TOC entry 5188 (class 2606 OID 25605)
+-- TOC entry 5195 (class 2606 OID 25605)
 -- Name: other_services other_services_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19269,7 +19514,7 @@ ALTER TABLE ONLY public.other_services
 
 
 --
--- TOC entry 5253 (class 2606 OID 132511)
+-- TOC entry 5259 (class 2606 OID 132511)
 -- Name: payout_requests payout_requests_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19278,7 +19523,7 @@ ALTER TABLE ONLY public.payout_requests
 
 
 --
--- TOC entry 5248 (class 2606 OID 81086)
+-- TOC entry 5254 (class 2606 OID 81086)
 -- Name: pending_uploads pending_uploads_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19287,7 +19532,7 @@ ALTER TABLE ONLY public.pending_uploads
 
 
 --
--- TOC entry 5257 (class 2606 OID 143733)
+-- TOC entry 5263 (class 2606 OID 143733)
 -- Name: pre_selection_chats pre_selection_chats_application_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19296,7 +19541,7 @@ ALTER TABLE ONLY public.pre_selection_chats
 
 
 --
--- TOC entry 5258 (class 2606 OID 143743)
+-- TOC entry 5264 (class 2606 OID 143743)
 -- Name: pre_selection_chats pre_selection_chats_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19305,7 +19550,7 @@ ALTER TABLE ONLY public.pre_selection_chats
 
 
 --
--- TOC entry 5259 (class 2606 OID 143748)
+-- TOC entry 5265 (class 2606 OID 143748)
 -- Name: pre_selection_chats pre_selection_chats_fourmiz_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19314,7 +19559,7 @@ ALTER TABLE ONLY public.pre_selection_chats
 
 
 --
--- TOC entry 5260 (class 2606 OID 143738)
+-- TOC entry 5266 (class 2606 OID 143738)
 -- Name: pre_selection_chats pre_selection_chats_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19323,7 +19568,7 @@ ALTER TABLE ONLY public.pre_selection_chats
 
 
 --
--- TOC entry 5261 (class 2606 OID 143767)
+-- TOC entry 5267 (class 2606 OID 143767)
 -- Name: pre_selection_messages pre_selection_messages_chat_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19332,7 +19577,7 @@ ALTER TABLE ONLY public.pre_selection_messages
 
 
 --
--- TOC entry 5262 (class 2606 OID 143772)
+-- TOC entry 5268 (class 2606 OID 143772)
 -- Name: pre_selection_messages pre_selection_messages_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19341,7 +19586,7 @@ ALTER TABLE ONLY public.pre_selection_messages
 
 
 --
--- TOC entry 5206 (class 2606 OID 80530)
+-- TOC entry 5212 (class 2606 OID 80530)
 -- Name: profiles profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19350,7 +19595,7 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- TOC entry 5236 (class 2606 OID 55177)
+-- TOC entry 5242 (class 2606 OID 55177)
 -- Name: push_tokens push_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19359,7 +19604,7 @@ ALTER TABLE ONLY public.push_tokens
 
 
 --
--- TOC entry 5191 (class 2606 OID 25898)
+-- TOC entry 5198 (class 2606 OID 25898)
 -- Name: referral_commissions referral_commissions_filleul_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19368,7 +19613,7 @@ ALTER TABLE ONLY public.referral_commissions
 
 
 --
--- TOC entry 5192 (class 2606 OID 25903)
+-- TOC entry 5199 (class 2606 OID 25903)
 -- Name: referral_commissions referral_commissions_parrain_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19377,7 +19622,7 @@ ALTER TABLE ONLY public.referral_commissions
 
 
 --
--- TOC entry 5193 (class 2606 OID 25893)
+-- TOC entry 5200 (class 2606 OID 25893)
 -- Name: referral_commissions referral_commissions_referral_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19386,7 +19631,7 @@ ALTER TABLE ONLY public.referral_commissions
 
 
 --
--- TOC entry 5246 (class 2606 OID 76856)
+-- TOC entry 5252 (class 2606 OID 76856)
 -- Name: referral_config referral_config_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19395,7 +19640,7 @@ ALTER TABLE ONLY public.referral_config
 
 
 --
--- TOC entry 5247 (class 2606 OID 76861)
+-- TOC entry 5253 (class 2606 OID 76861)
 -- Name: referral_config referral_config_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19404,7 +19649,7 @@ ALTER TABLE ONLY public.referral_config
 
 
 --
--- TOC entry 5210 (class 2606 OID 34546)
+-- TOC entry 5216 (class 2606 OID 34546)
 -- Name: referral_gains referral_gains_referred_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19413,7 +19658,7 @@ ALTER TABLE ONLY public.referral_gains
 
 
 --
--- TOC entry 5211 (class 2606 OID 34541)
+-- TOC entry 5217 (class 2606 OID 34541)
 -- Name: referral_gains referral_gains_sponsor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19422,7 +19667,7 @@ ALTER TABLE ONLY public.referral_gains
 
 
 --
--- TOC entry 5189 (class 2606 OID 25879)
+-- TOC entry 5196 (class 2606 OID 25879)
 -- Name: referrals referrals_filleul_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19431,7 +19676,7 @@ ALTER TABLE ONLY public.referrals
 
 
 --
--- TOC entry 5190 (class 2606 OID 25874)
+-- TOC entry 5197 (class 2606 OID 25874)
 -- Name: referrals referrals_parrain_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19440,7 +19685,7 @@ ALTER TABLE ONLY public.referrals
 
 
 --
--- TOC entry 5216 (class 2606 OID 36129)
+-- TOC entry 5222 (class 2606 OID 36129)
 -- Name: revenues revenues_filleul_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19449,7 +19694,7 @@ ALTER TABLE ONLY public.revenues
 
 
 --
--- TOC entry 5217 (class 2606 OID 36124)
+-- TOC entry 5223 (class 2606 OID 36124)
 -- Name: revenues revenues_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19458,7 +19703,7 @@ ALTER TABLE ONLY public.revenues
 
 
 --
--- TOC entry 5214 (class 2606 OID 36017)
+-- TOC entry 5220 (class 2606 OID 36017)
 -- Name: revenus revenus_source_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19467,7 +19712,7 @@ ALTER TABLE ONLY public.revenus
 
 
 --
--- TOC entry 5215 (class 2606 OID 36012)
+-- TOC entry 5221 (class 2606 OID 36012)
 -- Name: revenus revenus_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19476,7 +19721,7 @@ ALTER TABLE ONLY public.revenus
 
 
 --
--- TOC entry 5213 (class 2606 OID 35953)
+-- TOC entry 5219 (class 2606 OID 35953)
 -- Name: rewards rewards_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19485,7 +19730,7 @@ ALTER TABLE ONLY public.rewards
 
 
 --
--- TOC entry 5221 (class 2606 OID 42268)
+-- TOC entry 5227 (class 2606 OID 42268)
 -- Name: service_assignments service_assignments_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19494,7 +19739,7 @@ ALTER TABLE ONLY public.service_assignments
 
 
 --
--- TOC entry 5222 (class 2606 OID 42263)
+-- TOC entry 5228 (class 2606 OID 42263)
 -- Name: service_assignments service_assignments_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19503,16 +19748,7 @@ ALTER TABLE ONLY public.service_assignments
 
 
 --
--- TOC entry 5181 (class 2606 OID 44298)
--- Name: services services_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.services
-    ADD CONSTRAINT services_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id);
-
-
---
--- TOC entry 5212 (class 2606 OID 34595)
+-- TOC entry 5218 (class 2606 OID 34595)
 -- Name: services_gains services_gains_fourmiz_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19521,7 +19757,7 @@ ALTER TABLE ONLY public.services_gains
 
 
 --
--- TOC entry 5269 (class 2606 OID 160807)
+-- TOC entry 5275 (class 2606 OID 160807)
 -- Name: tracking_consent_history tracking_consent_history_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19530,7 +19766,7 @@ ALTER TABLE ONLY public.tracking_consent_history
 
 
 --
--- TOC entry 5209 (class 2606 OID 34365)
+-- TOC entry 5215 (class 2606 OID 34365)
 -- Name: user_badges user_badges_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19539,7 +19775,7 @@ ALTER TABLE ONLY public.user_badges
 
 
 --
--- TOC entry 5249 (class 2606 OID 81453)
+-- TOC entry 5255 (class 2606 OID 81453)
 -- Name: user_credits user_credits_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19548,7 +19784,7 @@ ALTER TABLE ONLY public.user_credits
 
 
 --
--- TOC entry 5264 (class 2606 OID 147662)
+-- TOC entry 5270 (class 2606 OID 147662)
 -- Name: user_legal_engagements user_legal_engagements_engagement_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19557,7 +19793,7 @@ ALTER TABLE ONLY public.user_legal_engagements
 
 
 --
--- TOC entry 5265 (class 2606 OID 147657)
+-- TOC entry 5271 (class 2606 OID 147657)
 -- Name: user_legal_engagements user_legal_engagements_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19566,7 +19802,7 @@ ALTER TABLE ONLY public.user_legal_engagements
 
 
 --
--- TOC entry 5251 (class 2606 OID 90505)
+-- TOC entry 5257 (class 2606 OID 90505)
 -- Name: user_push_tokens user_push_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19575,7 +19811,7 @@ ALTER TABLE ONLY public.user_push_tokens
 
 
 --
--- TOC entry 5263 (class 2606 OID 144150)
+-- TOC entry 5269 (class 2606 OID 144150)
 -- Name: user_references user_references_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19584,7 +19820,7 @@ ALTER TABLE ONLY public.user_references
 
 
 --
--- TOC entry 5241 (class 2606 OID 67718)
+-- TOC entry 5247 (class 2606 OID 67718)
 -- Name: user_referral_codes user_referral_codes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19593,7 +19829,7 @@ ALTER TABLE ONLY public.user_referral_codes
 
 
 --
--- TOC entry 5242 (class 2606 OID 67742)
+-- TOC entry 5248 (class 2606 OID 67742)
 -- Name: user_referrals user_referrals_referred_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19602,7 +19838,7 @@ ALTER TABLE ONLY public.user_referrals
 
 
 --
--- TOC entry 5243 (class 2606 OID 81414)
+-- TOC entry 5249 (class 2606 OID 81414)
 -- Name: user_referrals user_referrals_referrer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19611,7 +19847,7 @@ ALTER TABLE ONLY public.user_referrals
 
 
 --
--- TOC entry 5244 (class 2606 OID 67737)
+-- TOC entry 5250 (class 2606 OID 67737)
 -- Name: user_referrals user_referrals_referrer_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19620,7 +19856,7 @@ ALTER TABLE ONLY public.user_referrals
 
 
 --
--- TOC entry 5245 (class 2606 OID 81095)
+-- TOC entry 5251 (class 2606 OID 81095)
 -- Name: user_referrals user_referrals_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19629,7 +19865,7 @@ ALTER TABLE ONLY public.user_referrals
 
 
 --
--- TOC entry 5197 (class 2606 OID 26168)
+-- TOC entry 5204 (class 2606 OID 26168)
 -- Name: users users_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19638,7 +19874,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 5194 (class 2606 OID 25917)
+-- TOC entry 5201 (class 2606 OID 25917)
 -- Name: wallets wallets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19647,7 +19883,7 @@ ALTER TABLE ONLY public.wallets
 
 
 --
--- TOC entry 5167 (class 2606 OID 16570)
+-- TOC entry 5175 (class 2606 OID 16570)
 -- Name: objects objects_bucketId_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -19656,7 +19892,7 @@ ALTER TABLE ONLY storage.objects
 
 
 --
--- TOC entry 5252 (class 2606 OID 120720)
+-- TOC entry 5258 (class 2606 OID 120720)
 -- Name: prefixes prefixes_bucketId_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -19665,7 +19901,7 @@ ALTER TABLE ONLY storage.prefixes
 
 
 --
--- TOC entry 5178 (class 2606 OID 17046)
+-- TOC entry 5186 (class 2606 OID 17046)
 -- Name: s3_multipart_uploads s3_multipart_uploads_bucket_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -19674,7 +19910,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads
 
 
 --
--- TOC entry 5179 (class 2606 OID 17066)
+-- TOC entry 5187 (class 2606 OID 17066)
 -- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_bucket_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -19683,7 +19919,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads_parts
 
 
 --
--- TOC entry 5180 (class 2606 OID 17061)
+-- TOC entry 5188 (class 2606 OID 17061)
 -- Name: s3_multipart_uploads_parts s3_multipart_uploads_parts_upload_id_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
 --
 
@@ -19692,7 +19928,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads_parts
 
 
 --
--- TOC entry 5486 (class 0 OID 16523)
+-- TOC entry 5492 (class 0 OID 16523)
 -- Dependencies: 357
 -- Name: audit_log_entries; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19700,7 +19936,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads_parts
 ALTER TABLE auth.audit_log_entries ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5500 (class 0 OID 16925)
+-- TOC entry 5506 (class 0 OID 16925)
 -- Dependencies: 374
 -- Name: flow_state; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19708,7 +19944,7 @@ ALTER TABLE auth.audit_log_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.flow_state ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5491 (class 0 OID 16723)
+-- TOC entry 5497 (class 0 OID 16723)
 -- Dependencies: 365
 -- Name: identities; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19716,7 +19952,7 @@ ALTER TABLE auth.flow_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.identities ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5485 (class 0 OID 16516)
+-- TOC entry 5491 (class 0 OID 16516)
 -- Dependencies: 356
 -- Name: instances; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19724,7 +19960,7 @@ ALTER TABLE auth.identities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.instances ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5495 (class 0 OID 16812)
+-- TOC entry 5501 (class 0 OID 16812)
 -- Dependencies: 369
 -- Name: mfa_amr_claims; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19732,7 +19968,7 @@ ALTER TABLE auth.instances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.mfa_amr_claims ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5494 (class 0 OID 16800)
+-- TOC entry 5500 (class 0 OID 16800)
 -- Dependencies: 368
 -- Name: mfa_challenges; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19740,7 +19976,7 @@ ALTER TABLE auth.mfa_amr_claims ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.mfa_challenges ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5493 (class 0 OID 16787)
+-- TOC entry 5499 (class 0 OID 16787)
 -- Dependencies: 367
 -- Name: mfa_factors; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19748,7 +19984,7 @@ ALTER TABLE auth.mfa_challenges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.mfa_factors ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5501 (class 0 OID 16975)
+-- TOC entry 5507 (class 0 OID 16975)
 -- Dependencies: 375
 -- Name: one_time_tokens; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19756,7 +19992,7 @@ ALTER TABLE auth.mfa_factors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.one_time_tokens ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5484 (class 0 OID 16505)
+-- TOC entry 5490 (class 0 OID 16505)
 -- Dependencies: 355
 -- Name: refresh_tokens; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19764,7 +20000,7 @@ ALTER TABLE auth.one_time_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.refresh_tokens ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5498 (class 0 OID 16854)
+-- TOC entry 5504 (class 0 OID 16854)
 -- Dependencies: 372
 -- Name: saml_providers; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19772,7 +20008,7 @@ ALTER TABLE auth.refresh_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.saml_providers ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5499 (class 0 OID 16872)
+-- TOC entry 5505 (class 0 OID 16872)
 -- Dependencies: 373
 -- Name: saml_relay_states; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19780,7 +20016,7 @@ ALTER TABLE auth.saml_providers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.saml_relay_states ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5487 (class 0 OID 16531)
+-- TOC entry 5493 (class 0 OID 16531)
 -- Dependencies: 358
 -- Name: schema_migrations; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19788,7 +20024,7 @@ ALTER TABLE auth.saml_relay_states ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.schema_migrations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5492 (class 0 OID 16753)
+-- TOC entry 5498 (class 0 OID 16753)
 -- Dependencies: 366
 -- Name: sessions; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19796,7 +20032,7 @@ ALTER TABLE auth.schema_migrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.sessions ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5497 (class 0 OID 16839)
+-- TOC entry 5503 (class 0 OID 16839)
 -- Dependencies: 371
 -- Name: sso_domains; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19804,7 +20040,7 @@ ALTER TABLE auth.sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.sso_domains ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5496 (class 0 OID 16830)
+-- TOC entry 5502 (class 0 OID 16830)
 -- Dependencies: 370
 -- Name: sso_providers; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19812,7 +20048,7 @@ ALTER TABLE auth.sso_domains ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.sso_providers ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5483 (class 0 OID 16493)
+-- TOC entry 5489 (class 0 OID 16493)
 -- Dependencies: 353
 -- Name: users; Type: ROW SECURITY; Schema: auth; Owner: -
 --
@@ -19820,7 +20056,7 @@ ALTER TABLE auth.sso_providers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5611 (class 3256 OID 74644)
+-- TOC entry 5617 (class 3256 OID 74644)
 -- Name: admin_notifications Admin only access; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19828,7 +20064,7 @@ CREATE POLICY "Admin only access" ON public.admin_notifications USING (((auth.jw
 
 
 --
--- TOC entry 5598 (class 3256 OID 69537)
+-- TOC entry 5604 (class 3256 OID 69537)
 -- Name: badges_catalog Admin peut tout modifier; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19836,7 +20072,7 @@ CREATE POLICY "Admin peut tout modifier" ON public.badges_catalog USING ((auth.r
 
 
 --
--- TOC entry 5574 (class 3256 OID 76881)
+-- TOC entry 5580 (class 3256 OID 76881)
 -- Name: referral_config Admins peuvent gérer referral_config; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19846,7 +20082,7 @@ CREATE POLICY "Admins peuvent gérer referral_config" ON public.referral_config 
 
 
 --
--- TOC entry 5573 (class 3256 OID 68183)
+-- TOC entry 5579 (class 3256 OID 68183)
 -- Name: admin_settings Allow admin write on admin_settings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19856,7 +20092,7 @@ CREATE POLICY "Allow admin write on admin_settings" ON public.admin_settings USI
 
 
 --
--- TOC entry 5595 (class 3256 OID 42284)
+-- TOC entry 5601 (class 3256 OID 42284)
 -- Name: service_assignments Allow authenticated insert on service_assignments; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19864,7 +20100,7 @@ CREATE POLICY "Allow authenticated insert on service_assignments" ON public.serv
 
 
 --
--- TOC entry 5594 (class 3256 OID 42283)
+-- TOC entry 5600 (class 3256 OID 42283)
 -- Name: service_assignments Allow authenticated read on service_assignments; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19872,7 +20108,7 @@ CREATE POLICY "Allow authenticated read on service_assignments" ON public.servic
 
 
 --
--- TOC entry 5596 (class 3256 OID 42285)
+-- TOC entry 5602 (class 3256 OID 42285)
 -- Name: service_assignments Allow authenticated update on service_assignments; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19880,7 +20116,7 @@ CREATE POLICY "Allow authenticated update on service_assignments" ON public.serv
 
 
 --
--- TOC entry 5559 (class 3256 OID 49990)
+-- TOC entry 5565 (class 3256 OID 49990)
 -- Name: profiles Allow insert for service role; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19888,7 +20124,7 @@ CREATE POLICY "Allow insert for service role" ON public.profiles FOR INSERT TO s
 
 
 --
--- TOC entry 5560 (class 3256 OID 68182)
+-- TOC entry 5566 (class 3256 OID 68182)
 -- Name: admin_settings Allow public read on admin_settings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19896,7 +20132,7 @@ CREATE POLICY "Allow public read on admin_settings" ON public.admin_settings FOR
 
 
 --
--- TOC entry 5646 (class 3256 OID 96676)
+-- TOC entry 5652 (class 3256 OID 96676)
 -- Name: profiles Allow referrer to view referred user profiles; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19906,7 +20142,7 @@ CREATE POLICY "Allow referrer to view referred user profiles" ON public.profiles
 
 
 --
--- TOC entry 5613 (class 3256 OID 80445)
+-- TOC entry 5619 (class 3256 OID 80445)
 -- Name: referrals Anyone can insert referrals; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19914,7 +20150,7 @@ CREATE POLICY "Anyone can insert referrals" ON public.referrals FOR INSERT WITH 
 
 
 --
--- TOC entry 5602 (class 3256 OID 80443)
+-- TOC entry 5608 (class 3256 OID 80443)
 -- Name: user_referral_codes Anyone can read referral codes; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19922,7 +20158,7 @@ CREATE POLICY "Anyone can read referral codes" ON public.user_referral_codes FOR
 
 
 --
--- TOC entry 5593 (class 3256 OID 69536)
+-- TOC entry 5599 (class 3256 OID 69536)
 -- Name: badges_catalog Badges publics lisibles; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19930,7 +20166,7 @@ CREATE POLICY "Badges publics lisibles" ON public.badges_catalog FOR SELECT USIN
 
 
 --
--- TOC entry 5565 (class 3256 OID 26413)
+-- TOC entry 5571 (class 3256 OID 26413)
 -- Name: fourmiz_reviews Client peut noter une Fourmiz; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19938,7 +20174,7 @@ CREATE POLICY "Client peut noter une Fourmiz" ON public.fourmiz_reviews FOR INSE
 
 
 --
--- TOC entry 5571 (class 3256 OID 52920)
+-- TOC entry 5577 (class 3256 OID 52920)
 -- Name: services Clients can view all services; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19946,7 +20182,7 @@ CREATE POLICY "Clients can view all services" ON public.services FOR SELECT TO a
 
 
 --
--- TOC entry 5666 (class 3256 OID 160249)
+-- TOC entry 5672 (class 3256 OID 160249)
 -- Name: active_service_tracking Clients can view their service tracking; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19954,7 +20190,7 @@ CREATE POLICY "Clients can view their service tracking" ON public.active_service
 
 
 --
--- TOC entry 5652 (class 3256 OID 144282)
+-- TOC entry 5658 (class 3256 OID 144282)
 -- Name: user_references Enable all access for users to own references; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19962,7 +20198,7 @@ CREATE POLICY "Enable all access for users to own references" ON public.user_ref
 
 
 --
--- TOC entry 5603 (class 3256 OID 49596)
+-- TOC entry 5609 (class 3256 OID 49596)
 -- Name: profiles Enable update for users; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19970,7 +20206,7 @@ CREATE POLICY "Enable update for users" ON public.profiles FOR UPDATE USING ((au
 
 
 --
--- TOC entry 5547 (class 3256 OID 25225)
+-- TOC entry 5553 (class 3256 OID 25225)
 -- Name: services Enable users to view their own data only; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19978,7 +20214,7 @@ CREATE POLICY "Enable users to view their own data only" ON public.services FOR 
 
 
 --
--- TOC entry 5553 (class 3256 OID 25772)
+-- TOC entry 5559 (class 3256 OID 25772)
 -- Name: fourmiz_criteria Fourmiz can manage own criteria; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19986,7 +20222,7 @@ CREATE POLICY "Fourmiz can manage own criteria" ON public.fourmiz_criteria USING
 
 
 --
--- TOC entry 5665 (class 3256 OID 160248)
+-- TOC entry 5671 (class 3256 OID 160248)
 -- Name: active_service_tracking Fourmiz can manage their own tracking; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -19994,7 +20230,7 @@ CREATE POLICY "Fourmiz can manage their own tracking" ON public.active_service_t
 
 
 --
--- TOC entry 5554 (class 3256 OID 25773)
+-- TOC entry 5560 (class 3256 OID 25773)
 -- Name: fourmiz_services Fourmiz manage their services; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20004,7 +20240,7 @@ CREATE POLICY "Fourmiz manage their services" ON public.fourmiz_services USING (
 
 
 --
--- TOC entry 5658 (class 3256 OID 147670)
+-- TOC entry 5664 (class 3256 OID 147670)
 -- Name: legal_engagement_types Public can read engagement types; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20012,7 +20248,7 @@ CREATE POLICY "Public can read engagement types" ON public.legal_engagement_type
 
 
 --
--- TOC entry 5572 (class 3256 OID 52921)
+-- TOC entry 5578 (class 3256 OID 52921)
 -- Name: services Public can view all services; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20020,7 +20256,7 @@ CREATE POLICY "Public can view all services" ON public.services FOR SELECT USING
 
 
 --
--- TOC entry 5558 (class 3256 OID 25774)
+-- TOC entry 5564 (class 3256 OID 25774)
 -- Name: services Public can view services; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20028,7 +20264,7 @@ CREATE POLICY "Public can view services" ON public.services FOR SELECT USING (tr
 
 
 --
--- TOC entry 5622 (class 3256 OID 36089)
+-- TOC entry 5628 (class 3256 OID 36089)
 -- Name: revenus Revenus visibles uniquement par l'utilisateur concerné; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20036,7 +20272,7 @@ CREATE POLICY "Revenus visibles uniquement par l'utilisateur concerné" ON publi
 
 
 --
--- TOC entry 5620 (class 3256 OID 36066)
+-- TOC entry 5626 (class 3256 OID 36066)
 -- Name: revenus Revenus: utilisateur connecté peut lire ses revenus; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20044,7 +20280,7 @@ CREATE POLICY "Revenus: utilisateur connecté peut lire ses revenus" ON public.r
 
 
 --
--- TOC entry 5621 (class 3256 OID 36067)
+-- TOC entry 5627 (class 3256 OID 36067)
 -- Name: revenus Revenus: utilisateur connecté peut écrire ses revenus; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20052,7 +20288,7 @@ CREATE POLICY "Revenus: utilisateur connecté peut écrire ses revenus" ON publi
 
 
 --
--- TOC entry 5551 (class 3256 OID 67928)
+-- TOC entry 5557 (class 3256 OID 67928)
 -- Name: user_referrals System can create referrals; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20060,7 +20296,7 @@ CREATE POLICY "System can create referrals" ON public.user_referrals FOR INSERT 
 
 
 --
--- TOC entry 5608 (class 3256 OID 55250)
+-- TOC entry 5614 (class 3256 OID 55250)
 -- Name: notification_history System can insert notifications; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20068,7 +20304,7 @@ CREATE POLICY "System can insert notifications" ON public.notification_history F
 
 
 --
--- TOC entry 5552 (class 3256 OID 67929)
+-- TOC entry 5558 (class 3256 OID 67929)
 -- Name: user_referrals System can update referrals; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20076,7 +20312,7 @@ CREATE POLICY "System can update referrals" ON public.user_referrals FOR UPDATE 
 
 
 --
--- TOC entry 5597 (class 3256 OID 138140)
+-- TOC entry 5603 (class 3256 OID 138140)
 -- Name: user_referrals System triggers bypass RLS; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20084,7 +20320,7 @@ CREATE POLICY "System triggers bypass RLS" ON public.user_referrals USING (true)
 
 
 --
--- TOC entry 5578 (class 3256 OID 30074)
+-- TOC entry 5584 (class 3256 OID 30074)
 -- Name: admin_notifications Tout le monde peut lire les notifications admin; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20092,7 +20328,7 @@ CREATE POLICY "Tout le monde peut lire les notifications admin" ON public.admin_
 
 
 --
--- TOC entry 5607 (class 3256 OID 32100)
+-- TOC entry 5613 (class 3256 OID 32100)
 -- Name: messages User can delete their own messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20100,7 +20336,7 @@ CREATE POLICY "User can delete their own messages" ON public.messages FOR DELETE
 
 
 --
--- TOC entry 5606 (class 3256 OID 32078)
+-- TOC entry 5612 (class 3256 OID 32078)
 -- Name: messages User can insert messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20108,7 +20344,7 @@ CREATE POLICY "User can insert messages" ON public.messages FOR INSERT WITH CHEC
 
 
 --
--- TOC entry 5605 (class 3256 OID 32056)
+-- TOC entry 5611 (class 3256 OID 32056)
 -- Name: messages User can read their messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20116,7 +20352,7 @@ CREATE POLICY "User can read their messages" ON public.messages FOR SELECT USING
 
 
 --
--- TOC entry 5561 (class 3256 OID 25778)
+-- TOC entry 5567 (class 3256 OID 25778)
 -- Name: other_services User manage their other services; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20124,7 +20360,7 @@ CREATE POLICY "User manage their other services" ON public.other_services USING 
 
 
 --
--- TOC entry 5567 (class 3256 OID 27578)
+-- TOC entry 5573 (class 3256 OID 27578)
 -- Name: favorite_orders Users can add their own favorite orders; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20132,7 +20368,7 @@ CREATE POLICY "Users can add their own favorite orders" ON public.favorite_order
 
 
 --
--- TOC entry 5637 (class 3256 OID 133753)
+-- TOC entry 5643 (class 3256 OID 133753)
 -- Name: payments Users can create own payments; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20140,7 +20376,7 @@ CREATE POLICY "Users can create own payments" ON public.payments FOR INSERT WITH
 
 
 --
--- TOC entry 5549 (class 3256 OID 67926)
+-- TOC entry 5555 (class 3256 OID 67926)
 -- Name: user_referral_codes Users can create own referral code; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20148,7 +20384,7 @@ CREATE POLICY "Users can create own referral code" ON public.user_referral_codes
 
 
 --
--- TOC entry 5642 (class 3256 OID 144159)
+-- TOC entry 5648 (class 3256 OID 144159)
 -- Name: user_references Users can delete own references; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20156,7 +20392,7 @@ CREATE POLICY "Users can delete own references" ON public.user_references FOR DE
 
 
 --
--- TOC entry 5568 (class 3256 OID 27579)
+-- TOC entry 5574 (class 3256 OID 27579)
 -- Name: favorite_orders Users can delete their favorite orders; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20164,7 +20400,7 @@ CREATE POLICY "Users can delete their favorite orders" ON public.favorite_orders
 
 
 --
--- TOC entry 5585 (class 3256 OID 30291)
+-- TOC entry 5591 (class 3256 OID 30291)
 -- Name: messages Users can delete their own messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20172,7 +20408,7 @@ CREATE POLICY "Users can delete their own messages" ON public.messages FOR DELET
 
 
 --
--- TOC entry 5580 (class 3256 OID 54871)
+-- TOC entry 5586 (class 3256 OID 54871)
 -- Name: chat_messages Users can insert messages to their orders; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20182,7 +20418,7 @@ CREATE POLICY "Users can insert messages to their orders" ON public.chat_message
 
 
 --
--- TOC entry 5632 (class 3256 OID 132532)
+-- TOC entry 5638 (class 3256 OID 132532)
 -- Name: payout_requests Users can insert own payout requests; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20190,7 +20426,7 @@ CREATE POLICY "Users can insert own payout requests" ON public.payout_requests F
 
 
 --
--- TOC entry 5651 (class 3256 OID 134150)
+-- TOC entry 5657 (class 3256 OID 134150)
 -- Name: profiles Users can insert own profile or during creation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20198,7 +20434,7 @@ CREATE POLICY "Users can insert own profile or during creation" ON public.profil
 
 
 --
--- TOC entry 5640 (class 3256 OID 144157)
+-- TOC entry 5646 (class 3256 OID 144157)
 -- Name: user_references Users can insert own references; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20206,7 +20442,7 @@ CREATE POLICY "Users can insert own references" ON public.user_references FOR IN
 
 
 --
--- TOC entry 5660 (class 3256 OID 147672)
+-- TOC entry 5666 (class 3256 OID 147672)
 -- Name: user_legal_engagements Users can insert their own engagements; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20214,7 +20450,7 @@ CREATE POLICY "Users can insert their own engagements" ON public.user_legal_enga
 
 
 --
--- TOC entry 5618 (class 3256 OID 34104)
+-- TOC entry 5624 (class 3256 OID 34104)
 -- Name: locations Users can insert their own location; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20222,7 +20458,7 @@ CREATE POLICY "Users can insert their own location" ON public.locations FOR INSE
 
 
 --
--- TOC entry 5587 (class 3256 OID 30393)
+-- TOC entry 5593 (class 3256 OID 30393)
 -- Name: messages Users can insert their own messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20230,7 +20466,7 @@ CREATE POLICY "Users can insert their own messages" ON public.messages FOR INSER
 
 
 --
--- TOC entry 5599 (class 3256 OID 80348)
+-- TOC entry 5605 (class 3256 OID 80348)
 -- Name: push_tokens Users can insert their own push tokens; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20238,7 +20474,7 @@ CREATE POLICY "Users can insert their own push tokens" ON public.push_tokens FOR
 
 
 --
--- TOC entry 5626 (class 3256 OID 81094)
+-- TOC entry 5632 (class 3256 OID 81094)
 -- Name: pending_uploads Users can manage own pending uploads; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20246,7 +20482,7 @@ CREATE POLICY "Users can manage own pending uploads" ON public.pending_uploads U
 
 
 --
--- TOC entry 5643 (class 3256 OID 144181)
+-- TOC entry 5649 (class 3256 OID 144181)
 -- Name: user_references Users can manage own references; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20254,7 +20490,7 @@ CREATE POLICY "Users can manage own references" ON public.user_references USING 
 
 
 --
--- TOC entry 5610 (class 3256 OID 55251)
+-- TOC entry 5616 (class 3256 OID 55251)
 -- Name: notification_preferences Users can manage their own preferences; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20262,7 +20498,7 @@ CREATE POLICY "Users can manage their own preferences" ON public.notification_pr
 
 
 --
--- TOC entry 5590 (class 3256 OID 54874)
+-- TOC entry 5596 (class 3256 OID 54874)
 -- Name: chat_participants Users can manage their participation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20270,7 +20506,7 @@ CREATE POLICY "Users can manage their participation" ON public.chat_participants
 
 
 --
--- TOC entry 5583 (class 3256 OID 80441)
+-- TOC entry 5589 (class 3256 OID 80441)
 -- Name: push_tokens Users can manage their push tokens; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20278,7 +20514,7 @@ CREATE POLICY "Users can manage their push tokens" ON public.push_tokens USING (
 
 
 --
--- TOC entry 5601 (class 3256 OID 80442)
+-- TOC entry 5607 (class 3256 OID 80442)
 -- Name: user_referral_codes Users can manage their referral codes; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20286,7 +20522,7 @@ CREATE POLICY "Users can manage their referral codes" ON public.user_referral_co
 
 
 --
--- TOC entry 5592 (class 3256 OID 54876)
+-- TOC entry 5598 (class 3256 OID 54876)
 -- Name: chat_typing_status Users can manage their typing status; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20294,7 +20530,7 @@ CREATE POLICY "Users can manage their typing status" ON public.chat_typing_statu
 
 
 --
--- TOC entry 5616 (class 3256 OID 34040)
+-- TOC entry 5622 (class 3256 OID 34040)
 -- Name: locations Users can read locations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20302,7 +20538,7 @@ CREATE POLICY "Users can read locations" ON public.locations FOR SELECT USING ((
 
 
 --
--- TOC entry 5569 (class 3256 OID 27706)
+-- TOC entry 5575 (class 3256 OID 27706)
 -- Name: messages Users can read their messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20310,7 +20546,7 @@ CREATE POLICY "Users can read their messages" ON public.messages FOR SELECT USIN
 
 
 --
--- TOC entry 5556 (class 3256 OID 112164)
+-- TOC entry 5562 (class 3256 OID 112164)
 -- Name: profiles Users can see own profile and limited public info; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20318,7 +20554,7 @@ CREATE POLICY "Users can see own profile and limited public info" ON public.prof
 
 
 --
--- TOC entry 5586 (class 3256 OID 30392)
+-- TOC entry 5592 (class 3256 OID 30392)
 -- Name: messages Users can see their own messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20326,7 +20562,7 @@ CREATE POLICY "Users can see their own messages" ON public.messages FOR SELECT U
 
 
 --
--- TOC entry 5570 (class 3256 OID 27707)
+-- TOC entry 5576 (class 3256 OID 27707)
 -- Name: messages Users can send messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20334,7 +20570,7 @@ CREATE POLICY "Users can send messages" ON public.messages FOR INSERT WITH CHECK
 
 
 --
--- TOC entry 5638 (class 3256 OID 133754)
+-- TOC entry 5644 (class 3256 OID 133754)
 -- Name: payments Users can update own payments; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20342,7 +20578,7 @@ CREATE POLICY "Users can update own payments" ON public.payments FOR UPDATE USIN
 
 
 --
--- TOC entry 5633 (class 3256 OID 132533)
+-- TOC entry 5639 (class 3256 OID 132533)
 -- Name: payout_requests Users can update own pending payout requests; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20350,7 +20586,7 @@ CREATE POLICY "Users can update own pending payout requests" ON public.payout_re
 
 
 --
--- TOC entry 5555 (class 3256 OID 80538)
+-- TOC entry 5561 (class 3256 OID 80538)
 -- Name: profiles Users can update own profile; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20358,7 +20594,7 @@ CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING
 
 
 --
--- TOC entry 5641 (class 3256 OID 144158)
+-- TOC entry 5647 (class 3256 OID 144158)
 -- Name: user_references Users can update own references; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20366,7 +20602,7 @@ CREATE POLICY "Users can update own references" ON public.user_references FOR UP
 
 
 --
--- TOC entry 5661 (class 3256 OID 147673)
+-- TOC entry 5667 (class 3256 OID 147673)
 -- Name: user_legal_engagements Users can update their own engagements; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20374,7 +20610,7 @@ CREATE POLICY "Users can update their own engagements" ON public.user_legal_enga
 
 
 --
--- TOC entry 5617 (class 3256 OID 34063)
+-- TOC entry 5623 (class 3256 OID 34063)
 -- Name: locations Users can update their own location; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20382,7 +20618,7 @@ CREATE POLICY "Users can update their own location" ON public.locations FOR UPDA
 
 
 --
--- TOC entry 5588 (class 3256 OID 54872)
+-- TOC entry 5594 (class 3256 OID 54872)
 -- Name: chat_messages Users can update their own messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20392,7 +20628,7 @@ CREATE POLICY "Users can update their own messages" ON public.chat_messages FOR 
 
 
 --
--- TOC entry 5584 (class 3256 OID 30290)
+-- TOC entry 5590 (class 3256 OID 30290)
 -- Name: messages Users can update their own messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20400,7 +20636,7 @@ CREATE POLICY "Users can update their own messages" ON public.messages FOR UPDAT
 
 
 --
--- TOC entry 5563 (class 3256 OID 26176)
+-- TOC entry 5569 (class 3256 OID 26176)
 -- Name: users Users can update their profile; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20408,7 +20644,7 @@ CREATE POLICY "Users can update their profile" ON public.users FOR UPDATE USING 
 
 
 --
--- TOC entry 5579 (class 3256 OID 54870)
+-- TOC entry 5585 (class 3256 OID 54870)
 -- Name: chat_messages Users can view messages from their orders; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20418,7 +20654,7 @@ CREATE POLICY "Users can view messages from their orders" ON public.chat_message
 
 
 --
--- TOC entry 5636 (class 3256 OID 132534)
+-- TOC entry 5642 (class 3256 OID 132534)
 -- Name: user_credits Users can view own credits; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20426,7 +20662,7 @@ CREATE POLICY "Users can view own credits" ON public.user_credits FOR SELECT USI
 
 
 --
--- TOC entry 5557 (class 3256 OID 133752)
+-- TOC entry 5563 (class 3256 OID 133752)
 -- Name: payments Users can view own payments; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20434,7 +20670,7 @@ CREATE POLICY "Users can view own payments" ON public.payments FOR SELECT USING 
 
 
 --
--- TOC entry 5631 (class 3256 OID 132531)
+-- TOC entry 5637 (class 3256 OID 132531)
 -- Name: payout_requests Users can view own payout requests; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20442,7 +20678,7 @@ CREATE POLICY "Users can view own payout requests" ON public.payout_requests FOR
 
 
 --
--- TOC entry 5639 (class 3256 OID 144156)
+-- TOC entry 5645 (class 3256 OID 144156)
 -- Name: user_references Users can view own references; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20450,7 +20686,7 @@ CREATE POLICY "Users can view own references" ON public.user_references FOR SELE
 
 
 --
--- TOC entry 5550 (class 3256 OID 67927)
+-- TOC entry 5556 (class 3256 OID 67927)
 -- Name: user_referrals Users can view own referrals; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20458,7 +20694,7 @@ CREATE POLICY "Users can view own referrals" ON public.user_referrals FOR SELECT
 
 
 --
--- TOC entry 5548 (class 3256 OID 67925)
+-- TOC entry 5554 (class 3256 OID 67925)
 -- Name: user_referral_codes Users can view referral codes; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20466,7 +20702,7 @@ CREATE POLICY "Users can view referral codes" ON public.user_referral_codes FOR 
 
 
 --
--- TOC entry 5566 (class 3256 OID 27577)
+-- TOC entry 5572 (class 3256 OID 27577)
 -- Name: favorite_orders Users can view their favorite orders; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20474,7 +20710,7 @@ CREATE POLICY "Users can view their favorite orders" ON public.favorite_orders F
 
 
 --
--- TOC entry 5659 (class 3256 OID 147671)
+-- TOC entry 5665 (class 3256 OID 147671)
 -- Name: user_legal_engagements Users can view their own engagements; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20482,7 +20718,7 @@ CREATE POLICY "Users can view their own engagements" ON public.user_legal_engage
 
 
 --
--- TOC entry 5609 (class 3256 OID 32267)
+-- TOC entry 5615 (class 3256 OID 32267)
 -- Name: messages Users can view their own messages; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20490,7 +20726,7 @@ CREATE POLICY "Users can view their own messages" ON public.messages FOR SELECT 
 
 
 --
--- TOC entry 5604 (class 3256 OID 55249)
+-- TOC entry 5610 (class 3256 OID 55249)
 -- Name: notification_history Users can view their own notification history; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20498,7 +20734,7 @@ CREATE POLICY "Users can view their own notification history" ON public.notifica
 
 
 --
--- TOC entry 5600 (class 3256 OID 80349)
+-- TOC entry 5606 (class 3256 OID 80349)
 -- Name: push_tokens Users can view their own push tokens; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20506,7 +20742,7 @@ CREATE POLICY "Users can view their own push tokens" ON public.push_tokens FOR S
 
 
 --
--- TOC entry 5589 (class 3256 OID 54873)
+-- TOC entry 5595 (class 3256 OID 54873)
 -- Name: chat_participants Users can view their participation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20514,7 +20750,7 @@ CREATE POLICY "Users can view their participation" ON public.chat_participants F
 
 
 --
--- TOC entry 5562 (class 3256 OID 26175)
+-- TOC entry 5568 (class 3256 OID 26175)
 -- Name: users Users can view their profile; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20522,7 +20758,7 @@ CREATE POLICY "Users can view their profile" ON public.users FOR SELECT USING ((
 
 
 --
--- TOC entry 5612 (class 3256 OID 80444)
+-- TOC entry 5618 (class 3256 OID 80444)
 -- Name: referrals Users can view their referrals; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20530,7 +20766,7 @@ CREATE POLICY "Users can view their referrals" ON public.referrals FOR SELECT US
 
 
 --
--- TOC entry 5619 (class 3256 OID 35978)
+-- TOC entry 5625 (class 3256 OID 35978)
 -- Name: rewards Users can view their rewards; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20538,7 +20774,7 @@ CREATE POLICY "Users can view their rewards" ON public.rewards FOR SELECT USING 
 
 
 --
--- TOC entry 5591 (class 3256 OID 54875)
+-- TOC entry 5597 (class 3256 OID 54875)
 -- Name: chat_typing_status Users can view typing status in their orders; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20548,7 +20784,7 @@ CREATE POLICY "Users can view typing status in their orders" ON public.chat_typi
 
 
 --
--- TOC entry 5576 (class 3256 OID 30020)
+-- TOC entry 5582 (class 3256 OID 30020)
 -- Name: notifications Utilisateur insère ses propres notifications; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20556,7 +20792,7 @@ CREATE POLICY "Utilisateur insère ses propres notifications" ON public.notifica
 
 
 --
--- TOC entry 5575 (class 3256 OID 30019)
+-- TOC entry 5581 (class 3256 OID 30019)
 -- Name: notifications Utilisateur lit ses propres notifications; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20564,7 +20800,7 @@ CREATE POLICY "Utilisateur lit ses propres notifications" ON public.notification
 
 
 --
--- TOC entry 5577 (class 3256 OID 30021)
+-- TOC entry 5583 (class 3256 OID 30021)
 -- Name: notifications Utilisateur marque ses notifications comme lues; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20572,7 +20808,7 @@ CREATE POLICY "Utilisateur marque ses notifications comme lues" ON public.notifi
 
 
 --
--- TOC entry 5623 (class 3256 OID 36090)
+-- TOC entry 5629 (class 3256 OID 36090)
 -- Name: revenus Utilisateur peut insérer ses revenus; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20580,7 +20816,7 @@ CREATE POLICY "Utilisateur peut insérer ses revenus" ON public.revenus FOR INSE
 
 
 --
--- TOC entry 5564 (class 3256 OID 26227)
+-- TOC entry 5570 (class 3256 OID 26227)
 -- Name: users Utilisateur peut s'insérer lui-même; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20588,15 +20824,15 @@ CREATE POLICY "Utilisateur peut s'insérer lui-même" ON public.users FOR INSERT
 
 
 --
--- TOC entry 5546 (class 0 OID 160202)
--- Dependencies: 516
+-- TOC entry 5552 (class 0 OID 160202)
+-- Dependencies: 510
 -- Name: active_service_tracking; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.active_service_tracking ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5518 (class 0 OID 30042)
+-- TOC entry 5524 (class 0 OID 30042)
 -- Dependencies: 415
 -- Name: admin_notifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20604,7 +20840,7 @@ ALTER TABLE public.active_service_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_notifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5581 (class 3256 OID 68284)
+-- TOC entry 5587 (class 3256 OID 68284)
 -- Name: admin_settings admin_only; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20612,15 +20848,15 @@ CREATE POLICY admin_only ON public.admin_settings USING (true);
 
 
 --
--- TOC entry 5531 (class 0 OID 67695)
--- Dependencies: 462
+-- TOC entry 5537 (class 0 OID 67695)
+-- Dependencies: 461
 -- Name: admin_settings; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5635 (class 3256 OID 84643)
+-- TOC entry 5641 (class 3256 OID 84643)
 -- Name: order_details authenticated_create_order_details; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20630,7 +20866,7 @@ CREATE POLICY authenticated_create_order_details ON public.order_details FOR INS
 
 
 --
--- TOC entry 5645 (class 3256 OID 84646)
+-- TOC entry 5651 (class 3256 OID 84646)
 -- Name: order_details authenticated_delete_order_details; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20640,7 +20876,7 @@ CREATE POLICY authenticated_delete_order_details ON public.order_details FOR DEL
 
 
 --
--- TOC entry 5644 (class 3256 OID 84644)
+-- TOC entry 5650 (class 3256 OID 84644)
 -- Name: order_details authenticated_update_order_details; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20652,7 +20888,7 @@ CREATE POLICY authenticated_update_order_details ON public.order_details FOR UPD
 
 
 --
--- TOC entry 5634 (class 3256 OID 84642)
+-- TOC entry 5640 (class 3256 OID 84642)
 -- Name: order_details authenticated_view_order_details; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20662,39 +20898,39 @@ CREATE POLICY authenticated_view_order_details ON public.order_details FOR SELEC
 
 
 --
--- TOC entry 5534 (class 0 OID 69516)
--- Dependencies: 467
+-- TOC entry 5540 (class 0 OID 69516)
+-- Dependencies: 466
 -- Name: badges_catalog; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.badges_catalog ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5525 (class 0 OID 54789)
--- Dependencies: 446
+-- TOC entry 5531 (class 0 OID 54789)
+-- Dependencies: 445
 -- Name: chat_messages; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5526 (class 0 OID 54816)
--- Dependencies: 448
+-- TOC entry 5532 (class 0 OID 54816)
+-- Dependencies: 447
 -- Name: chat_participants; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.chat_participants ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5527 (class 0 OID 54843)
--- Dependencies: 450
+-- TOC entry 5533 (class 0 OID 54843)
+-- Dependencies: 449
 -- Name: chat_typing_status; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.chat_typing_status ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5514 (class 0 OID 27560)
+-- TOC entry 5520 (class 0 OID 27560)
 -- Dependencies: 411
 -- Name: favorite_orders; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20702,7 +20938,7 @@ ALTER TABLE public.chat_typing_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.favorite_orders ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5507 (class 0 OID 25570)
+-- TOC entry 5513 (class 0 OID 25570)
 -- Dependencies: 391
 -- Name: fourmiz_criteria; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20710,7 +20946,7 @@ ALTER TABLE public.favorite_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fourmiz_criteria ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5513 (class 0 OID 26388)
+-- TOC entry 5519 (class 0 OID 26388)
 -- Dependencies: 410
 -- Name: fourmiz_reviews; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20718,7 +20954,7 @@ ALTER TABLE public.fourmiz_criteria ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fourmiz_reviews ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5508 (class 0 OID 25585)
+-- TOC entry 5514 (class 0 OID 25585)
 -- Dependencies: 393
 -- Name: fourmiz_services; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20726,15 +20962,15 @@ ALTER TABLE public.fourmiz_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fourmiz_services ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5544 (class 0 OID 147628)
--- Dependencies: 502
+-- TOC entry 5550 (class 0 OID 147628)
+-- Dependencies: 501
 -- Name: legal_engagement_types; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.legal_engagement_types ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5520 (class 0 OID 33986)
+-- TOC entry 5526 (class 0 OID 33986)
 -- Dependencies: 418
 -- Name: locations; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20742,7 +20978,7 @@ ALTER TABLE public.legal_engagement_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5515 (class 0 OID 27686)
+-- TOC entry 5521 (class 0 OID 27686)
 -- Dependencies: 412
 -- Name: messages; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20750,23 +20986,23 @@ ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5529 (class 0 OID 55183)
--- Dependencies: 454
+-- TOC entry 5535 (class 0 OID 55183)
+-- Dependencies: 453
 -- Name: notification_history; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.notification_history ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5530 (class 0 OID 55210)
--- Dependencies: 456
+-- TOC entry 5536 (class 0 OID 55210)
+-- Dependencies: 455
 -- Name: notification_preferences; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5517 (class 0 OID 30004)
+-- TOC entry 5523 (class 0 OID 30004)
 -- Dependencies: 414
 -- Name: notifications; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20774,15 +21010,15 @@ ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5538 (class 0 OID 84465)
--- Dependencies: 480
+-- TOC entry 5544 (class 0 OID 84465)
+-- Dependencies: 479
 -- Name: order_details; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.order_details ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5519 (class 0 OID 31973)
+-- TOC entry 5525 (class 0 OID 31973)
 -- Dependencies: 417
 -- Name: order_steps; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20790,7 +21026,7 @@ ALTER TABLE public.order_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_steps ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5509 (class 0 OID 25596)
+-- TOC entry 5515 (class 0 OID 25596)
 -- Dependencies: 395
 -- Name: other_services; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20798,31 +21034,31 @@ ALTER TABLE public.order_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.other_services ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5542 (class 0 OID 133726)
--- Dependencies: 491
+-- TOC entry 5548 (class 0 OID 133726)
+-- Dependencies: 490
 -- Name: payments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5541 (class 0 OID 132496)
--- Dependencies: 490
+-- TOC entry 5547 (class 0 OID 132496)
+-- Dependencies: 489
 -- Name: payout_requests; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.payout_requests ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5536 (class 0 OID 81071)
--- Dependencies: 476
+-- TOC entry 5542 (class 0 OID 81071)
+-- Dependencies: 475
 -- Name: pending_uploads; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.pending_uploads ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5516 (class 0 OID 29940)
+-- TOC entry 5522 (class 0 OID 29940)
 -- Dependencies: 413
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20830,15 +21066,15 @@ ALTER TABLE public.pending_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5528 (class 0 OID 55162)
--- Dependencies: 452
+-- TOC entry 5534 (class 0 OID 55162)
+-- Dependencies: 451
 -- Name: push_tokens; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.push_tokens ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5511 (class 0 OID 25885)
+-- TOC entry 5517 (class 0 OID 25885)
 -- Dependencies: 402
 -- Name: referral_commissions; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20846,15 +21082,15 @@ ALTER TABLE public.push_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.referral_commissions ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5535 (class 0 OID 76839)
--- Dependencies: 473
+-- TOC entry 5541 (class 0 OID 76839)
+-- Dependencies: 472
 -- Name: referral_config; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.referral_config ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5510 (class 0 OID 25862)
+-- TOC entry 5516 (class 0 OID 25862)
 -- Dependencies: 400
 -- Name: referrals; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20862,7 +21098,7 @@ ALTER TABLE public.referral_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5523 (class 0 OID 36115)
+-- TOC entry 5529 (class 0 OID 36115)
 -- Dependencies: 428
 -- Name: revenues; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20870,7 +21106,7 @@ ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.revenues ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5522 (class 0 OID 36002)
+-- TOC entry 5528 (class 0 OID 36002)
 -- Dependencies: 427
 -- Name: revenus; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20878,7 +21114,7 @@ ALTER TABLE public.revenues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.revenus ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5521 (class 0 OID 35945)
+-- TOC entry 5527 (class 0 OID 35945)
 -- Dependencies: 426
 -- Name: rewards; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20886,7 +21122,7 @@ ALTER TABLE public.revenus ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rewards ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5524 (class 0 OID 42252)
+-- TOC entry 5530 (class 0 OID 42252)
 -- Dependencies: 433
 -- Name: service_assignments; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20894,7 +21130,7 @@ ALTER TABLE public.rewards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_assignments ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5506 (class 0 OID 25214)
+-- TOC entry 5512 (class 0 OID 25214)
 -- Dependencies: 388
 -- Name: services; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20902,7 +21138,7 @@ ALTER TABLE public.service_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5505 (class 0 OID 22992)
+-- TOC entry 5511 (class 0 OID 22992)
 -- Dependencies: 386
 -- Name: test; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20910,7 +21146,7 @@ ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.test ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5624 (class 3256 OID 36154)
+-- TOC entry 5630 (class 3256 OID 36154)
 -- Name: revenues user can see own revenues; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20918,47 +21154,47 @@ CREATE POLICY "user can see own revenues" ON public.revenues FOR SELECT USING ((
 
 
 --
--- TOC entry 5537 (class 0 OID 81442)
--- Dependencies: 477
+-- TOC entry 5543 (class 0 OID 81442)
+-- Dependencies: 476
 -- Name: user_credits; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_credits ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5545 (class 0 OID 147643)
--- Dependencies: 503
+-- TOC entry 5551 (class 0 OID 147643)
+-- Dependencies: 502
 -- Name: user_legal_engagements; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_legal_engagements ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5543 (class 0 OID 144140)
--- Dependencies: 501
+-- TOC entry 5549 (class 0 OID 144140)
+-- Dependencies: 500
 -- Name: user_references; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_references ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5532 (class 0 OID 67707)
--- Dependencies: 463
+-- TOC entry 5538 (class 0 OID 67707)
+-- Dependencies: 462
 -- Name: user_referral_codes; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_referral_codes ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5533 (class 0 OID 67723)
--- Dependencies: 464
+-- TOC entry 5539 (class 0 OID 67723)
+-- Dependencies: 463
 -- Name: user_referrals; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.user_referrals ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5582 (class 3256 OID 80306)
+-- TOC entry 5588 (class 3256 OID 80306)
 -- Name: push_tokens user_tokens_policy; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -20966,7 +21202,7 @@ CREATE POLICY user_tokens_policy ON public.push_tokens TO authenticated USING ((
 
 
 --
--- TOC entry 5512 (class 0 OID 26158)
+-- TOC entry 5518 (class 0 OID 26158)
 -- Dependencies: 408
 -- Name: users; Type: ROW SECURITY; Schema: public; Owner: -
 --
@@ -20974,7 +21210,7 @@ CREATE POLICY user_tokens_policy ON public.push_tokens TO authenticated USING ((
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5504 (class 0 OID 17253)
+-- TOC entry 5510 (class 0 OID 17253)
 -- Dependencies: 384
 -- Name: messages; Type: ROW SECURITY; Schema: realtime; Owner: -
 --
@@ -20982,7 +21218,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5664 (class 3256 OID 145860)
+-- TOC entry 5670 (class 3256 OID 145860)
 -- Name: objects Allow all public access; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -20990,7 +21226,7 @@ CREATE POLICY "Allow all public access" ON storage.objects FOR SELECT USING ((bu
 
 
 --
--- TOC entry 5625 (class 3256 OID 81070)
+-- TOC entry 5631 (class 3256 OID 81070)
 -- Name: objects Allow delete own files; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -20998,7 +21234,7 @@ CREATE POLICY "Allow delete own files" ON storage.objects FOR DELETE USING (((bu
 
 
 --
--- TOC entry 5614 (class 3256 OID 81069)
+-- TOC entry 5620 (class 3256 OID 81069)
 -- Name: objects Allow read own files; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21006,7 +21242,7 @@ CREATE POLICY "Allow read own files" ON storage.objects FOR SELECT USING (((buck
 
 
 --
--- TOC entry 5655 (class 3256 OID 145633)
+-- TOC entry 5661 (class 3256 OID 145633)
 -- Name: objects Authenticated users can upload to user documents; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21014,7 +21250,7 @@ CREATE POLICY "Authenticated users can upload to user documents" ON storage.obje
 
 
 --
--- TOC entry 5629 (class 3256 OID 109320)
+-- TOC entry 5635 (class 3256 OID 109320)
 -- Name: objects Public Avatar Access; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21022,7 +21258,7 @@ CREATE POLICY "Public Avatar Access" ON storage.objects FOR SELECT USING ((bucke
 
 
 --
--- TOC entry 5630 (class 3256 OID 109321)
+-- TOC entry 5636 (class 3256 OID 109321)
 -- Name: objects Public Document Access; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21030,7 +21266,7 @@ CREATE POLICY "Public Document Access" ON storage.objects FOR SELECT USING ((buc
 
 
 --
--- TOC entry 5653 (class 3256 OID 144392)
+-- TOC entry 5659 (class 3256 OID 144392)
 -- Name: objects Public read access for reference images; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21038,7 +21274,7 @@ CREATE POLICY "Public read access for reference images" ON storage.objects FOR S
 
 
 --
--- TOC entry 5662 (class 3256 OID 145838)
+-- TOC entry 5668 (class 3256 OID 145838)
 -- Name: objects Public read access for references; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21046,7 +21282,7 @@ CREATE POLICY "Public read access for references" ON storage.objects FOR SELECT 
 
 
 --
--- TOC entry 5654 (class 3256 OID 145632)
+-- TOC entry 5660 (class 3256 OID 145632)
 -- Name: objects Public read access for user documents; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21054,7 +21290,7 @@ CREATE POLICY "Public read access for user documents" ON storage.objects FOR SEL
 
 
 --
--- TOC entry 5657 (class 3256 OID 145635)
+-- TOC entry 5663 (class 3256 OID 145635)
 -- Name: objects Users can delete own files; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21062,7 +21298,7 @@ CREATE POLICY "Users can delete own files" ON storage.objects FOR DELETE USING (
 
 
 --
--- TOC entry 5656 (class 3256 OID 145634)
+-- TOC entry 5662 (class 3256 OID 145634)
 -- Name: objects Users can update own files; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21070,7 +21306,7 @@ CREATE POLICY "Users can update own files" ON storage.objects FOR UPDATE USING (
 
 
 --
--- TOC entry 5663 (class 3256 OID 145839)
+-- TOC entry 5669 (class 3256 OID 145839)
 -- Name: objects Users can upload references; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21078,7 +21314,7 @@ CREATE POLICY "Users can upload references" ON storage.objects FOR INSERT WITH C
 
 
 --
--- TOC entry 5627 (class 3256 OID 84279)
+-- TOC entry 5633 (class 3256 OID 84279)
 -- Name: objects Users can upload their own documents; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21086,7 +21322,7 @@ CREATE POLICY "Users can upload their own documents" ON storage.objects FOR INSE
 
 
 --
--- TOC entry 5628 (class 3256 OID 84280)
+-- TOC entry 5634 (class 3256 OID 84280)
 -- Name: objects Users can view their own documents; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21094,7 +21330,7 @@ CREATE POLICY "Users can view their own documents" ON storage.objects FOR SELECT
 
 
 --
--- TOC entry 5650 (class 3256 OID 109609)
+-- TOC entry 5656 (class 3256 OID 109609)
 -- Name: objects Utilisateurs peuvent modifier leurs fichiers; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21102,7 +21338,7 @@ CREATE POLICY "Utilisateurs peuvent modifier leurs fichiers" ON storage.objects 
 
 
 --
--- TOC entry 5649 (class 3256 OID 109608)
+-- TOC entry 5655 (class 3256 OID 109608)
 -- Name: objects Utilisateurs peuvent supprimer leurs fichiers; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21110,7 +21346,7 @@ CREATE POLICY "Utilisateurs peuvent supprimer leurs fichiers" ON storage.objects
 
 
 --
--- TOC entry 5648 (class 3256 OID 109607)
+-- TOC entry 5654 (class 3256 OID 109607)
 -- Name: objects Utilisateurs peuvent uploader leurs fichiers; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21118,7 +21354,7 @@ CREATE POLICY "Utilisateurs peuvent uploader leurs fichiers" ON storage.objects 
 
 
 --
--- TOC entry 5647 (class 3256 OID 109606)
+-- TOC entry 5653 (class 3256 OID 109606)
 -- Name: objects Utilisateurs peuvent voir leurs propres fichiers; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21126,7 +21362,7 @@ CREATE POLICY "Utilisateurs peuvent voir leurs propres fichiers" ON storage.obje
 
 
 --
--- TOC entry 5615 (class 3256 OID 81392)
+-- TOC entry 5621 (class 3256 OID 81392)
 -- Name: objects basic_upload_test; Type: POLICY; Schema: storage; Owner: -
 --
 
@@ -21134,7 +21370,7 @@ CREATE POLICY basic_upload_test ON storage.objects FOR INSERT WITH CHECK ((bucke
 
 
 --
--- TOC entry 5488 (class 0 OID 16544)
+-- TOC entry 5494 (class 0 OID 16544)
 -- Dependencies: 359
 -- Name: buckets; Type: ROW SECURITY; Schema: storage; Owner: -
 --
@@ -21142,15 +21378,15 @@ CREATE POLICY basic_upload_test ON storage.objects FOR INSERT WITH CHECK ((bucke
 ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5540 (class 0 OID 120754)
--- Dependencies: 488
+-- TOC entry 5546 (class 0 OID 120754)
+-- Dependencies: 487
 -- Name: buckets_analytics; Type: ROW SECURITY; Schema: storage; Owner: -
 --
 
 ALTER TABLE storage.buckets_analytics ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5490 (class 0 OID 16586)
+-- TOC entry 5496 (class 0 OID 16586)
 -- Dependencies: 361
 -- Name: migrations; Type: ROW SECURITY; Schema: storage; Owner: -
 --
@@ -21158,7 +21394,7 @@ ALTER TABLE storage.buckets_analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE storage.migrations ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5489 (class 0 OID 16559)
+-- TOC entry 5495 (class 0 OID 16559)
 -- Dependencies: 360
 -- Name: objects; Type: ROW SECURITY; Schema: storage; Owner: -
 --
@@ -21166,15 +21402,15 @@ ALTER TABLE storage.migrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5539 (class 0 OID 120710)
--- Dependencies: 487
+-- TOC entry 5545 (class 0 OID 120710)
+-- Dependencies: 486
 -- Name: prefixes; Type: ROW SECURITY; Schema: storage; Owner: -
 --
 
 ALTER TABLE storage.prefixes ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5502 (class 0 OID 17037)
+-- TOC entry 5508 (class 0 OID 17037)
 -- Dependencies: 377
 -- Name: s3_multipart_uploads; Type: ROW SECURITY; Schema: storage; Owner: -
 --
@@ -21182,7 +21418,7 @@ ALTER TABLE storage.prefixes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE storage.s3_multipart_uploads ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5503 (class 0 OID 17051)
+-- TOC entry 5509 (class 0 OID 17051)
 -- Dependencies: 378
 -- Name: s3_multipart_uploads_parts; Type: ROW SECURITY; Schema: storage; Owner: -
 --
@@ -21190,7 +21426,7 @@ ALTER TABLE storage.s3_multipart_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE storage.s3_multipart_uploads_parts ENABLE ROW LEVEL SECURITY;
 
 --
--- TOC entry 5667 (class 6104 OID 16426)
+-- TOC entry 5673 (class 6104 OID 16426)
 -- Name: supabase_realtime; Type: PUBLICATION; Schema: -; Owner: -
 --
 
@@ -21198,7 +21434,7 @@ CREATE PUBLICATION supabase_realtime WITH (publish = 'insert, update, delete, tr
 
 
 --
--- TOC entry 5668 (class 6104 OID 30831)
+-- TOC entry 5674 (class 6104 OID 30831)
 -- Name: supabase_realtime_messages_publication; Type: PUBLICATION; Schema: -; Owner: -
 --
 
@@ -21206,7 +21442,7 @@ CREATE PUBLICATION supabase_realtime_messages_publication WITH (publish = 'inser
 
 
 --
--- TOC entry 5669 (class 6106 OID 30832)
+-- TOC entry 5675 (class 6106 OID 30832)
 -- Name: supabase_realtime_messages_publication messages; Type: PUBLICATION TABLE; Schema: realtime; Owner: -
 --
 
@@ -21214,7 +21450,7 @@ ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY realtime
 
 
 --
--- TOC entry 4261 (class 3466 OID 16619)
+-- TOC entry 4267 (class 3466 OID 16619)
 -- Name: issue_graphql_placeholder; Type: EVENT TRIGGER; Schema: -; Owner: -
 --
 
@@ -21224,7 +21460,7 @@ CREATE EVENT TRIGGER issue_graphql_placeholder ON sql_drop
 
 
 --
--- TOC entry 4266 (class 3466 OID 16698)
+-- TOC entry 4272 (class 3466 OID 16698)
 -- Name: issue_pg_cron_access; Type: EVENT TRIGGER; Schema: -; Owner: -
 --
 
@@ -21234,7 +21470,7 @@ CREATE EVENT TRIGGER issue_pg_cron_access ON ddl_command_end
 
 
 --
--- TOC entry 4260 (class 3466 OID 16617)
+-- TOC entry 4266 (class 3466 OID 16617)
 -- Name: issue_pg_graphql_access; Type: EVENT TRIGGER; Schema: -; Owner: -
 --
 
@@ -21244,7 +21480,7 @@ CREATE EVENT TRIGGER issue_pg_graphql_access ON ddl_command_end
 
 
 --
--- TOC entry 4267 (class 3466 OID 16701)
+-- TOC entry 4273 (class 3466 OID 16701)
 -- Name: issue_pg_net_access; Type: EVENT TRIGGER; Schema: -; Owner: -
 --
 
@@ -21254,7 +21490,7 @@ CREATE EVENT TRIGGER issue_pg_net_access ON ddl_command_end
 
 
 --
--- TOC entry 4262 (class 3466 OID 16620)
+-- TOC entry 4268 (class 3466 OID 16620)
 -- Name: pgrst_ddl_watch; Type: EVENT TRIGGER; Schema: -; Owner: -
 --
 
@@ -21263,7 +21499,7 @@ CREATE EVENT TRIGGER pgrst_ddl_watch ON ddl_command_end
 
 
 --
--- TOC entry 4263 (class 3466 OID 16621)
+-- TOC entry 4269 (class 3466 OID 16621)
 -- Name: pgrst_drop_watch; Type: EVENT TRIGGER; Schema: -; Owner: -
 --
 
@@ -21271,7 +21507,7 @@ CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
    EXECUTE FUNCTION extensions.pgrst_drop_watch();
 
 
--- Completed on 2025-09-16 12:00:43
+-- Completed on 2025-09-21 12:00:30
 
 --
 -- PostgreSQL database dump complete
