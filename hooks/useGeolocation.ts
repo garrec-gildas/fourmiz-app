@@ -1,5 +1,5 @@
 // hooks/useGeolocation.ts
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Database } from '../lib/database.types';
 

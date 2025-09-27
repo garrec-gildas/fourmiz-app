@@ -4,7 +4,7 @@
 // ✅ CORRIGÉ : Utilisation de 'id' au lieu de 'user_id' pour la cohérence avec index.tsx
 // 🛡️ ULTRA-PROTÉGÉ : Protection maximale contre les erreurs .includes()
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabase';
 
 export type UserRole = 'client' | 'fourmiz';

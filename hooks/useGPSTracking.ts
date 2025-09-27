@@ -1,5 +1,5 @@
 // hooks/useGPSTracking.ts
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createClientComponentClient } from '@supabase/supabase-js';
 import * as Location from 'expo-location';
 import { AppState, Alert } from 'react-native';

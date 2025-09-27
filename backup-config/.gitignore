@@ -1,0 +1,83 @@
+﻿# DEPENDENCIES
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# EXPO & REACT NATIVE
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# ENVIRONMENT VARIABLES
+.env
+.env.local
+.env.*.local
+
+# BUILD & CACHE
+build/
+*.tgz
+*.tar.gz
+.cache/
+coverage/
+.metro-cache/
+node_modules/.cache/
+
+# ONEDRIVE CONFLITS (CRITIQUE)
+*-conflict-*
+*-conflicted-copy-*
+*.tmp
+*~
+.sync-conflict-*
+OneDrive*
+.OneDrive
+*.lock
+desktop.ini
+thumbs.db
+Thumbs.db
+.DS_Store
+$RECYCLE.BIN/
+
+# Watchman conflicts
+.watchmanconfig-*
+.gitignore-*
+.eslintignore-*
+
+# SYSTEM FILES
+desktop.ini
+thumbs.db
+.DS_Store
+*~
+
+# IDEs & EDITORS
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# LOGS
+logs
+*.log
+
+# TESTING
+coverage/
+*.lcov
+
+# TYPESCRIPT
+*.tsbuildinfo
+
+# MOBILE BUILDS
+android/app/build/
+android/build/
+ios/build/
+ios/DerivedData/
+*.apk
+*.ipa
+
+# BACKUP & TEMP
+backup/
+*.backup
+*.bak
+tmp/
+temp/

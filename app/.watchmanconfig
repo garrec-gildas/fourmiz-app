@@ -1,0 +1,14 @@
+{
+  "ignore_dirs": [
+    ".git",
+    "node_modules",
+    ".expo",
+    "dist",
+    "build",
+    ".expo-shared",
+    "coverage",
+    "web-mocks"
+  ],
+  "settle": 20,
+  "fsmonitor.watchman_query_timeout": 120
+}

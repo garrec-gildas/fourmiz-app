@@ -1,4 +1,6 @@
-// app/fourmiz-profile-readonly.tsx - FICHE FOURMIZ EN LECTURE SEULE
+// app/fourmiz-profile-readonly.tsx - FICHE FOURMIZ EN LECTURE SEULE - VERSION CORRIGÉE
+// ✅ CORRECTION : Boucle infinie dans useEffect réparée
+// ✅ CORRECTION : Cohérence avec fourmiz-preview (missions terminées uniquement, suppression % réussite)
 // Version dédiée pour consultation par les clients (sans boutons de modification)
 // Utilise des paramètres de requête au lieu de routes dynamiques
 
@@ -62,11 +64,12 @@ interface UserReference {
   created_at: string;
 }
 
+// ✅ INTERFACE CORRIGÉE : Suppression completion_rate
 interface FourmizStats {
   total_missions: number;
   average_rating: number;
-  completion_rate: number;
   response_time_avg: number;
+  // ✅ SUPPRESSION DE completion_rate
 }
 
 const FourmizProfileReadonly = () => {
@@ -79,7 +82,7 @@ const FourmizProfileReadonly = () => {
   const [references, setReferences] = useState<UserReference[]>([]);
   const [stats, setStats] = useState<FourmizStats | null>(null);
 
-  // Chargement du profil
+  // Chargement du profil - ✅ FONCTIONS STABLES
   const loadProfile = useCallback(async () => {
     if (!fourmizId) {
       console.error('❌ Aucun fourmizId fourni');
@@ -112,9 +115,9 @@ const FourmizProfileReadonly = () => {
       console.error('💥 Erreur fatale chargement profil:', error);
       Alert.alert('Erreur', 'Impossible de charger le profil de ce Fourmiz');
     }
-  }, [fourmizId]);
+  }, []); // ✅ STABLE : Dépendances vides car fourmizId est accessible via closure
 
-  // Chargement des critères
+  // Chargement des critères - ✅ FONCTIONS STABLES
   const loadCriteria = useCallback(async () => {
     if (!fourmizId) return;
 
@@ -153,9 +156,9 @@ const FourmizProfileReadonly = () => {
     } catch (error) {
       console.error('💥 Erreur fatale chargement critères:', error);
     }
-  }, [fourmizId]);
+  }, []); // ✅ STABLE : Dépendances vides
 
-  // Chargement des références
+  // Chargement des références - ✅ FONCTIONS STABLES
   const loadReferences = useCallback(async () => {
     if (!fourmizId) return;
 
@@ -180,46 +183,73 @@ const FourmizProfileReadonly = () => {
     } catch (error) {
       console.error('💥 Erreur fatale chargement références:', error);
     }
-  }, [fourmizId]);
+  }, []); // ✅ STABLE : Dépendances vides
 
-  // Chargement des statistiques
+  // ✅ FONCTION CORRIGÉE : COHÉRENCE AVEC fourmiz-preview (missions terminées uniquement)
   const loadStats = useCallback(async () => {
     if (!fourmizId) return;
 
     try {
       console.log('🔄 Chargement stats pour:', fourmizId);
 
-      // Calculer les statistiques depuis les commandes
+      // ✅ MÉTHODE PRINCIPALE : Compter directement les missions terminées depuis orders
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('rating, status')
-        .eq('fourmiz_id', fourmizId);
+        .select('id, rating, status, fourmiz_id')
+        .eq('fourmiz_id', fourmizId)
+        .eq('status', 'terminee'); // ✅ UNIQUEMENT LES MISSIONS TERMINÉES
+
+      // Récupération du rating depuis le profil
+      const { data: profileStats, error: profileError } = await supabase
+        .from('profiles')
+        .select('fourmiz_rating, fourmiz_has_real_rating, default_rating')
+        .eq('id', fourmizId)
+        .single();
+
+      let calculatedStats: FourmizStats;
 
       if (ordersError) {
-        console.error('❌ Erreur chargement statistiques:', ordersError);
-        throw ordersError;
+        console.error('❌ Erreur chargement orders:', ordersError);
+        
+        // FALLBACK : Stats par défaut
+        calculatedStats = {
+          total_missions: 0,
+          average_rating: 0,
+          response_time_avg: 2.5,
+          // ✅ SUPPRESSION DE completion_rate
+        };
+      } else {
+        const orders = ordersData || [];
+        const ratings = orders.filter(o => o.rating).map(o => o.rating);
+
+        calculatedStats = {
+          total_missions: orders.length, // ✅ NOMBRE DE MISSIONS TERMINÉES UNIQUEMENT
+          average_rating: profileError ? 
+            (ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0) :
+            safeNumber(profileStats?.fourmiz_rating || profileStats?.default_rating) || 0,
+          response_time_avg: 2.5,
+          // ✅ SUPPRESSION DE completion_rate
+        };
       }
 
-      const orders = ordersData || [];
-      const completedOrders = orders.filter(o => o.status === 'terminee');
-      const ratings = completedOrders.filter(o => o.rating).map(o => o.rating);
-
-      const calculatedStats: FourmizStats = {
-        total_missions: completedOrders.length,
-        average_rating: ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0,
-        completion_rate: orders.length > 0 ? (completedOrders.length / orders.length) * 100 : 0,
-        response_time_avg: 2.5 // Valeur par défaut
-      };
-
-      console.log('✅ Statistiques calculées:', calculatedStats);
+      console.log('✅ Statistiques chargées (missions terminées uniquement):', calculatedStats);
       setStats(calculatedStats);
 
     } catch (error) {
       console.error('💥 Erreur fatale chargement stats:', error);
+      
+      // Stats par défaut en cas d'erreur totale
+      const fallbackStats: FourmizStats = {
+        total_missions: 0,
+        average_rating: 0,
+        response_time_avg: 2.5,
+        // ✅ SUPPRESSION DE completion_rate
+      };
+      setStats(fallbackStats);
     }
-  }, [fourmizId]);
+  }, []); // ✅ STABLE : Dépendances vides
 
-  // Chargement initial
+  // ✅ CORRECTION PRINCIPALE : Chargement initial SANS boucle infinie
   useEffect(() => {
     if (!fourmizId) {
       console.error('❌ fourmizId manquant');
@@ -240,7 +270,7 @@ const FourmizProfileReadonly = () => {
     };
 
     loadAllData();
-  }, [fourmizId, loadProfile, loadCriteria, loadReferences, loadStats]);
+  }, [fourmizId]); // ✅ CORRECTION : Seulement fourmizId, pas les fonctions !
 
   // Fonctions de formatage
   const formatExperience = useCallback((totalMissions: number): string => {
@@ -289,7 +319,7 @@ const FourmizProfileReadonly = () => {
               <View style={styles.statItem}>
                 <Ionicons name="star" size={14} color="#f59e0b" />
                 <Text style={styles.statText}>
-                  {formatRating(stats.average_rating)} ({stats.total_missions} missions)
+                  {formatRating(stats.average_rating)} ({stats.total_missions} missions terminées)
                 </Text>
               </View>
               <View style={styles.statItem}>
@@ -468,6 +498,7 @@ const FourmizProfileReadonly = () => {
     );
   };
 
+  // ✅ SECTION STATS CORRIGÉE : Suppression completion_rate
   const renderStatsSection = () => {
     if (!stats) return null;
 
@@ -479,7 +510,7 @@ const FourmizProfileReadonly = () => {
           <View style={styles.statCard}>
             <Ionicons name="briefcase" size={24} color="#3b82f6" />
             <Text style={styles.statValue}>{stats.total_missions}</Text>
-            <Text style={styles.statLabel}>Missions réalisées</Text>
+            <Text style={styles.statLabel}>Missions terminées</Text>
           </View>
           
           <View style={styles.statCard}>
@@ -489,16 +520,12 @@ const FourmizProfileReadonly = () => {
           </View>
           
           <View style={styles.statCard}>
-            <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-            <Text style={styles.statValue}>{Math.round(stats.completion_rate)}%</Text>
-            <Text style={styles.statLabel}>Taux de réussite</Text>
-          </View>
-          
-          <View style={styles.statCard}>
             <Ionicons name="time" size={24} color="#8b5cf6" />
             <Text style={styles.statValue}>{stats.response_time_avg}h</Text>
             <Text style={styles.statLabel}>Temps de réponse</Text>
           </View>
+          
+          {/* ✅ SUPPRESSION DE LA CARTE completion_rate */}
         </View>
       </View>
     );

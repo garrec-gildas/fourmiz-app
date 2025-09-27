@@ -816,7 +816,8 @@ export default function MapScreen() {
               firstname,
               lastname,
               avatar_url,
-              rating
+              client_rating,              
+              client_has_real_rating  
             )
           `)
           .neq('client_id', user.id)

@@ -1,0 +1,142 @@
+const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
+
+const config = getDefaultConfig(__dirname);
+
+// ========================================
+// OPTIMISATIONS FAST REFRESH ESSENTIELLES
+// ========================================
+
+// Force reset cache - crucial pour éviter les états corrompus
+config.resetCache = true;
+config.cacheStores = [];
+
+// ========================================
+// OPTIMISATIONS ONEDRIVE - SIMPLIFIED
+// ========================================
+
+// Désactiver Watchman (problématique avec OneDrive)
+config.resolver.useWatchman = false;
+
+// ========================================
+// EXCLUSIONS ONEDRIVE - ESSENTIELLES
+// ========================================
+
+config.resolver.blockList = [
+  // React Native standards
+  /node_modules\/.*\/node_modules\/react-native\/.*/,
+  
+  // OneDrive conflicts - CRITIQUE
+  /.*\.tmp$/,
+  /.*~$/,
+  /*-conflict-*/,
+  /OneDrive.*\.lock$/,
+  /\.OneDrive$/,
+  /desktop\.ini$/,
+  /thumbs\.db$/,
+  /\.DS_Store$/,
+  
+  // Cache et build
+  /\.expo\//,
+  /dist\//,
+  /build\//,
+  /node_modules\/\.cache\//,
+];
+
+// ========================================
+// CONFIGURATION TRANSFORMER - MINIMAL
+// ========================================
+
+// Optimisations pour Fast Refresh
+config.transformer.minifierConfig = {
+  keep_fnames: true,
+  keep_classnames: true,
+  mangle: {
+    keep_fnames: true,
+    keep_classnames: true,
+  },
+};
+
+// ========================================
+// RESOLVER - SIMPLE ET EFFICACE
+// ========================================
+
+// Alias de base
+config.resolver.alias = {
+  '@': __dirname,
+  '@components': './components',
+  '@hooks': './hooks',
+  '@lib': './lib',
+  '@constants': './constants',
+  '@utils': './utils',
+  '@types': './types',
+};
+
+// Extensions supportées
+config.resolver.sourceExts = [
+  'js', 'jsx', 'ts', 'tsx', 'json',
+  ...config.resolver.sourceExts
+];
+
+// ========================================
+// WEB MOCKS - SIMPLIFIÉ
+// ========================================
+
+// Seulement si les fichiers de mocks existent
+const originalResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Mocks web seulement si nécessaires
+  if (platform === 'web') {
+    const webMocks = {
+      'react-native-maps': 'web-mocks/react-native-maps.js',
+      'react-native-maps-directions': 'web-mocks/react-native-maps-directions.js',
+    };
+    
+    if (webMocks[moduleName]) {
+      const mockPath = path.resolve(__dirname, webMocks[moduleName]);
+      try {
+        require.resolve(mockPath);
+        return {
+          filePath: mockPath,
+          type: 'sourceFile',
+        };
+      } catch {
+        // Ignore si mock n'existe pas
+      }
+    }
+  }
+  
+  // Utiliser le resolver d'origine pour tout le reste
+  if (originalResolveRequest) {
+    return originalResolveRequest(context, moduleName, platform);
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
+// ========================================
+// SERVEUR - ANTI-CACHE ONEDRIVE
+// ========================================
+
+config.server = {
+  enhanceMiddleware: (middleware) => {
+    return (req, res, next) => {
+      // Anti-cache pour OneDrive
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      // CORS basique
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
+      return middleware(req, res, next);
+    };
+  },
+};
+
+// ========================================
+// PERFORMANCE - LIMITÉ POUR ONEDRIVE
+// ========================================
+
+config.maxWorkers = 2; // Réduire la charge sur OneDrive
+
+module.exports = config;

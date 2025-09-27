@@ -1,7 +1,7 @@
 // components/OrderCard.tsx
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import PaymentModal from '@/components/PaymentModal';
+import { PaymentModal } from '@/components/PaymentModal';
 
 interface OrderCardProps {
   orderId: number;

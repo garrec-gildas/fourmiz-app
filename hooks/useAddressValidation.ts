@@ -1,5 +1,5 @@
-// hooks/useAddressValidation.ts
-import { useState, useCallback, useRef } from 'react';
+﻿// hooks/useAddressValidation.ts
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { AddressSuggestion, AddressValidationResult } from '../src/types/address';
 import { 
   validateAddressFormat, 

@@ -1,12 +1,33 @@
-﻿// app/_layout.tsx - VERSION AVEC REDIRECTION INTELLIGENTE PAR RÔLE + CORRECTION DÉCONNEXION + STRIPE CORRIGÉ
+﻿// app/_layout.tsx - VERSION AVEC REDIRECTION INTELLIGENTE PAR RÔLE + CORRECTION DÉCONNEXION + STRIPE CORRIGÉ + LOGS DEBUG
 // MODIFICATION : Permettre l'accès aux références pour les clients + FOURMIZ NAVIGATION LIBRE
 // 🔧 CORRIGÉ : Utilise useRoleManagerAdapter au lieu du système local de gestion des rôles
-// import '@/lib/debugUtils';
-// import '@/lib/polyfills'; 
+// 🐛 DEBUG : Logs ajoutés pour identifier l'erreur useEffect
+
+// LOGS DEBUG REACT - VÉRIFICATION AVANT IMPORTS
+console.log('🔍 DEBUG _layout.tsx - AVANT IMPORTS');
+console.log('🔍 typeof React avant import:', typeof React);
+console.log('🔍 typeof useEffect avant import:', typeof useEffect);
+
 import { Slot, router, useSegments, useRootNavigationState } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { SplashScreen } from 'expo-router';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+
+// LOGS DEBUG REACT - VÉRIFICATION APRÈS IMPORTS
+console.log('🔍 DEBUG _layout.tsx - APRÈS IMPORTS REACT');
+console.log('🔍 typeof React après import:', typeof React);
+console.log('🔍 typeof useEffect après import:', typeof useEffect);
+console.log('🔍 typeof useState après import:', typeof useState);
+console.log('🔍 typeof useCallback après import:', typeof useCallback);
+console.log('🔍 typeof useRef après import:', typeof useRef);
+
+// Test immédiat de useEffect
+try {
+  console.log('🔍 DEBUG - Test useEffect direct:', useEffect.toString().substring(0, 50));
+} catch (error) {
+  console.error('🚨 DEBUG - Erreur test useEffect direct:', error);
+}
+
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { ChatNotificationProvider } from '@/components/ChatNotificationProvider';
 import { InAppNotification } from '@/components/InAppNotification';
@@ -33,9 +54,37 @@ import {
 import { supabase } from '@/lib/supabase';
 
 export default function Layout() {
+  console.log('🔍 DEBUG Layout - DÉBUT DU COMPOSANT');
+  console.log('🔍 DEBUG Layout - useEffect disponible:', typeof useEffect);
+  console.log('🔍 DEBUG Layout - useState disponible:', typeof useState);
+  console.log('🔍 DEBUG Layout - useCallback disponible:', typeof useCallback);
+  console.log('🔍 DEBUG Layout - useRef disponible:', typeof useRef);
+
+  // Test de hooks avant utilisation
+  try {
+    console.log('🔍 DEBUG - Test préliminaire des hooks...');
+    
+    if (typeof useEffect === 'undefined') {
+      console.error('🚨 DEBUG - useEffect est undefined! Tentative de récupération...');
+      console.log('🚨 DEBUG - React.useEffect disponible:', typeof React.useEffect);
+      // Fallback temporaire
+      const useEffect = React.useEffect;
+    }
+    
+    if (typeof useState === 'undefined') {
+      console.error('🚨 DEBUG - useState est undefined! Tentative de récupération...');
+      console.log('🚨 DEBUG - React.useState disponible:', typeof React.useState);
+    }
+    
+  } catch (error) {
+    console.error('🚨 DEBUG - Erreur test hooks:', error);
+  }
+
   const [fontsLoaded] = useFonts({
     Inter: require('@expo-google-fonts/inter/Inter_400Regular.ttf'),
   });
+
+  console.log('🔍 DEBUG Layout - useFonts exécuté avec succès');
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -43,10 +92,7 @@ export default function Layout() {
   const [isInitialLoad, setIsInitialLoad] = useState(true); 
   const [showAuthPageTime, setShowAuthPageTime] = useState<number | null>(null);
   
-  // 🔧 SUPPRIMÉ : États locaux pour la gestion des rôles (remplacés par useRoleManagerAdapter)
-  // const [userRole, setUserRole] = useState<string | null>(null);
-  // const [roleLoading, setRoleLoading] = useState(false);
-  // const [roleManagerData, setRoleManagerData] = useState<any>(null);
+  console.log('🔍 DEBUG Layout - useState hooks exécutés avec succès');
   
   // 🔧 NOUVEAU : Utilisation du useRoleManagerAdapter corrigé
   const { 
@@ -57,20 +103,27 @@ export default function Layout() {
     isClient 
   } = useRoleManagerAdapter();
   
+  console.log('🔍 DEBUG Layout - useRoleManagerAdapter exécuté avec succès');
+  console.log('🔍 DEBUG Layout - currentRole:', currentRole);
+  
   // REFS DE SÉCURITÉ
   const mounted = useRef(false);
   const authSubscription = useRef<{ unsubscribe: () => void } | null>(null);
   const timeouts = useRef<Set<NodeJS.Timeout>>(new Set());
   const redirectionDone = useRef(false);
   const initStarted = useRef(false);
-  // NOUVEAU : Ref pour gérer la déconnexion
   const isLoggingOut = useRef(false);
+  
+  console.log('🔍 DEBUG Layout - useRef hooks exécutés avec succès');
   
   const segments = useSegments();
   const navigationState = useRootNavigationState();
 
+  console.log('🔍 DEBUG Layout - hooks expo-router exécutés avec succès');
+
   // HELPER TIMEOUT SÉCURISÉ
   const safeTimeout = useCallback((callback: () => void, delay: number) => {
+    console.log('🔍 DEBUG safeTimeout - useCallback exécuté');
     const timeout = setTimeout(() => {
       if (mounted.current) {
         timeouts.current.delete(timeout);
@@ -81,7 +134,7 @@ export default function Layout() {
     return timeout;
   }, []);
 
-  // 🔧 SUPPRIMÉ : fonction getUserRole locale (remplacée par useRoleManagerAdapter)
+  console.log('🔍 DEBUG Layout - useCallback hooks exécutés avec succès');
 
   // 🔧 MODIFIÉ : Déterminer la route selon le rôle (utilise currentRole du hook)
   const getTargetRouteByRole = useCallback((role: string | null): string => {
@@ -107,17 +160,15 @@ export default function Layout() {
   const resetAuthState = useCallback(() => {
     console.log('Reset complet de l\'état auth...');
     setCurrentUser(null);
-    // 🔧 SUPPRIMÉ : setUserRole(null); (géré par useRoleManagerAdapter)
-    // 🔧 SUPPRIMÉ : setRoleLoading(false); (géré par useRoleManagerAdapter)
-    // 🔧 SUPPRIMÉ : setRoleManagerData(null); (géré par useRoleManagerAdapter)
     redirectionDone.current = false;
     setIsInitialLoad(true);
     setShowAuthPageTime(null);
     isLoggingOut.current = false;
   }, []);
 
-  // MONTAGE SÉCURISÉ AVEC LOGS DÉTAILLÉS
+  // MONTAGE SÉCURISÉ AVEC LOGS DÉTAILLÉS + DEBUG useEffect
   useEffect(() => {
+    console.log('🔍 DEBUG - PREMIER useEffect exécuté avec succès');
     console.log('Layout principal - Début du montage...');
     mounted.current = true;
     
@@ -151,6 +202,8 @@ export default function Layout() {
       console.log('Layout principal - Démontage terminé');
     };
   }, [safeTimeout]);
+
+  console.log('🔍 DEBUG Layout - PREMIER useEffect défini avec succès');
 
   // HELPER AUTH ULTRA-SÉCURISÉ AVEC LOGS DÉTAILLÉS
   const getCurrentUser = useCallback(async () => {
@@ -205,8 +258,10 @@ export default function Layout() {
     }
   }, []);
 
-  // 🔧 MODIFIÉ : INITIALISATION AUTH ULTRA-SÉCURISÉE (supprime la gestion locale des rôles)
+  // 🔧 MODIFIÉ : INITIALISATION AUTH ULTRA-SÉCURISÉE (supprime la gestion locale des rôles) + DEBUG useEffect
   useEffect(() => {
+    console.log('🔍 DEBUG - DEUXIÈME useEffect (initAuth) exécuté avec succès');
+    
     if (!isReady || initStarted.current) return;
 
     console.log('Configuration de l\'authentification...');
@@ -222,8 +277,6 @@ export default function Layout() {
         if (mounted.current) {
           console.log('Utilisateur initial:', user ? `Connecté (${user.id})` : 'Non connecté');
           setCurrentUser(user);
-          
-          // 🔧 SUPPRIMÉ : Récupération locale du rôle (géré par useRoleManagerAdapter)
           
           if (user) {
             await initializeNotificationsSafely(user.id);
@@ -269,7 +322,7 @@ export default function Layout() {
           authSubscription.current = null;
         }
 
-        // 🔧 MODIFIÉ : CRÉATION SÉCURISÉE DE LA NOUVELLE SUBSCRIPTION (supprime la gestion locale des rôles)
+        // 🔧 MODIFIÉ : CRÉATION SÉCURISÉE DE LA NOUVELLE SUBSCRIPTION
         const authResponse = supabase.auth.onAuthStateChange(async (event, session) => {
           if (!mounted.current) {
             console.log('Auth change ignoré - composant démonté');
@@ -291,18 +344,15 @@ export default function Layout() {
             // REDIRECTION ULTRA-AGRESSIVE IMMÉDIATE
             console.log('DÉCONNEXION - Redirection ULTRA-IMMÉDIATE vers login...');
             
-            // Triple tentative de redirection pour être sûr
             const forceRedirect = async () => {
               try {
                 if (mounted.current && router) {
                   console.log('Navigation FORCÉE vers login après déconnexion');
                   await router.replace('/auth/login');
                   
-                  // Vérifier après 50ms si on est bien sur login
                   setTimeout(() => {
                     if (mounted.current) {
                       console.log('Vérification post-redirection...');
-                      // Si pas sur login, forcer encore
                       if (window.location?.pathname !== '/auth/login') {
                         console.log('Redirection supplémentaire nécessaire');
                         router.replace('/auth/login');
@@ -315,10 +365,7 @@ export default function Layout() {
               }
             };
             
-            // Exécuter immédiatement
             forceRedirect();
-            
-            // Backup après 25ms
             setTimeout(forceRedirect, 25);
             
           } else if (event === 'SIGNED_IN' && user && mounted.current) {
@@ -328,12 +375,9 @@ export default function Layout() {
             setCurrentUser(user);
             setShowAuthPageTime(Date.now());
             
-            // 🔧 SUPPRIMÉ : Récupération locale du rôle (géré par useRoleManagerAdapter)
-            
             await initializeNotificationsSafely(user.id);
           } else if (event === 'TOKEN_REFRESHED' && mounted.current) {
             console.log('Token rafraîchi');
-            // Ne pas changer l'état utilisateur lors du refresh de token
             if (session?.user && !currentUser) {
               setCurrentUser(session.user);
             }
@@ -356,7 +400,9 @@ export default function Layout() {
     initAuth();
     setupAuthListener();
 
-  }, [isReady, getCurrentUser, resetAuthState, safeTimeout]); // 🔧 SUPPRIMÉ : getUserRole
+  }, [isReady, getCurrentUser, resetAuthState, safeTimeout]);
+
+  console.log('🔍 DEBUG Layout - DEUXIÈME useEffect défini avec succès');
 
   // NAVIGATION SÉCURISÉE
   const performSafeNavigation = useCallback(async (route: string): Promise<boolean> => {
@@ -374,8 +420,10 @@ export default function Layout() {
     }
   }, []);
 
-  // 🔧 MODIFIÉ : REDIRECTION INTELLIGENTE PAR RÔLE (utilise currentRole du hook)
+  // 🔧 MODIFIÉ : REDIRECTION INTELLIGENTE PAR RÔLE + DEBUG useEffect
   useEffect(() => {
+    console.log('🔍 DEBUG - TROISIÈME useEffect (redirection) exécuté avec succès');
+    
     if (authLoading || redirectionDone.current || !mounted.current || isLoggingOut.current) {
       return;
     }
@@ -383,13 +431,13 @@ export default function Layout() {
     // Attendre que le rôle soit chargé pour les utilisateurs connectés
     if (currentUser && roleLoading) {
       console.log('Attente du chargement du rôle...');
-      return; // On reviendra ici quand roleLoading sera false
+      return;
     }
 
     console.log('Évaluation redirection...');
     console.log('Segments:', segments);
     console.log('Utilisateur:', currentUser ? 'Connecté' : 'Non connecté');
-    console.log('Rôle (useRoleManagerAdapter):', currentRole || 'NON DÉFINI'); // 🔧 MODIFIÉ
+    console.log('Rôle (useRoleManagerAdapter):', currentRole || 'NON DÉFINI');
     console.log('Premier chargement:', isInitialLoad);
     console.log('Temps affichage auth:', showAuthPageTime);
 
@@ -427,17 +475,15 @@ export default function Layout() {
         if (currentUser) {
           // UTILISATEUR CONNECTÉ - Redirection intelligente par rôle
           console.log('UTILISATEUR CONNECTÉ - Analyse redirection...');
-          console.log('Rôle utilisateur actuel (useRoleManagerAdapter):', currentRole); // 🔧 MODIFIÉ
+          console.log('Rôle utilisateur actuel (useRoleManagerAdapter):', currentRole);
           console.log('Segments actuels:', segments);
           console.log('showAuthPageTime:', showAuthPageTime);
           
-          // VÉRIFIER SI CONNEXION RÉCENTE (moins de 5 secondes)
           const now = Date.now();
           const isRecentConnection = showAuthPageTime && (now - showAuthPageTime) < 5000;
           console.log('Connexion récente:', isRecentConnection, '(moins de 5s)');
           
           if (inAuth) {
-            // CONNEXION EN COURS - Redirection après délai d'affichage
             if (shouldWaitForAuthDisplay) {
               const remainingTime = AUTH_DISPLAY_DURATION - authPageShownTime;
               console.log(`Attente ${remainingTime}ms avant redirection depuis auth...`);
@@ -445,79 +491,67 @@ export default function Layout() {
             }
             
             needsRedirect = true;
-            targetRoute = getTargetRouteByRole(currentRole); // 🔧 MODIFIÉ
+            targetRoute = getTargetRouteByRole(currentRole);
             console.log('APRÈS CONNEXION - Redirection depuis auth selon rôle vers:', targetRoute);
           }
           else if (isNotFound) {
             needsRedirect = true;
-            targetRoute = getTargetRouteByRole(currentRole); // 🔧 MODIFIÉ
+            targetRoute = getTargetRouteByRole(currentRole);
             console.log('Redirection depuis 404 selon rôle vers:', targetRoute);
           }
           else if (isRoot && isInitialLoad) {
-            // PREMIER CHARGEMENT - Redirection selon rôle
             needsRedirect = true;
-            targetRoute = getTargetRouteByRole(currentRole); // 🔧 MODIFIÉ
+            targetRoute = getTargetRouteByRole(currentRole);
             setIsInitialLoad(false);
             console.log('PREMIER CHARGEMENT - Redirection selon rôle vers:', targetRoute);
           }
           else if (isRoot && isRecentConnection) {
-            // NOUVEAU : Connexion récente à la racine → redirection forcée selon rôle
             needsRedirect = true;
-            targetRoute = getTargetRouteByRole(currentRole); // 🔧 MODIFIÉ
+            targetRoute = getTargetRouteByRole(currentRole);
             console.log('CONNEXION RÉCENTE À LA RACINE - Redirection forcée vers:', targetRoute);
           }
           else if (inTabs && isRecentConnection) {
-            // 🔧 MODIFICATION : Vérifier si c'est une route autorisée pour fourmiz/admin AVANT de rediriger
-            if ((currentRole === 'fourmiz' || currentRole === 'admin') && segments.length > 1) { // 🔧 MODIFIÉ
+            if ((currentRole === 'fourmiz' || currentRole === 'admin') && segments.length > 1) {
               const allowedRoutes = ['profile', 'criteria', 'messages', 'map', 'calendar', 'available-orders'];
               const currentRoute = segments[1];
               
               if (allowedRoutes.includes(currentRoute)) {
                 console.log('CONNEXION RÉCENTE mais route autorisée pour fourmiz/admin:', currentRoute);
-                // Ne pas rediriger - laisser l'utilisateur sur la page
               } else {
-                // Route non autorisée - rediriger
                 needsRedirect = true;
-                targetRoute = getTargetRouteByRole(currentRole); // 🔧 MODIFIÉ
+                targetRoute = getTargetRouteByRole(currentRole);
                 console.log('CONNEXION RÉCENTE - Redirection forcée vers:', targetRoute);
               }
             } else {
-              // Client ou autre cas - redirection normale
               needsRedirect = true;
-              targetRoute = getTargetRouteByRole(currentRole); // 🔧 MODIFIÉ
+              targetRoute = getTargetRouteByRole(currentRole);
               console.log('CONNEXION RÉCENTE - Redirection forcée vers:', targetRoute);
             }
           }
-          else if (inTabs && currentRole === 'client' && !segments.includes('services') && !segments.includes('references')) { // 🔧 MODIFIÉ
-            // MODIFICATION : Client dans les tabs mais pas sur Services ET pas sur Références → rediriger vers Services
+          else if (inTabs && currentRole === 'client' && !segments.includes('services') && !segments.includes('references')) {
             needsRedirect = true;
             targetRoute = '/(tabs)/services';
             console.log('CLIENT dans tabs mais pas sur Services/Références - redirection vers Services');
           }
-          else if (inTabs && (currentRole === 'fourmiz' || currentRole === 'admin') && segments.length > 1) { // 🔧 MODIFIÉ
-            // 🔧 NOUVEAU : Permettre l'accès au profil et aux critères pour les Fourmiz
+          else if (inTabs && (currentRole === 'fourmiz' || currentRole === 'admin') && segments.length > 1) {
             const allowedRoutes = ['profile', 'criteria', 'messages', 'map', 'calendar', 'available-orders'];
-            const currentRoute = segments[1]; // Exemple: /(tabs)/profile → segments[1] = 'profile'
+            const currentRoute = segments[1];
             
             if (!allowedRoutes.includes(currentRoute)) {
-              // FOURMIZ/ADMIN dans tabs sur une route non autorisée → rediriger vers accueil
               needsRedirect = true;
               targetRoute = '/(tabs)';
               console.log('FOURMIZ/ADMIN sur route non autorisée - redirection vers accueil');
             } else {
-              // Route autorisée - laisser passer
               console.log('FOURMIZ/ADMIN sur route autorisée:', currentRoute);
             }
           }
           else if (inTabs) {
-            // DÉJÀ DANS LES TABS (connexion ancienne) - Laisser l'utilisateur où il est
             console.log('Utilisateur déjà dans les tabs (connexion ancienne) - pas de redirection forcée');
           }
         } else {
           // UTILISATEUR NON CONNECTÉ - Redirection vers login
           console.log('UTILISATEUR NON CONNECTÉ - Redirection vers login...');
           
-          // NOUVEAU : Traitement prioritaire de "+not-found" pour utilisateurs non connectés
           if (isNotFound) {
             needsRedirect = true;
             targetRoute = '/auth/login';
@@ -542,9 +576,8 @@ export default function Layout() {
         }
 
         if (needsRedirect && targetRoute) {
-          console.log(`Redirection programmée: ${targetRoute} (Rôle: ${currentRole})`); // 🔧 MODIFIÉ
+          console.log(`Redirection programmée: ${targetRoute} (Rôle: ${currentRole})`);
           
-          // APPLIQUER LE DÉLAI SI NÉCESSAIRE
           const executeRedirect = async () => {
             if (isLoggingOut.current) {
               console.log('Redirection annulée - déconnexion en cours');
@@ -580,15 +613,21 @@ export default function Layout() {
       clearTimeout(redirectTimeout);
     };
 
-  }, [currentUser, currentRole, roleLoading, segments, authLoading, isInitialLoad, showAuthPageTime, performSafeNavigation, safeTimeout, getTargetRouteByRole]); // 🔧 MODIFIÉ : userRole → currentRole
+  }, [currentUser, currentRole, roleLoading, segments, authLoading, isInitialLoad, showAuthPageTime, performSafeNavigation, safeTimeout, getTargetRouteByRole]);
 
-  // 🔧 MODIFIÉ : EFFET POUR RELANCER LA REDIRECTION QUAND LE RÔLE EST CHARGÉ
+  console.log('🔍 DEBUG Layout - TROISIÈME useEffect défini avec succès');
+
+  // 🔧 MODIFIÉ : EFFET POUR RELANCER LA REDIRECTION QUAND LE RÔLE EST CHARGÉ + DEBUG useEffect
   useEffect(() => {
-    if (currentUser && currentRole && !roleLoading && !isLoggingOut.current) { // 🔧 MODIFIÉ
-      redirectionDone.current = false; // Permettre une nouvelle redirection
+    console.log('🔍 DEBUG - QUATRIÈME useEffect (role refresh) exécuté avec succès');
+    
+    if (currentUser && currentRole && !roleLoading && !isLoggingOut.current) {
+      redirectionDone.current = false;
       console.log('Rôle chargé - relance possible de la logique de redirection');
     }
-  }, [currentRole, roleLoading]); // 🔧 MODIFIÉ
+  }, [currentRole, roleLoading]);
+
+  console.log('🔍 DEBUG Layout - QUATRIÈME useEffect défini avec succès');
 
   // FONCTIONS DE NOTIFICATIONS COMPLÈTES RESTAURÉES
   const initializeNotificationsSafely = async (userId: string) => {
@@ -600,24 +639,19 @@ export default function Layout() {
     try {
       console.log('Initialisation sécurisée des notifications pour:', userId);
       
-      // Utiliser le nouveau service unifié
       const success = await initializeNotifications(userId);
       
       if (success) {
         console.log('Notifications initialisées avec succès');
         
-        // Afficher le status du service
         if (__DEV__) {
           const status = notificationService.getStatus();
           console.log('Status notifications:', status);
         }
         
-        // Test automatique SANS la notification problématique
-        // Cette version ne déclenche PAS la notification "Test Fourmiz"
         if (__DEV__) {
           setTimeout(() => {
             if (mounted.current) {
-              // Version silencieuse pour vérifier que le service fonctionne
               const status = notificationService.getStatus();
               if (status.isInitialized) {
                 console.log('Service de notifications opérationnel');
@@ -630,18 +664,16 @@ export default function Layout() {
       } else {
         console.log('Échec initialisation notifications');
         
-        // Retry automatique après délai
         setTimeout(() => {
           if (mounted.current) {
             console.log('Tentative de réinitialisation des notifications...');
             initializeNotificationsSafely(userId);
           }
-        }, 5000); // Retry après 5 secondes
+        }, 5000);
       }
     } catch (error) {
       console.error('Erreur initialisation notifications:', error);
       
-      // Diagnostic en cas d'erreur
       if (error.message?.includes('profiles')) {
         console.log('Conseil: Le profil utilisateur semble manquant');
         console.log('Utilisez le hook useAuth corrigé pour créer le profil automatiquement');
@@ -652,30 +684,26 @@ export default function Layout() {
   const cleanupNotificationsSafely = async () => {
     try {
       console.log('Nettoyage sécurisé des notifications...');
-      
-      // Utiliser le nouveau service unifié
       cleanupNotifications();
-      
       console.log('Notifications nettoyées');
     } catch (error) {
       console.error('Erreur cleanup notifications:', error);
     }
   };
 
-  // Gestion de l'état de l'app pour les notifications AVEC LOGS
+  // Gestion de l'état de l'app pour les notifications AVEC LOGS + DEBUG useEffect
   useEffect(() => {
+    console.log('🔍 DEBUG - CINQUIÈME useEffect (AppState) exécuté avec succès');
+    
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (!mounted.current || !currentUser) return;
 
       console.log('État app changé:', nextAppState);
       
       if (nextAppState === 'active') {
-        // App devient active - vérifier les notifications
         if (notificationService.getStatus().isInitialized) {
           console.log('App active - vérification des notifications...');
-          // Le service gère automatiquement la vérification d'expiration des tokens
         } else if (currentUser?.id) {
-          // Réinitialiser si le service n'est pas initialisé
           console.log('Réinitialisation des notifications (app active)...');
           initializeNotificationsSafely(currentUser.id);
         }
@@ -689,8 +717,12 @@ export default function Layout() {
     };
   }, [currentUser]);
 
-  // SPLASH SCREEN AVEC LOGS
+  console.log('🔍 DEBUG Layout - CINQUIÈME useEffect défini avec succès');
+
+  // SPLASH SCREEN AVEC LOGS + DEBUG useEffect
   useEffect(() => {
+    console.log('🔍 DEBUG - SIXIÈME useEffect (SplashScreen) exécuté avec succès');
+    
     if (fontsLoaded && !authLoading && isReady) {
       safeTimeout(async () => {
         try {
@@ -703,22 +735,27 @@ export default function Layout() {
     }
   }, [fontsLoaded, authLoading, isReady, safeTimeout]);
 
+  console.log('🔍 DEBUG Layout - SIXIÈME useEffect défini avec succès');
+  console.log('🔍 DEBUG Layout - TOUS LES useEffect DÉFINIS AVEC SUCCÈS');
+
   // 🔧 MODIFIÉ : CONDITIONS DE RENDU (utilise roleLoading du hook)
   if (!isReady || !fontsLoaded || authLoading || (currentUser && roleLoading)) {
-    console.log('Chargement... ready:', isReady, 'fonts:', fontsLoaded, 'auth:', !authLoading, 'role:', !roleLoading);
+    console.log('🔍 DEBUG Layout - Chargement... ready:', isReady, 'fonts:', fontsLoaded, 'auth:', !authLoading, 'role:', !roleLoading);
     return null;
   }
 
   // 🔧 MODIFIÉ : DIAGNOSTIC COMPLET (utilise currentRole du hook)
-  console.log('Layout principal rendu - Navigation autorisée');
-  console.log('currentUser:', currentUser?.id || 'NON CONNECTÉ', 'segments:', segments);
-  console.log('currentRole (useRoleManagerAdapter):', currentRole || 'NON DÉFINI'); // 🔧 MODIFIÉ
-  console.log('État final:', {
+  console.log('🔍 DEBUG Layout principal rendu - Navigation autorisée');
+  console.log('🔍 DEBUG currentUser:', currentUser?.id || 'NON CONNECTÉ', 'segments:', segments);
+  console.log('🔍 DEBUG currentRole (useRoleManagerAdapter):', currentRole || 'NON DÉFINI');
+  console.log('🔍 DEBUG État final:', {
     user: currentUser ? 'CONNECTÉ' : 'NON CONNECTÉ',
-    role: currentRole || 'AUCUN', // 🔧 MODIFIÉ
+    role: currentRole || 'AUCUN',
     segments: segments,
-    targetRoute: currentUser ? getTargetRouteByRole(currentRole) : '/auth/login' // 🔧 MODIFIÉ
+    targetRoute: currentUser ? getTargetRouteByRole(currentRole) : '/auth/login'
   });
+
+  console.log('🔍 DEBUG Layout - RENDU DU COMPOSANT');
 
   return (
     <UltraSafeAreaWrapper>

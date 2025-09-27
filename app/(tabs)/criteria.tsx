@@ -1,5 +1,7 @@
-﻿// app/(tabs)/criteria.tsx - VERSION COMPLÈTE AVEC BOUTON MODIFIER SIMPLE
-// 🔧 Ajout minimal d'un mode lecture/édition sans surcharge visuelle
+﻿// app/(tabs)/criteria.tsx - VERSION CORRIGÉE COMPLÈTE
+// 🔧 CORRECTION APPLIQUÉE : Problème de synchronisation sauvegarde et redirection
+// 🛡️ AMÉLIORATION SÉCURITÉ : Vérifications d'état avant sauvegarde
+// 🔒 MODE LECTURE/ÉDITION : Toutes fonctionnalités préservées
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -150,10 +152,10 @@ export default function CriteriaScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔒 NOUVEL ÉTAT SIMPLE : MODE ÉDITION
-  const [isEditing, setIsEditing] = useState(isForced); // Forcé = toujours éditable
+  // 🔒 MODE ÉDITION
+  const [isEditing, setIsEditing] = useState(isForced);
 
-  // 🔨 MODE COUTEAU SUISSE - ÉTAT MANUEL SÉPARÉ DE LA DÉTECTION AUTO
+  // 🔨 MODE COUTEAU SUISSE - ÉTAT MANUEL SÉPARÉ
   const [swissKnifeMode, setSwissKnifeMode] = useState(false);
 
   // 📋 ÉTATS DYNAMIQUES DEPUIS SUPABASE
@@ -161,6 +163,11 @@ export default function CriteriaScreen() {
   const [availableVehicles, setAvailableVehicles] = useState<VehicleType[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
+
+  // 🔧 NOUVEAUX ÉTATS POUR CORRECTION DU PROBLÈME
+  const [initializationComplete, setInitializationComplete] = useState(false);
+  const [canSave, setCanSave] = useState(false);
+  const [criteriasLoaded, setCriteriasLoaded] = useState(false);
 
   // 🌍 LANGUES DISPONIBLES
   const [availableLanguages] = useState([
@@ -195,6 +202,91 @@ export default function CriteriaScreen() {
     return hours;
   };
   const availableHours = generateHours();
+
+  // 🔧 CORRECTION 1 : EFFET POUR DÉTERMINER L'ÉTAT canSave
+  useEffect(() => {
+    const checkCanSave = () => {
+      const allResourcesLoaded = isInitialized && !categoriesLoading && !vehiclesLoading && criteriasLoaded;
+      const hasStableState = initializationComplete && criteria !== null;
+      
+      console.log('🛡️ [checkCanSave] Vérification état sauvegarde:', {
+        isInitialized,
+        categoriesLoading,
+        vehiclesLoading,
+        criteriasLoaded,
+        initializationComplete,
+        hasCriteria: criteria !== null,
+        allResourcesLoaded,
+        hasStableState
+      });
+      
+      setCanSave(allResourcesLoaded && hasStableState);
+    };
+
+    checkCanSave();
+  }, [isInitialized, categoriesLoading, vehiclesLoading, criteriasLoaded, initializationComplete, criteria]);
+
+  // 🔧 CORRECTION 2 : INITIALISATION SÉQUENTIELLE AVEC TIMEOUT AMÉLIORÉ
+  useEffect(() => {
+    if (!isInitialized) {
+      console.log('⏳ En attente de l\'initialisation du roleManager...');
+      return;
+    }
+
+    console.log('🚀 [useEffect] Début initialisation séquentielle');
+    
+    const initializeSequentially = async () => {
+      try {
+        setInitializationComplete(false);
+        
+        // ÉTAPE 1: Charger les ressources externes en parallèle avec timeout
+        console.log('📋 ÉTAPE 1/3: Chargement catégories et véhicules...');
+        const resourcePromises = Promise.all([
+          loadServiceCategories(),
+          loadVehicleTypes()
+        ]);
+        
+        // Timeout pour les ressources externes (10 secondes max)
+        const resourceTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout chargement ressources')), 10000)
+        );
+        
+        try {
+          await Promise.race([resourcePromises, resourceTimeout]);
+          console.log('✅ ÉTAPE 1/3: Ressources chargées avec succès');
+        } catch (timeoutError) {
+          console.warn('⚠️ ÉTAPE 1/3: Timeout ressources, utilisation fallback');
+          // Les fonctions load ont leur propre fallback
+        }
+
+        // ÉTAPE 2: Attendre stabilisation
+        console.log('⏳ ÉTAPE 2/3: Attente stabilisation (500ms)...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // ÉTAPE 3: Charger critères utilisateur
+        if (userProfile?.id) {
+          console.log('📂 ÉTAPE 3/3: Chargement critères utilisateur...');
+          await loadCriteria();
+          console.log('✅ ÉTAPE 3/3: Critères chargés');
+        } else {
+          console.warn('⚠️ ÉTAPE 3/3: Pas d\'ID utilisateur, création critères par défaut');
+          createDefaultCriteria();
+        }
+
+        // FINALISATION: Marquer l'initialisation comme complète
+        console.log('🎯 FINALISATION: Initialisation séquentielle terminée');
+        setInitializationComplete(true);
+        
+      } catch (error) {
+        console.error('❌ [initializeSequentially] Erreur:', error);
+        // En cas d'erreur, on marque quand même comme initialisé pour permettre l'utilisation
+        setInitializationComplete(true);
+        setError('Chargement partiel - fonctionnalités limitées');
+      }
+    };
+
+    initializeSequentially();
+  }, [isInitialized, userProfile?.id]);
 
   // 🔙 GESTION DU RETOUR EN MODE FORCÉ
   const handleBackPress = () => {
@@ -250,8 +342,13 @@ export default function CriteriaScreen() {
         {/* 🔒 BOUTON MODIFIER SIMPLE (uniquement en mode normal) */}
         {!isForced && (
           <TouchableOpacity 
-            style={styles.editButton} 
+            style={[styles.editButton, !canSave && styles.editButtonDisabled]} 
             onPress={() => {
+              if (!canSave) {
+                Alert.alert('Patientez', 'Chargement en cours...');
+                return;
+              }
+              
               if (isEditing) {
                 // Sauvegarder et sortir du mode édition
                 saveCriteria();
@@ -260,12 +357,12 @@ export default function CriteriaScreen() {
                 setIsEditing(true);
               }
             }}
-            disabled={saving}
+            disabled={saving || (!canSave && !isEditing)}
           >
             {saving ? (
               <ActivityIndicator size="small" color="#000000" />
             ) : (
-              <Text style={styles.editButtonText}>
+              <Text style={[styles.editButtonText, !canSave && styles.editButtonTextDisabled]}>
                 {isEditing ? 'Valider' : 'Modifier'}
               </Text>
             )}
@@ -282,11 +379,6 @@ export default function CriteriaScreen() {
   };
 
   // 📋 CHARGER LES CATÉGORIES DEPUIS LA TABLE SERVICES - HOOKÉES À SUPABASE
-  useEffect(() => {
-    loadServiceCategories();
-    loadVehicleTypes();
-  }, []);
-
   const loadServiceCategories = async () => {
     try {
       setCategoriesLoading(true);
@@ -450,24 +542,6 @@ export default function CriteriaScreen() {
     return null;
   };
 
-  // 📂 CHARGER LES CRITÈRES
-  useEffect(() => {
-    if (!isInitialized || categoriesLoading || vehiclesLoading) {
-      console.log('⏳ En attente de l\'initialisation...', { 
-        isInitialized, categoriesLoading, vehiclesLoading 
-      });
-      return;
-    }
-
-    if (userProfile?.id) {
-      console.log('📂 Chargement critères pour user:', userProfile.id);
-      loadCriteria();
-    } else {
-      setError('Profil utilisateur non disponible');
-      setLoading(false);
-    }
-  }, [userProfile?.id, isInitialized, categoriesLoading, vehiclesLoading]);
-
   // 🔨 INITIALISER LE MODE COUTEAU SUISSE AU CHARGEMENT
   useEffect(() => {
     if (!criteria || !serviceCategories.length) return;
@@ -481,11 +555,22 @@ export default function CriteriaScreen() {
     }
   }, [serviceCategories.length]); // Déclenché seulement quand les catégories sont chargées
 
+  // 📅 CALCULER LE MODE 24H/7J DIRECTEMENT (pas de useEffect pour éviter les boucles)
+  const is24h7Available = React.useMemo(() => {
+    if (!criteria?.availability_schedule) return false;
+    
+    return weekDays.every(day => {
+      const daySchedule = criteria.availability_schedule[day.key];
+      return daySchedule.enabled && daySchedule.start === '00:00' && daySchedule.end === '24:00';
+    });
+  }, [criteria?.availability_schedule]);
+
   // 🛡️ VERSION SÉCURISÉE RENFORCÉE DE loadCriteria - 🔧 CORRECTION APPLIQUÉE
   const loadCriteria = async () => {
     try {
       setLoading(true);
       setError(null);
+      setCriteriasLoaded(false);
       
       console.log('📂 [loadCriteria] === DÉBUT CHARGEMENT SÉCURISÉ ===');
       
@@ -618,6 +703,7 @@ export default function CriteriaScreen() {
       }
     } finally {
       setLoading(false);
+      setCriteriasLoaded(true);
       console.log('📂 [loadCriteria] === FIN CHARGEMENT SÉCURISÉ ===');
     }
   };
@@ -724,16 +810,33 @@ export default function CriteriaScreen() {
   // 🔄 Rafraîchir TOUT
   const onRefresh = async () => {
     setRefreshing(true);
+    setInitializationComplete(false);
     await Promise.all([
       loadServiceCategories(),
       loadVehicleTypes(),
       loadCriteria()
     ]);
+    setInitializationComplete(true);
     setRefreshing(false);
   };
 
-  // 💾 SAUVEGARDER - VERSION CORRIGÉE FINALE AVEC NAVIGATION DANS CALLBACK D'ALERTE
+  // 💾 SAUVEGARDER - VERSION CORRIGÉE FINALE AVEC PROTECTION CONTRE LA REDIRECTION
   const saveCriteria = useCallback(async (): Promise<void> => {
+    // 🔧 CORRECTION 3 : VÉRIFICATION PRÉLIMINAIRE AVANT SAUVEGARDE
+    if (!canSave) {
+      console.warn('⚠️ [saveCriteria] Sauvegarde impossible - état non prêt:', {
+        canSave,
+        isInitialized,
+        categoriesLoading,
+        vehiclesLoading,
+        criteriasLoaded,
+        initializationComplete,
+        hasCriteria: criteria !== null
+      });
+      Alert.alert('Patientez', 'Chargement en cours, veuillez patienter...');
+      return;
+    }
+
     if (!criteria) {
       Alert.alert('Erreur', 'Critères non disponibles');
       return;
@@ -758,9 +861,9 @@ export default function CriteriaScreen() {
       const userIdToUse = currentUser.id;
       
       console.log('👤 [saveCriteria] Sauvegarde pour utilisateur:', {
-        userId: userIdToUse,
+        criteriaUserId: userIdToUse,
         email: currentUser.email,
-        criteriaUserId: criteria.user_id
+        userId: userIdToUse
       });
       
       const dataToSave = {
@@ -772,11 +875,32 @@ export default function CriteriaScreen() {
 
       console.log('📋 [saveCriteria] Données préparées pour sauvegarde');
 
-      // 🔧 SOLUTION SIMPLE : UPSERT DIRECT SANS COMPLICATIONS
-      const { data, error } = await supabase
+      // 🔧 CORRECTION APPLIQUÉE : VÉRIFICATION MANUELLE PUIS UPDATE/INSERT
+      // Vérifier si l'utilisateur a déjà des critères
+      const { data: existingCriteria, error: checkError } = await supabase
         .from('criteria')
-        .upsert(dataToSave)
-        .select();
+        .select('id')
+        .eq('user_id', userIdToUse)
+        .single();
+
+      let data, error;
+
+      if (existingCriteria) {
+        // UPDATE si existe déjà
+        console.log('🔄 [saveCriteria] Mise à jour critères existants');
+        ({ data, error } = await supabase
+          .from('criteria')
+          .update(dataToSave)
+          .eq('user_id', userIdToUse)
+          .select());
+      } else {
+        // INSERT si nouveau
+        console.log('➕ [saveCriteria] Création nouveaux critères');
+        ({ data, error } = await supabase
+          .from('criteria')
+          .insert(dataToSave)
+          .select());
+      }
 
       if (error) {
         console.error('❌ [saveCriteria] Erreur sauvegarde critères:', error);
@@ -804,31 +928,32 @@ export default function CriteriaScreen() {
 
       console.log('💾 [saveCriteria] === FIN SAUVEGARDE SÉCURISÉE ===');
 
-      // 🔧 NOUVELLE GESTION - ÉMISSION ÉVÉNEMENT PUIS REDIRECTION
+      // 🔧 CORRECTION 4 : NOUVELLE GESTION SANS REDIRECTION AUTOMATIQUE
       if (isForced) {
-        console.log('🔨 [saveCriteria] MODE FORCÉ: émission événement puis redirection');
+        console.log('🔨 [saveCriteria] MODE FORCÉ: sauvegarde terminée, attente confirmation utilisateur');
         
-        // ⚡ ÉTAPE 1: Émettre l'événement pour forcer la synchronisation du layout
-        console.log('📡 [saveCriteria] Émission événement criteriaSaved');
-        
-        // ⚡ ÉTAPE 2: Attendre que le layout se synchronise
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // ⚡ ÉTAPE 3: Redirection directe vers available-orders
         Alert.alert(
           'Configuration terminée !',
-          'Vos critères ont été sauvegardés. Vous allez être redirigé vers les missions disponibles.',
+          'Vos critères ont été sauvegardés avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités.',
           [
             { 
-              text: 'Voir les missions', 
+              text: 'Voir les missions disponibles', 
               onPress: () => {
-                console.log('🎯 [saveCriteria] Redirection FINALE vers available-orders');
+                console.log('🎯 [saveCriteria] Redirection manuelle vers available-orders');
                 try {
                   router.replace('/(tabs)/available-orders');
                 } catch (routerError) {
                   console.error('❌ [saveCriteria] Erreur redirection:', routerError);
                   router.replace('/(tabs)/');
                 }
+              }
+            },
+            {
+              text: 'Rester ici',
+              style: 'cancel',
+              onPress: () => {
+                console.log('👤 [saveCriteria] Utilisateur choisi de rester sur la page critères');
+                // Ne rien faire, rester sur la page
               }
             }
           ],
@@ -854,7 +979,7 @@ export default function CriteriaScreen() {
     } finally {
       setSaving(false);
     }
-  }, [criteria, isForced, router, isEditing]);
+  }, [criteria, isForced, router, isEditing, canSave]);
 
   // 🔄 FONCTIONS DE MISE À JOUR AVEC CONTRÔLE D'ÉDITION
   const toggleServiceType = (categoryKey: string) => {
@@ -947,6 +1072,7 @@ export default function CriteriaScreen() {
 
   const toggleDayAvailability = (day: keyof AvailabilitySchedule) => {
     if (!criteria || !isEditing) return; // 🔒 Bloqué si pas en édition
+    
     setCriteria(prev => ({
       ...prev!,
       availability_schedule: {
@@ -961,6 +1087,7 @@ export default function CriteriaScreen() {
 
   const updateDayTime = (day: keyof AvailabilitySchedule, timeType: 'start' | 'end', value: string) => {
     if (!criteria || !isEditing) return; // 🔒 Bloqué si pas en édition
+    
     setCriteria(prev => ({
       ...prev!,
       availability_schedule: {
@@ -973,12 +1100,54 @@ export default function CriteriaScreen() {
     }));
   };
 
-  // États de chargement
-  if (!isInitialized || categoriesLoading || vehiclesLoading || loading) {
+  // 📅 BASCULER MODE 24H/7J
+  const toggle24h7Availability = () => {
+    if (!criteria || !isEditing) return; // 🔒 Bloqué si pas en édition
+    
+    const newMode = !is24h7Available;
+    
+    if (newMode) {
+      // Activer tous les jours de 00:00 à 24:00
+      const fullSchedule: AvailabilitySchedule = {
+        monday: { enabled: true, start: '00:00', end: '24:00' },
+        tuesday: { enabled: true, start: '00:00', end: '24:00' },
+        wednesday: { enabled: true, start: '00:00', end: '24:00' },
+        thursday: { enabled: true, start: '00:00', end: '24:00' },
+        friday: { enabled: true, start: '00:00', end: '24:00' },
+        saturday: { enabled: true, start: '00:00', end: '24:00' },
+        sunday: { enabled: true, start: '00:00', end: '24:00' },
+      };
+      
+      setCriteria(prev => ({
+        ...prev!,
+        availability_schedule: fullSchedule
+      }));
+    } else {
+      // Désactiver tous les jours
+      const emptySchedule = getDefaultSchedule();
+      setCriteria(prev => ({
+        ...prev!,
+        availability_schedule: emptySchedule
+      }));
+    }
+  };
+
+  // États de chargement avec nouvelle logique
+  if (!isInitialized || !initializationComplete || loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#000000" />
+          <Text style={styles.loadingText}>
+            {!isInitialized ? 'Initialisation du système...' :
+             !initializationComplete ? 'Chargement des ressources...' :
+             'Finalisation...'}
+          </Text>
+          {!canSave && (
+            <Text style={styles.loadingSubText}>
+              Synchronisation en cours...
+            </Text>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -992,9 +1161,11 @@ export default function CriteriaScreen() {
           <TouchableOpacity 
             style={styles.retryButton} 
             onPress={() => {
+              setInitializationComplete(false);
               loadServiceCategories();
               loadVehicleTypes(); 
               if (userProfile?.id) loadCriteria();
+              setInitializationComplete(true);
             }}
           >
             <Text style={styles.retryButtonText}>Réessayer</Text>
@@ -1026,6 +1197,11 @@ export default function CriteriaScreen() {
               : 'Consultez vos critères de service configurés'
             }
           </Text>
+          {!canSave && !isForced && (
+            <Text style={styles.warningText}>
+              ⚠️ Chargement en cours, modifications temporairement désactivées
+            </Text>
+          )}
         </View>
 
         {/* 📍 PRÉSENTATION PERSONNELLE */}
@@ -1114,16 +1290,16 @@ export default function CriteriaScreen() {
                     style={[
                       styles.serviceCard,
                       isSelected && styles.serviceCardActive,
-                      (swissKnifeMode || !isEditing) && styles.serviceCardDisabled // 🔒 Désactivé si pas en édition
+                      (swissKnifeMode || !isEditing) && styles.serviceCardDisabled
                     ]}
                     onPress={() => toggleServiceType(category.key)}
                     activeOpacity={(swissKnifeMode || !isEditing) ? 1 : 0.8}
-                    disabled={swissKnifeMode || !isEditing} // 🔒 Désactivé si pas en édition
+                    disabled={swissKnifeMode || !isEditing}
                   >
                     <Text style={[
                       styles.serviceLabel,
                       isSelected && styles.serviceLabelActive,
-                      (swissKnifeMode || !isEditing) && styles.serviceLabelDisabled // 🔒 Style désactivé
+                      (swissKnifeMode || !isEditing) && styles.serviceLabelDisabled
                     ]}>
                       {category.categorie}
                     </Text>
@@ -1163,16 +1339,16 @@ export default function CriteriaScreen() {
                   style={[
                     styles.serviceCard,
                     isSelected && styles.serviceCardActive,
-                    !isEditing && styles.serviceCardDisabled // 🔒 Désactivé si pas en édition
+                    !isEditing && styles.serviceCardDisabled
                   ]}
                   onPress={() => toggleVehicleType(vehicle.type)}
                   activeOpacity={!isEditing ? 1 : 0.8}
-                  disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                  disabled={!isEditing}
                 >
                   <Text style={[
                     styles.serviceLabel,
                     isSelected && styles.serviceLabelActive,
-                    !isEditing && styles.serviceLabelDisabled // 🔒 Style désactivé
+                    !isEditing && styles.serviceLabelDisabled
                   ]}>
                     {vehicle.label}
                   </Text>
@@ -1200,7 +1376,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('has_driving_license', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1214,7 +1390,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('has_vehicle_insurance', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1228,7 +1404,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('travel_cost_included', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
           </View>
@@ -1247,7 +1423,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('work_indoor', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1260,7 +1436,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('work_outdoor', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1274,7 +1450,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('uniform_required', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1288,7 +1464,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('safety_shoes_required', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1302,7 +1478,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('additional_product_billing', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1316,7 +1492,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('quote_required', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1331,7 +1507,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('accepts_geolocation', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
           </View>
@@ -1351,7 +1527,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('equipment_provided', value ? ['oui'] : [])}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
           </View>
@@ -1367,7 +1543,7 @@ export default function CriteriaScreen() {
                 <TouchableOpacity
                   style={[styles.priceButton, !isEditing && styles.priceButtonDisabled]}
                   onPress={() => updateCriteria('min_price', Math.max(1, criteria.min_price - 1))}
-                  disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                  disabled={!isEditing}
                 >
                   <Ionicons name="remove" size={16} color={!isEditing ? "#cccccc" : "#000000"} />
                 </TouchableOpacity>
@@ -1375,7 +1551,7 @@ export default function CriteriaScreen() {
                 <TouchableOpacity
                   style={[styles.priceButton, !isEditing && styles.priceButtonDisabled]}
                   onPress={() => updateCriteria('min_price', Math.min(500, criteria.min_price + 1))}
-                  disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                  disabled={!isEditing}
                 >
                   <Ionicons name="add" size={16} color={!isEditing ? "#cccccc" : "#000000"} />
                 </TouchableOpacity>
@@ -1388,7 +1564,7 @@ export default function CriteriaScreen() {
                 <TouchableOpacity
                   style={[styles.priceButton, !isEditing && styles.priceButtonDisabled]}
                   onPress={() => updateCriteria('max_distance', Math.max(1, criteria.max_distance - 1))}
-                  disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                  disabled={!isEditing}
                 >
                   <Ionicons name="remove" size={16} color={!isEditing ? "#cccccc" : "#000000"} />
                 </TouchableOpacity>
@@ -1396,7 +1572,7 @@ export default function CriteriaScreen() {
                 <TouchableOpacity
                   style={[styles.priceButton, !isEditing && styles.priceButtonDisabled]}
                   onPress={() => updateCriteria('max_distance', Math.min(50, criteria.max_distance + 1))}
-                  disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                  disabled={!isEditing}
                 >
                   <Ionicons name="add" size={16} color={!isEditing ? "#cccccc" : "#000000"} />
                 </TouchableOpacity>
@@ -1406,6 +1582,28 @@ export default function CriteriaScreen() {
         </View>
 
         {/* 📅 DISPONIBILITÉS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mes disponibilités</Text>
+          
+          {/* 📅 SWITCH DISPONIBLE 24H/7J */}
+          <View style={[styles.criteriaCard, !isEditing && styles.readOnlyCard]}>
+            <View style={styles.switchRow}>
+              <View style={styles.switchInfo}>
+                <Text style={styles.switchLabel}>Disponible 7j/7 - 24h</Text>
+                <Text style={styles.switchSubText}>Configuration automatique pour une disponibilité maximale</Text>
+              </View>
+              <Switch
+                value={is24h7Available}
+                onValueChange={toggle24h7Availability}
+                trackColor={{ false: '#e0e0e0', true: '#000000' }}
+                thumbColor="#ffffff"
+                disabled={!isEditing}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* 📅 DISPONIBILITÉS DÉTAILLÉES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mes disponibilités détaillées</Text>
           
@@ -1423,7 +1621,7 @@ export default function CriteriaScreen() {
                     onValueChange={() => toggleDayAvailability(day.key)}
                     trackColor={{ false: '#e0e0e0', true: '#000000' }}
                     thumbColor="#ffffff"
-                    disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                    disabled={!isEditing}
                   />
                 </View>
                 
@@ -1439,7 +1637,7 @@ export default function CriteriaScreen() {
                             const newIndex = Math.max(0, currentIndex - 1);
                             updateDayTime(day.key, 'start', availableHours[newIndex]);
                           }}
-                          disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                          disabled={!isEditing}
                         >
                           <Ionicons name="chevron-down" size={16} color={!isEditing ? "#cccccc" : "#000000"} />
                         </TouchableOpacity>
@@ -1451,7 +1649,7 @@ export default function CriteriaScreen() {
                             const newIndex = Math.min(availableHours.length - 1, currentIndex + 1);
                             updateDayTime(day.key, 'start', availableHours[newIndex]);
                           }}
-                          disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                          disabled={!isEditing}
                         >
                           <Ionicons name="chevron-up" size={16} color={!isEditing ? "#cccccc" : "#000000"} />
                         </TouchableOpacity>
@@ -1470,7 +1668,7 @@ export default function CriteriaScreen() {
                             const newIndex = Math.max(0, currentIndex - 1);
                             updateDayTime(day.key, 'end', availableHours[newIndex]);
                           }}
-                          disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                          disabled={!isEditing}
                         >
                           <Ionicons name="chevron-down" size={16} color={!isEditing ? "#cccccc" : "#000000"} />
                         </TouchableOpacity>
@@ -1482,7 +1680,7 @@ export default function CriteriaScreen() {
                             const newIndex = Math.min(availableHours.length - 1, currentIndex + 1);
                             updateDayTime(day.key, 'end', availableHours[newIndex]);
                           }}
-                          disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                          disabled={!isEditing}
                         >
                           <Ionicons name="chevron-up" size={16} color={!isEditing ? "#cccccc" : "#000000"} />
                         </TouchableOpacity>
@@ -1508,7 +1706,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('urgent_services', value)}
                 trackColor={{ false: '#e0e0e0', true: '#FF6B00' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
 
@@ -1522,7 +1720,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('accepts_custom_requests', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
           </View>
@@ -1594,16 +1792,16 @@ export default function CriteriaScreen() {
                   style={[
                     styles.serviceCard,
                     isSelected && styles.serviceCardActive,
-                    !isEditing && styles.serviceCardDisabled // 🔒 Désactivé si pas en édition
+                    !isEditing && styles.serviceCardDisabled
                   ]}
                   onPress={() => toggleLanguage(language)}
                   activeOpacity={!isEditing ? 1 : 0.8}
-                  disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                  disabled={!isEditing}
                 >
                   <Text style={[
                     styles.serviceLabel,
                     isSelected && styles.serviceLabelActive,
-                    !isEditing && styles.serviceLabelDisabled // 🔒 Style désactivé
+                    !isEditing && styles.serviceLabelDisabled
                   ]}>
                     {language.split(' ')[0]}
                   </Text>
@@ -1632,7 +1830,7 @@ export default function CriteriaScreen() {
                 onValueChange={(value) => updateCriteria('has_liability_insurance', value)}
                 trackColor={{ false: '#e0e0e0', true: '#000000' }}
                 thumbColor="#ffffff"
-                disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                disabled={!isEditing}
               />
             </View>
           </View>
@@ -1651,15 +1849,15 @@ export default function CriteriaScreen() {
                     style={[
                       styles.ratingButton,
                       criteria.client_rating === rating && styles.ratingButtonActive,
-                      !isEditing && styles.ratingButtonDisabled // 🔒 Désactivé si pas en édition
+                      !isEditing && styles.ratingButtonDisabled
                     ]}
                     onPress={() => updateCriteria('client_rating', rating)}
-                    disabled={!isEditing} // 🔒 Désactivé si pas en édition
+                    disabled={!isEditing}
                   >
                     <Text style={[
                       styles.ratingText,
                       criteria.client_rating === rating && styles.ratingTextActive,
-                      !isEditing && styles.ratingTextDisabled // 🔒 Style désactivé
+                      !isEditing && styles.ratingTextDisabled
                     ]}>
                       {rating}★
                     </Text>
@@ -1674,9 +1872,18 @@ export default function CriteriaScreen() {
         {isForced && (
           <View style={styles.section}>
             <TouchableOpacity 
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
-              onPress={saveCriteria}
-              disabled={saving}
+              style={[
+                styles.saveButton, 
+                (saving || !canSave) && styles.saveButtonDisabled
+              ]} 
+              onPress={() => {
+                if (!canSave) {
+                  Alert.alert('Patientez', 'Chargement en cours, veuillez patienter...');
+                  return;
+                }
+                saveCriteria();
+              }}
+              disabled={saving || !canSave}
               activeOpacity={0.8}
             >
               {saving ? (
@@ -1688,11 +1895,17 @@ export default function CriteriaScreen() {
                 <>
                   <Ionicons name="save-outline" size={16} color="#ffffff" style={styles.saveIcon} />
                   <Text style={styles.saveButtonText}>
-                    Terminer la configuration
+                    {canSave ? 'Terminer la configuration' : 'Chargement...'}
                   </Text>
                 </>
               )}
             </TouchableOpacity>
+            
+            {!canSave && (
+              <Text style={styles.saveWarning}>
+                ⏳ Finalisation du chargement en cours...
+              </Text>
+            )}
           </View>
         )}
 
@@ -1777,7 +1990,7 @@ export default function CriteriaScreen() {
   );
 }
 
-// 🎨 STYLES AVEC NOUVEAUX ÉLÉMENTS POUR MODE LECTURE/ÉDITION
+// 🎨 STYLES AVEC NOUVEAUX ÉLÉMENTS POUR MODE LECTURE/ÉDITION ET CORRECTIONS
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 24 },
@@ -1811,7 +2024,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   
-  // 🔒 BOUTON MODIFIER SIMPLE ET ÉPURÉ
+  // 🔒 BOUTON MODIFIER SIMPLE ET ÉPURÉ AVEC ÉTAT DÉSACTIVÉ
   editButton: {
     backgroundColor: '#f8f8f8',
     paddingHorizontal: 16,
@@ -1822,10 +2035,18 @@ const styles = StyleSheet.create({
     minWidth: 80,
     alignItems: 'center',
   },
+  editButtonDisabled: {
+    backgroundColor: '#f0f0f0',
+    borderColor: '#d0d0d0',
+    opacity: 0.6,
+  },
   editButtonText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#000000',
+  },
+  editButtonTextDisabled: {
+    color: '#999999',
   },
   
   progressIndicator: {
@@ -1842,7 +2063,7 @@ const styles = StyleSheet.create({
   
   scrollView: { flex: 1 },
   
-  // Introduction modifiée (sans titre)
+  // Introduction modifiée (sans titre) avec message d'avertissement
   introSection: { 
     backgroundColor: '#ffffff', 
     padding: 24, 
@@ -1854,6 +2075,13 @@ const styles = StyleSheet.create({
     textAlign: 'center', 
     lineHeight: 20, 
     fontWeight: '400' 
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#ff9500',
+    textAlign: 'center',
+    marginTop: 8,
+    fontWeight: '500',
   },
   
   section: { paddingHorizontal: 24, marginBottom: 20 },
@@ -2047,6 +2275,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  // 🔧 NOUVEAU STYLE POUR MESSAGE SAUVEGARDE
+  saveWarning: {
+    fontSize: 12,
+    color: '#ff9500',
+    textAlign: 'center',
+    marginTop: 8,
+    fontWeight: '400',
   },
   
   summaryCard: { backgroundColor: '#ffffff', borderRadius: 8, padding: 20, borderWidth: 1, borderColor: '#e0e0e0' },

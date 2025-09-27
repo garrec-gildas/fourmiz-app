@@ -1,0 +1,10 @@
+﻿{
+  "ignore_dirs": [
+    ".git",
+    "node_modules",
+    ".expo",
+    "dist",
+    "build"
+  ],
+  "settle": 20
+}

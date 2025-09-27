@@ -2,7 +2,7 @@
 // 🔒 Version sans JSX - Compatible avec extension .ts
 // ✅ Retourne les données, les composants sont créés côté utilisateur
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRoleManager, AppRole } from '@/lib/roleManager';
 

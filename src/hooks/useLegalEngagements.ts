@@ -1,7 +1,8 @@
-// hooks/useLegalEngagements.ts
-// Hook personnalisé pour gérer la logique métier des engagements légaux
+// hooks/useLegalEngagements.ts - HOOK CORRIGÉ SANS BOUCLES INFINIES
+// 🚨 PROBLÈME : useEffect + useCallback en boucle infinie
+// ✅ SOLUTION : Guards + stabilisation des dépendances
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { LegalEngagementService } from '../services/legal-engagement.service';
 import type {
@@ -33,17 +34,29 @@ export function useLegalEngagements(): EngagementHookReturn {
   // Gestion d'erreurs
   const [error, setError] = useState<string | null>(null);
 
+  // 🔒 GUARDS pour éviter les rechargements multiples
+  const isTypesLoadedRef = useRef(false);
+  const isLoadingTypesRef = useRef(false);
+
   /**
-   * Charge les types d'engagements disponibles
+   * ✅ FONCTION SÉCURISÉE - Charge les types d'engagements disponibles
    */
   const loadEngagementTypes = useCallback(async () => {
+    // 🛡️ GUARD : Éviter les rechargements multiples
+    if (isLoadingTypesRef.current || isTypesLoadedRef.current) {
+      return;
+    }
+
     try {
+      isLoadingTypesRef.current = true;
       setIsLoadingTypes(true);
       setError(null);
       
       const types = await LegalEngagementService.getFourmizEngagementTypes();
       setEngagementTypes(types);
+      isTypesLoadedRef.current = true;
       
+      // ✅ LOG UNIQUE - Ne se déclenche qu'une fois grâce au guard
       console.log(`✅ ${types.length} types d'engagements chargés`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur chargement types engagements';
@@ -51,11 +64,12 @@ export function useLegalEngagements(): EngagementHookReturn {
       console.error('Erreur loadEngagementTypes:', err);
     } finally {
       setIsLoadingTypes(false);
+      isLoadingTypesRef.current = false;
     }
-  }, []);
+  }, []); // ✅ STABLE : Pas de dépendances
 
   /**
-   * Charge les engagements de l'utilisateur
+   * ✅ FONCTION STABLE - Charge les engagements de l'utilisateur
    */
   const loadUserEngagements = useCallback(async (userId: string) => {
     if (!userId) return;
@@ -72,10 +86,10 @@ export function useLegalEngagements(): EngagementHookReturn {
       setError(message);
       console.error('Erreur loadUserEngagements:', err);
     }
-  }, []);
+  }, []); // ✅ STABLE : Pas de dépendances
 
   /**
-   * Vérifie le statut grandfathered
+   * ✅ FONCTION STABLE - Vérifie le statut grandfathered
    */
   const checkGrandfatheredStatus = useCallback(async (userId: string): Promise<GrandfatheredStatus> => {
     if (!userId) {
@@ -96,7 +110,6 @@ export function useLegalEngagements(): EngagementHookReturn {
       setError(message);
       console.error('Erreur checkGrandfatheredStatus:', err);
       
-      // Retourner un statut par défaut en cas d'erreur
       const defaultStatus: GrandfatheredStatus = {
         isGrandfathered: false,
         engagementsRequired: true
@@ -106,10 +119,10 @@ export function useLegalEngagements(): EngagementHookReturn {
     } finally {
       setIsLoadingStatus(false);
     }
-  }, []);
+  }, []); // ✅ STABLE : Pas de dépendances
 
   /**
-   * Charge toutes les données d'engagements pour un utilisateur
+   * ✅ FONCTION SIMPLIFIÉE - Charge toutes les données d'engagements
    */
   const loadEngagements = useCallback(async (userId: string) => {
     if (!userId) return;
@@ -118,7 +131,7 @@ export function useLegalEngagements(): EngagementHookReturn {
       setIsLoading(true);
       setError(null);
       
-      // Charger en parallèle les types et les données utilisateur
+      // Charger en parallèle - les fonctions sont stables maintenant
       await Promise.all([
         loadEngagementTypes(),
         loadUserEngagements(userId),
@@ -133,10 +146,10 @@ export function useLegalEngagements(): EngagementHookReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [loadEngagementTypes, loadUserEngagements, checkGrandfatheredStatus]);
+  }, [loadEngagementTypes, loadUserEngagements, checkGrandfatheredStatus]); // ✅ Dépendances stables
 
   /**
-   * Vérifie la compliance de l'utilisateur
+   * ✅ FONCTION STABLE - Vérifie la compliance
    */
   const checkCompliance = useCallback(async (userId: string): Promise<ComplianceStatus> => {
     if (!userId) {
@@ -161,10 +174,10 @@ export function useLegalEngagements(): EngagementHookReturn {
         reason: 'Erreur de vérification'
       };
     }
-  }, []);
+  }, []); // ✅ STABLE
 
   /**
-   * Accepte tous les engagements
+   * ✅ FONCTION STABLE - Accepte tous les engagements
    */
   const acceptAllEngagements = useCallback(async (params: AcceptEngagementParams) => {
     try {
@@ -181,9 +194,7 @@ export function useLegalEngagements(): EngagementHookReturn {
         console.warn('Impossible de récupérer l\'IP:', ipError);
       }
 
-      // User agent
       const userAgent = `Fourmiz-Mobile/${Platform.OS}`;
-
       const acceptParams: AcceptEngagementParams = {
         ...params,
         ipAddress,
@@ -192,7 +203,7 @@ export function useLegalEngagements(): EngagementHookReturn {
 
       await LegalEngagementService.acceptAllEngagements(acceptParams);
       
-      // Recharger les engagements utilisateur après acceptation
+      // Recharger les engagements utilisateur
       await loadUserEngagements(params.userId);
       
       console.log('✅ Tous les engagements acceptés');
@@ -200,25 +211,19 @@ export function useLegalEngagements(): EngagementHookReturn {
       const message = err instanceof Error ? err.message : 'Erreur acceptation engagements';
       setError(message);
       console.error('Erreur acceptAllEngagements:', err);
-      throw err; // Propager l'erreur pour que le composant puisse la gérer
+      throw err;
     } finally {
       setIsSaving(false);
     }
-  }, [loadUserEngagements]);
+  }, [loadUserEngagements]); // ✅ Dépendance stable
 
-  /**
-   * Valide les engagements sélectionnés dans le formulaire
-   */
+  // ✅ FONCTIONS UTILITAIRES STABLES
   const validateEngagements = useCallback((
     formData: EngagementFormData, 
     types: LegalEngagementType[]
   ): EngagementValidation => {
     if (!types.length) {
-      return {
-        isValid: true,
-        acceptedCount: 0,
-        totalRequired: 0
-      };
+      return { isValid: true, acceptedCount: 0, totalRequired: 0 };
     }
 
     const acceptedCount = types.filter(type => 
@@ -235,9 +240,6 @@ export function useLegalEngagements(): EngagementHookReturn {
     };
   }, []);
 
-  /**
-   * Vérifie si un engagement spécifique est accepté
-   */
   const isEngagementAccepted = useCallback((
     engagementCode: string, 
     formData: EngagementFormData
@@ -245,9 +247,6 @@ export function useLegalEngagements(): EngagementHookReturn {
     return formData[`${engagementCode}Accepted`] === true;
   }, []);
 
-  /**
-   * Compte le nombre d'engagements acceptés
-   */
   const getAcceptedCount = useCallback((
     formData: EngagementFormData, 
     types: LegalEngagementType[]
@@ -257,16 +256,10 @@ export function useLegalEngagements(): EngagementHookReturn {
     ).length;
   }, []);
 
-  /**
-   * Efface les erreurs
-   */
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  /**
-   * Initialise les données du formulaire avec les engagements existants
-   */
   const initializeFormData = useCallback((
     types: LegalEngagementType[],
     userEngs: UserLegalEngagement[]
@@ -287,16 +280,10 @@ export function useLegalEngagements(): EngagementHookReturn {
     return formData;
   }, []);
 
-  /**
-   * Vérifie si les données sont entièrement chargées
-   */
   const isDataReady = useCallback((): boolean => {
     return !isLoading && !isLoadingTypes && !isLoadingStatus;
   }, [isLoading, isLoadingTypes, isLoadingStatus]);
 
-  /**
-   * Obtient le statut de validation global
-   */
   const getValidationStatus = useCallback((
     formData: EngagementFormData,
     isFourmizRole: boolean
@@ -316,10 +303,21 @@ export function useLegalEngagements(): EngagementHookReturn {
     return validateEngagements(formData, engagementTypes);
   }, [grandfatheredStatus, engagementTypes, validateEngagements]);
 
-  // Charger les types d'engagements au montage du hook
+  // ✅ INITIALISATION SÉCURISÉE - UN SEUL useEffect STABLE
   useEffect(() => {
-    loadEngagementTypes();
-  }, [loadEngagementTypes]);
+    // Charger les types seulement si pas déjà chargés
+    if (!isTypesLoadedRef.current && !isLoadingTypesRef.current) {
+      loadEngagementTypes();
+    }
+  }, []); // ✅ STABLE : Dépendances vides = exécution unique
+
+  // 🧹 Nettoyage au démontage
+  useEffect(() => {
+    return () => {
+      isTypesLoadedRef.current = false;
+      isLoadingTypesRef.current = false;
+    };
+  }, []);
 
   return {
     // Data

@@ -1,5 +1,5 @@
 // src/hooks/useOrders.ts - HOOK COMPLET POUR LA GESTION DES COMMANDES
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Alert } from 'react-native';
 

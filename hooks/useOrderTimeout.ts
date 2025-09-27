@@ -1,5 +1,5 @@
 // hooks/useOrderTimeout.ts - Hook pour gérer les commandes sans validation
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Alert } from 'react-native';
 

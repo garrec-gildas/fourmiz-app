@@ -2,6 +2,8 @@
 // Version strictement identique à fourmiz-preview.tsx pour la consultation par les clients
 // Design moderne et cohérent avec la fiche de présentation du fourmiz
 // 🔧 MODIFIÉ: Navigation conditionnelle au lieu de router.back()
+// 🔧 CORRIGÉ: Utilisation de profiles.missions_completed comme source unique (cohérent avec applications.tsx)
+// ✅ CORRECTION : Formatage des langues sans nom de pays
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -106,6 +108,29 @@ const formatEquipments = (equipmentProvided: string[] | null, specializedEquipme
   }
   
   return allEquipments.join(' • ');
+};
+
+// ✅ NOUVELLE FONCTION : Formatage des langues sans nom de pays
+const formatSpokenLanguages = (spokenLanguages: string[] | null): string => {
+  if (!spokenLanguages || !Array.isArray(spokenLanguages) || spokenLanguages.length === 0) {
+    return 'Non renseigné';
+  }
+  
+  // Nettoyer les langues en supprimant les informations de pays entre parenthèses
+  const cleanedLanguages = spokenLanguages
+    .map(lang => {
+      if (typeof lang !== 'string') return '';
+      // Supprimer tout ce qui est entre parenthèses (comme "(France)", "(United States)")
+      return lang.replace(/\s*\([^)]*\)/g, '').trim();
+    })
+    .filter(lang => lang.length > 0) // Enlever les chaînes vides
+    .filter((lang, index, arr) => arr.indexOf(lang) === index); // Supprimer les doublons
+  
+  if (cleanedLanguages.length === 0) {
+    return 'Non renseigné';
+  }
+  
+  return cleanedLanguages.join(', ');
 };
 
 export default function FourmizProfileReadonly() {
@@ -333,31 +358,20 @@ export default function FourmizProfileReadonly() {
     }
   }, [fourmizId]);
 
+  // 🔧 CORRIGÉ: Utilisation de profiles.missions_completed (même source que applications.tsx)
   const loadFourmizStats = useCallback(async () => {
-    if (!fourmizId) return;
+    if (!fourmizId || !profile) return;
     
     try {
-      // Chargement des missions
-      const { data: fourmizOrders, error: fourmizOrdersError } = await supabase
-        .from('orders')
-        .select('id, proposed_amount, status')
-        .eq('fourmiz_id', fourmizId);
+      console.log('🔄 Chargement stats depuis profiles.missions_completed (cohérent avec applications.tsx)');
 
+      // SOURCE PRINCIPALE : profiles.missions_completed (même source que applications.tsx)
       let newStats = {
-        fourmizMissions: 0,
+        fourmizMissions: profile.missions_completed || 0,  // ← COHÉRENT avec applications.tsx
         fourmizRating: null,
         fourmizHasRating: false,
-        fourmizCompletionRate: 0,
+        fourmizCompletionRate: 85, // Valeur par défaut ou peut être calculée
       };
-
-      if (!fourmizOrdersError && fourmizOrders) {
-        newStats.fourmizMissions = fourmizOrders.length;
-        
-        const completedMissions = fourmizOrders.filter(order => order.status === 'terminee');
-        newStats.fourmizCompletionRate = newStats.fourmizMissions > 0 
-          ? Math.round((completedMissions.length / newStats.fourmizMissions) * 100)
-          : 0;
-      }
 
       // Récupérer les ratings depuis le profil
       if (profile?.fourmiz_has_real_rating && profile?.fourmiz_rating) {
@@ -365,12 +379,21 @@ export default function FourmizProfileReadonly() {
         newStats.fourmizHasRating = true;
       }
 
+      console.log('✅ Stats mises à jour depuis profiles.missions_completed:', newStats);
       setUnifiedStats(newStats);
       
     } catch (error) {
       console.error('Erreur chargement stats fourmiz:', error);
+      
+      // Stats par défaut en cas d'erreur
+      setUnifiedStats({
+        fourmizMissions: 0,
+        fourmizRating: null,
+        fourmizHasRating: false,
+        fourmizCompletionRate: 0,
+      });
     }
-  }, [fourmizId, profile?.fourmiz_has_real_rating, profile?.fourmiz_rating]);
+  }, [fourmizId, profile]);
 
   // ====================================
   // EFFECTS
@@ -391,9 +414,15 @@ export default function FourmizProfileReadonly() {
     if (fourmizId) {
       loadUserCriteria();
       loadUserReferences();
+    }
+  }, [fourmizId, loadUserCriteria, loadUserReferences]);
+
+  // Charger les stats après que le profil soit chargé
+  useEffect(() => {
+    if (profile) {
       loadFourmizStats();
     }
-  }, [fourmizId, loadUserCriteria, loadUserReferences, loadFourmizStats]);
+  }, [profile, loadFourmizStats]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -402,10 +431,10 @@ export default function FourmizProfileReadonly() {
     if (fourmizId) {
       await loadUserCriteria();
       await loadUserReferences();
-      await loadFourmizStats();
+      // loadFourmizStats sera appelé automatiquement après loadProfile via l'useEffect
     }
     setRefreshing(false);
-  }, [loadProfile, loadServiceCategories, fourmizId, loadUserCriteria, loadUserReferences, loadFourmizStats]);
+  }, [loadProfile, loadServiceCategories, fourmizId, loadUserCriteria, loadUserReferences]);
 
   // ====================================
   // RENDER
@@ -545,7 +574,6 @@ export default function FourmizProfileReadonly() {
                 </View>
                 <Text style={styles.previewSectionContent}>
                   {unifiedStats.fourmizMissions} missions réalisées
-                  {unifiedStats.fourmizCompletionRate > 0 && ` • ${unifiedStats.fourmizCompletionRate}% de réussite`}
                 </Text>
               </View>
 
@@ -617,7 +645,7 @@ export default function FourmizProfileReadonly() {
                 </View>
               </View>
               
-              {/* Langues */}
+              {/* Langues - ✅ CORRECTION : Utilisation de formatSpokenLanguages */}
               {criteriaData.spoken_languages && criteriaData.spoken_languages.length > 0 && (
                 <View style={styles.previewSection}>
                   <View style={styles.previewSectionHeader}>
@@ -625,7 +653,7 @@ export default function FourmizProfileReadonly() {
                     <Text style={styles.previewSectionTitle}>Langues</Text>
                   </View>
                   <Text style={styles.previewSectionContent}>
-                    {criteriaData.spoken_languages.join(', ')}
+                    {formatSpokenLanguages(criteriaData.spoken_languages)}
                   </Text>
                 </View>
               )}

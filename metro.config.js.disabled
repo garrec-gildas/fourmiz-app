@@ -1,0 +1,30 @@
+﻿const { getDefaultConfig } = require('expo/metro-config');
+
+const config = getDefaultConfig(__dirname);
+
+// Optimisations minimales pour OneDrive + Fast Refresh
+config.resetCache = true;
+config.resolver.useWatchman = false;
+
+// Alias de base seulement
+config.resolver.alias = {
+  '@': __dirname,
+  '@components': './components',
+  '@hooks': './hooks',
+  '@lib': './lib',
+  '@constants': './constants',
+  '@utils': './utils',
+  '@types': './types',
+};
+
+// Exclusions OneDrive basiques
+config.resolver.blockList = [
+  /node_modules\/.*\/node_modules\/react-native\/.*/,
+  /.*\.tmp$/,
+  /.*~$/,
+  /*-conflict-*/,
+  /desktop\.ini$/,
+  /thumbs\.db$/,
+];
+
+module.exports = config;

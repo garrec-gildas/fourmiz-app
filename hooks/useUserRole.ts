@@ -1,5 +1,5 @@
 // hooks/useUserRole.ts - VERSION CORRIGÉE POUR ÉVITER LES CHANGEMENTS CONSTANTS
-import { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

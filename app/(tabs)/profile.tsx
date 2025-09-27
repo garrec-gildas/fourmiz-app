@@ -1,9 +1,9 @@
-﻿// app/(tabs)/profile.tsx - VERSION CORRIGÉE AVEC BOUTON CRITÈRES DÉPLACÉ
-// Modifications :
-// - Hook useWalletRoleAdapter désactivé temporairement pour éviter la réinitialisation
-// - Variables de remplacement simplifiées
-// - Conservation de toutes les autres fonctionnalités
-// - Bouton "Gérer mes critères" déplacé après "Gérer mes références"
+﻿// app/(tabs)/profile.tsx - VERSION FINALE COMPLÈTE
+// Modifications appliquées :
+// - Bouton suppression avec style identique au bouton déconnexion
+// - Icône person-remove pour la suppression de compte
+// - Ordre : Se déconnecter → Badge Membre Fourmiz → Supprimer mon compte
+// - Toutes les fonctionnalités conservées
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -16,11 +16,14 @@ import {
   Image,
   Alert,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+// 🆕 IMPORT DU COMPOSANT DE SUPPRESSION DE COMPTE
+import AccountDeletion from '../../components/AccountDeletion';
 // import { useWalletRoleAdapter } from '@/lib/useWalletRoleAdapter'; // DÉSACTIVÉ TEMPORAIREMENT
 
 // ====================================
@@ -595,6 +598,32 @@ export default function ProfileScreen() {
   }, [profileToUse?.id_document_path, manualActionInProgress]);
 
   // ====================================
+  // ÉTAT POUR LE COMPOSANT DE SUPPRESSION
+  // ====================================
+  const [showAccountDeletion, setShowAccountDeletion] = useState(false);
+
+  // ====================================
+  // FONCTION POUR OUVRIR LE COMPOSANT DE SUPPRESSION COMPLET
+  // ====================================
+  const handleDeleteAccount = useCallback(async () => {
+    Alert.alert(
+      'Désactiver mon compte',
+      'Êtes-vous sûr de vouloir supprimer définitivement votre compte ? Cette action est irréversible et supprimera toutes vos données.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Continuer',
+          style: 'destructive',
+          onPress: () => {
+            // Ouvrir le composant de suppression complet qui gère tout
+            setShowAccountDeletion(true);
+          }
+        }
+      ]
+    );
+  }, []);
+
+  // ====================================
   // FONCTIONS POUR LES REDIRECTIONS
   // ====================================
   const handleGoToEarnings = useCallback(() => {
@@ -1048,7 +1077,9 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* SECTION ACTIONS - BOUTONS AVEC BADGE AU MILIEU */}
         <View style={styles.actionsContainer}>
+          {/* 1. BOUTON SE DÉCONNECTER */}
           <TouchableOpacity 
             onPress={handleLogout} 
             style={styles.actionButton}
@@ -1059,11 +1090,34 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* BADGE MEMBRE FOURMIZ */}
         <View style={styles.badgeContainer}>
           <Text style={styles.badgeText}>
             Membre Fourmiz depuis {profileToUse.created_at ? new Date(profileToUse.created_at).getFullYear() : new Date().getFullYear()}
           </Text>
         </View>
+
+        {/* BOUTON SUPPRESSION */}
+        <View style={styles.actionsContainer}>
+          {/* 2. BOUTON SUPPRIMER MON COMPTE - STYLE IDENTIQUE */}
+          <TouchableOpacity 
+            onPress={handleDeleteAccount} 
+            style={styles.actionButton}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="person-remove" size={16} color="#ffffff" />
+            <Text style={styles.actionButtonText}>Désactiver mon compte</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* COMPOSANT DE SUPPRESSION COMPLET AVEC COLLECTE DE RAISON */}
+        {showAccountDeletion && user && (
+          <AccountDeletion 
+            userEmail={user.email || ''}
+            userId={user.id}
+            onClose={() => setShowAccountDeletion(false)}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -1495,11 +1549,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '400',
   },
+  // SECTION ACTIONS - BOUTONS IDENTIQUES
   actionsContainer: {
     marginTop: 20,
     gap: 12,
   },
   actionButton: {
+    // Style exactement identique pour les deux boutons
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1509,6 +1565,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionButtonText: {
+    // Style de texte exactement identique
     color: '#ffffff',
     fontWeight: '400',
     fontSize: 13,

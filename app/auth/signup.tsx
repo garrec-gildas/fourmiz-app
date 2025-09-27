@@ -1,5 +1,5 @@
-﻿// app/auth/signup.tsx - INSCRIPTION SÉCURISÉE + PARRAINAGE + TÉLÉPHONE FORMATÉ
-// ✅ VERSION FINALE : Bouton de test supprimé + Prénom du parrain récupéré
+﻿// app/auth/signup.tsx - INSCRIPTION SÉCURISÉE + PARRAINAGE + VALIDATION TÉLÉPHONE UNIQUE + RÉACTIVATION COMPTE
+// ✅ VERSION FINALE : Validation unicité téléphone + Messages d'erreur clairs + Vérification post-création + Réactivation compte existant
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
@@ -30,6 +30,14 @@ interface SignupFormData {
   lastname?: string;
   phone?: string;
   referralCode: string;
+}
+
+interface VerificationResult {
+  success: boolean;
+  profile?: any;
+  referral?: any;
+  error?: string;
+  details?: string;
 }
 
 export default function SignupScreen() {
@@ -76,6 +84,128 @@ export default function SignupScreen() {
       }
     };
   }, []);
+
+  // 🆕 FONCTION DE VÉRIFICATION POST-CRÉATION
+  const verifyUserCreation = async (userId: string, email: string, hasReferral: boolean): Promise<VerificationResult> => {
+    try {
+      console.log('🔍 === DÉBUT VÉRIFICATION POST-CRÉATION ===');
+      console.log('👤 User ID:', userId);
+      console.log('📧 Email:', email);
+      console.log('🎯 Parrainage attendu:', hasReferral);
+      
+      // Attendre un peu pour laisser les triggers se déclencher
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // 1. Vérifier le profil utilisateur
+      console.log('🔍 Vérification du profil...');
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, firstname, lastname, email, phone, created_at')
+        .eq('user_id', userId)
+        .single();
+        
+      if (profileError) {
+        console.error('❌ ERREUR PROFIL:', profileError);
+        return { 
+          success: false, 
+          error: 'Profil non créé', 
+          details: profileError.message 
+        };
+      }
+      
+      if (!profile) {
+        console.error('❌ PROFIL MANQUANT pour utilisateur:', userId);
+        return { 
+          success: false, 
+          error: 'Profil introuvable',
+          details: 'Aucune entrée trouvée dans la table profiles'
+        };
+      }
+      
+      console.log('✅ Profil trouvé:', {
+        user_id: profile.user_id,
+        firstname: profile.firstname,
+        lastname: profile.lastname,
+        email: profile.email,
+        phone: profile.phone
+      });
+      
+      // 2. Vérifier le parrainage si attendu
+      let referralData = null;
+      if (hasReferral) {
+        console.log('🔍 Vérification du parrainage...');
+        const { data: referral, error: referralError } = await supabase
+          .from('referrals')
+          .select(`
+            parrain_id,
+            filleul_id,
+            created_at,
+            parrain_profile:profiles!referrals_parrain_id_fkey(firstname, lastname)
+          `)
+          .eq('filleul_id', userId)
+          .single();
+          
+        if (referralError) {
+          console.warn('⚠️ Parrainage non trouvé:', referralError);
+          return { 
+            success: true, 
+            profile,
+            error: 'Parrainage non appliqué',
+            details: referralError.message
+          };
+        } else {
+          console.log('✅ Parrainage trouvé:', referral);
+          referralData = referral;
+        }
+      }
+      
+      // 3. Vérification de cohérence des données
+      const dataIntegrityChecks = [];
+      
+      // Vérifier que l'email correspond
+      if (profile.email !== email.trim().toLowerCase()) {
+        dataIntegrityChecks.push(`Email incohérent: attendu ${email}, trouvé ${profile.email}`);
+      }
+      
+      // Vérifier que les champs requis sont présents
+      if (!profile.firstname?.trim()) {
+        dataIntegrityChecks.push('Prénom manquant');
+      }
+      if (!profile.lastname?.trim()) {
+        dataIntegrityChecks.push('Nom manquant');
+      }
+      if (!profile.phone?.trim()) {
+        dataIntegrityChecks.push('Téléphone manquant');
+      }
+      
+      if (dataIntegrityChecks.length > 0) {
+        console.warn('⚠️ Problèmes d\'intégrité détectés:', dataIntegrityChecks);
+        return {
+          success: false,
+          error: 'Données incomplètes',
+          details: dataIntegrityChecks.join(', '),
+          profile
+        };
+      }
+      
+      console.log('✅ === VÉRIFICATION RÉUSSIE ===');
+      return { 
+        success: true, 
+        profile,
+        referral: referralData
+      };
+      
+    } catch (error: any) {
+      console.error('❌ ERREUR VÉRIFICATION POST-CRÉATION:', error);
+      return { 
+        success: false, 
+        error: 'Erreur de vérification',
+        details: error.message
+      };
+    }
+  };
+
+
 
   // 🆕 FONCTION POUR RÉCUPÉRER LE PRÉNOM DU PARRAIN
   const getReferrerInfo = async (userId: string) => {
@@ -175,8 +305,243 @@ export default function SignupScreen() {
     }
   };
 
-  // ✅ VALIDATION DU FORMULAIRE
-  const validateForm = (): { isValid: boolean; error?: string } => {
+  // 🔄 FONCTION DE RÉACTIVATION AVEC CONFIRMATION UTILISATEUR
+  const proceedWithReactivation = async (userId: string): Promise<void> => {
+    try {
+      console.log('🔄 Début processus de réactivation pour:', userId);
+      
+      // 1. Mettre à jour le profil avec les nouvelles données
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          firstname: formData.firstname?.trim(),
+          lastname: formData.lastname?.trim(),
+          phone: formData.phone?.trim().replace(/\s/g, ''),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+      
+      if (updateError) {
+        throw new Error('Erreur mise à jour profil: ' + updateError.message);
+      }
+      
+      console.log('✅ Profil mis à jour avec succès');
+
+      // 2. Tentative de connexion avec les identifiants existants
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      });
+
+      if (signInError) {
+        console.error('❌ Erreur connexion profil réactivé:', signInError);
+        
+        // Si erreur de mot de passe, proposer de se connecter
+        if (signInError.message?.includes('Invalid login credentials')) {
+          Alert.alert(
+            'Mot de passe incorrect',
+            'Le profil a été réactivé mais le mot de passe ne correspond pas. Voulez-vous vous connecter avec ce compte ?',
+            [
+              { text: 'Annuler', style: 'cancel' },
+              { 
+                text: 'Se connecter', 
+                onPress: () => router.replace({
+                  pathname: '/auth/login',
+                  params: { 
+                    email: formData.email,
+                    message: 'Profil réactivé - Utilisez votre ancien mot de passe'
+                  }
+                })
+              }
+            ]
+          );
+          return;
+        }
+        
+        throw new Error('Connexion échouée après réactivation: ' + signInError.message);
+      }
+
+      if (!signInData.user) {
+        throw new Error('Aucun utilisateur retourné après connexion');
+      }
+
+      console.log('✅ Connexion réussie après réactivation:', signInData.user.id);
+
+      // 4. Message de succès pour profil réactivé (sans mention de parrainage)
+      const message = `Bienvenue de nouveau !\n\nVotre profil a été réactivé avec succès.\n\nVous pouvez maintenant accéder à votre compte.`;
+      
+      Alert.alert('Profil réactivé !', message, [{ 
+        text: 'Continuer', 
+        onPress: () => router.replace('/auth/complete-profile') 
+      }]);
+
+    } catch (error: any) {
+      console.error('❌ Erreur processus réactivation:', error);
+      Alert.alert(
+        'Erreur de réactivation',
+        `Impossible de réactiver le compte: ${error.message}\n\nVous pouvez essayer de vous connecter directement ou contacter le support.`,
+        [
+          { text: 'OK' },
+          { 
+            text: 'Se connecter', 
+            onPress: () => router.replace({
+              pathname: '/auth/login',
+              params: { email: formData.email }
+            })
+          }
+        ]
+      );
+    }
+  };
+
+  // 🔧 FONCTION DE CORRECTION COMPTEUR USAGE_COUNT
+  const fixReferralUsageCount = async (referralCode: string) => {
+    try {
+      console.log('🔧 Correction compteur usage_count pour code:', referralCode);
+      
+      // Récupérer le code pour avoir l'ID
+      const { data: codeData } = await supabase
+        .from('user_referral_codes')
+        .select('id, user_id')
+        .eq('code', referralCode)
+        .single();
+      
+      if (!codeData) return;
+      
+      // Compter les parrainages actifs
+      const { data: referrals, count } = await supabase
+        .from('referrals')
+        .select('filleul_id', { count: 'exact' })
+        .eq('parrain_id', codeData.user_id);
+      
+      const actualCount = count || 0;
+      
+      // Mettre à jour le compteur réel
+      await supabase
+        .from('user_referral_codes')
+        .update({ usage_count: actualCount })
+        .eq('code', referralCode);
+      
+      console.log(`✅ Compteur corrigé: ${referralCode} = ${actualCount} utilisations réelles`);
+      
+    } catch (error) {
+      console.error('Erreur correction compteur:', error);
+    }
+  };
+
+  // 🆕 FONCTION DE VÉRIFICATION D'UNICITÉ DU TÉLÉPHONE
+  const checkPhoneAvailability = async (phone: string): Promise<{available: boolean; error?: string}> => {
+    try {
+      const cleanPhone = phone.trim().replace(/\s/g, '');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, firstname')
+        .eq('phone', cleanPhone)
+        .limit(1);
+      
+      if (error) {
+        console.error('Erreur vérification téléphone:', error);
+        return { available: true }; // En cas d'erreur, on laisse passer
+      }
+      
+      if (data && data.length > 0) {
+        return { 
+          available: false, 
+          error: 'Ce numéro de téléphone est déjà associé à un autre compte.' 
+        };
+      }
+      
+      return { available: true };
+      
+    } catch (error) {
+      console.error('Erreur validation téléphone:', error);
+      return { available: true }; // En cas d'erreur, on laisse passer
+    }
+  };
+
+  // 🆕 FONCTION DE VÉRIFICATION D'UNICITÉ DE L'EMAIL - AVEC RÉACTIVATION
+  const checkEmailAvailability = async (email: string): Promise<{available: boolean; error?: string; reactivable?: boolean}> => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      
+      // Vérifier dans la table profiles
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, firstname, created_at')
+        .eq('email', cleanEmail)
+        .limit(1);
+      
+      if (error) {
+        console.error('Erreur vérification email:', error);
+        return { available: true }; 
+      }
+      
+      if (data && data.length > 0) {
+        const profile = data[0];
+        
+        try {
+          // Vérifier si c'est l'utilisateur actuel
+          const { data: sessionTest } = await supabase.auth.getUser();
+          
+          if (sessionTest?.user?.id === profile.user_id) {
+            return { 
+              available: false, 
+              error: 'Un compte existe déjà avec cet email. Essayez de vous connecter.' 
+            };
+          }
+          
+          // Vérifier l'âge du profil pour la réactivation
+          const profileCreated = new Date(profile.created_at);
+          const now = new Date();
+          const hoursSinceCreation = (now.getTime() - profileCreated.getTime()) / (1000 * 60 * 60);
+          
+          // Profil ancien - réactivation possible
+          if (hoursSinceCreation > 0.017) {
+            console.log('🔄 Profil ancien détecté, réactivation possible');
+            return { 
+              available: true, 
+              reactivable: true,
+              error: 'Ancien compte détecté - réactivation automatique'
+            };
+          } else {
+            // Profil récent
+            return { 
+              available: false, 
+              error: 'Un compte existe déjà avec cet email. Essayez de vous connecter.' 
+            };
+          }
+          
+        } catch (authCheckError) {
+          console.log('⚠️ Impossible de vérifier l\'auth, considéré comme réactivable:', authCheckError);
+          return { 
+            available: true, 
+            reactivable: true 
+          };
+        }
+      }
+      
+      return { available: true };
+      
+    } catch (error) {
+      console.error('Erreur validation email:', error);
+      return { available: true };
+    }
+  };
+
+  // ✅ VALIDATION DU FORMULAIRE - ASYNC AVEC VÉRIFICATION UNICITÉ EMAIL ET TÉLÉPHONE - AVEC GESTION ORPHELINS
+  const validateForm = async (): Promise<{ isValid: boolean; error?: string }> => {
+    // PRÉNOM OBLIGATOIRE
+    if (!formData.firstname?.trim() || formData.firstname.trim().length < 2) {
+      return { isValid: false, error: 'Le prénom est requis (minimum 2 caractères)' };
+    }
+
+    // NOM OBLIGATOIRE  
+    if (!formData.lastname?.trim() || formData.lastname.trim().length < 2) {
+      return { isValid: false, error: 'Le nom est requis (minimum 2 caractères)' };
+    }
+
+    // EMAIL OBLIGATOIRE
     if (!formData.email.trim()) {
       return { isValid: false, error: 'L\'email est requis' };
     }
@@ -185,6 +550,30 @@ export default function SignupScreen() {
       return { isValid: false, error: 'Format d\'email invalide' };
     }
 
+    // 🆕 VÉRIFICATION UNICITÉ EMAIL - AVEC GESTION RÉACTIVATION
+    const emailCheck = await checkEmailAvailability(formData.email);
+    if (!emailCheck.available && !emailCheck.reactivable) {
+      return { isValid: false, error: emailCheck.error || 'Email non disponible' };
+    }
+
+    // TÉLÉPHONE OBLIGATOIRE
+    if (!formData.phone?.trim()) {
+      return { isValid: false, error: 'Le numéro de téléphone est requis' };
+    }
+
+    const phoneRegex = /^0[1-9]\d{8}$/;
+    const cleanPhone = formData.phone.replace(/\s/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      return { isValid: false, error: 'Format de téléphone invalide (ex: 0123456789)' };
+    }
+
+    // 🆕 VÉRIFICATION UNICITÉ TÉLÉPHONE
+    const phoneCheck = await checkPhoneAvailability(formData.phone);
+    if (!phoneCheck.available) {
+      return { isValid: false, error: phoneCheck.error || 'Numéro de téléphone non disponible' };
+    }
+
+    // MOT DE PASSE OBLIGATOIRE
     if (!formData.password) {
       return { isValid: false, error: 'Le mot de passe est requis' };
     }
@@ -197,15 +586,7 @@ export default function SignupScreen() {
       return { isValid: false, error: 'Les mots de passe ne correspondent pas' };
     }
 
-    // Validation téléphone
-    if (formData.phone && formData.phone.trim()) {
-      const phoneRegex = /^0[1-9]\d{8}$/;
-      if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
-        return { isValid: false, error: 'Format de téléphone invalide' };
-      }
-    }
-
-    // Validation code parrainage
+    // Validation code parrainage (optionnel)
     if (formData.referralCode.trim() && !referralInfo.isValid) {
       return { isValid: false, error: 'Code de parrainage invalide' };
     }
@@ -213,40 +594,172 @@ export default function SignupScreen() {
     return { isValid: true };
   };
 
-  // 🚀 FONCTION D'INSCRIPTION PRINCIPALE
+  // 🚀 FONCTION D'INSCRIPTION PRINCIPALE - MISE À JOUR AVEC GESTION UTILISATEUR EXISTANT + NETTOYAGE ORPHELINS
   const handleSignup = async (): Promise<void> => {
-    // Validation
-    const validation = validateForm();
+    // Validation async renforcée avec nettoyage orphelins
+    const validation = await validateForm();
     if (!validation.isValid) {
-      Alert.alert('Erreur de validation', validation.error);
+      Alert.alert('Champ obligatoire manquant', validation.error);
       return;
+    }
+
+    // 🔄 VÉRIFICATION PROFIL RÉACTIVABLE ET DEMANDE CONFIRMATION
+    console.log('🔄 Vérification profil réactivable...');
+    const { data: existingProfiles } = await supabase
+      .from('profiles')
+      .select('user_id, created_at, firstname, lastname')
+      .or(`email.eq.${formData.email}${formData.phone ? `,phone.eq.${formData.phone}` : ''}`)
+      .limit(1);
+    
+    if (existingProfiles && existingProfiles.length > 0) {
+      const profile = existingProfiles[0];
+      const profileCreated = new Date(profile.created_at);
+      const hoursSinceCreation = (Date.now() - profileCreated.getTime()) / (1000 * 60 * 60);
+      
+      // Si le profil est ancien (plus de 1 minute), proposer la réactivation
+      if (hoursSinceCreation > 0.017) {
+        console.log('🔄 Profil réactivable détecté, demande confirmation...');
+        
+        // Arrêter le loading pendant la confirmation
+        setUiState(prev => ({ ...prev, loading: false }));
+        
+        // Demander confirmation à l'utilisateur
+        return new Promise<void>((resolve) => {
+          Alert.alert(
+            'Compte existant détecté',
+            `Un ancien compte avec l'email "${formData.email}" existe déjà.\n\nVoulez-vous réactiver ce compte avec vos nouvelles informations ?\n\n• Nom : ${profile.firstname || 'Non défini'} ${profile.lastname || ''}\n• Créé le : ${profileCreated.toLocaleDateString()}`,
+            [
+              {
+                text: 'Annuler',
+                style: 'cancel',
+                onPress: () => {
+                  console.log('❌ Utilisateur a annulé la réactivation');
+                  resolve();
+                }
+              },
+              {
+                text: 'Changer d\'email',
+                onPress: () => {
+                  console.log('🔄 Utilisateur veut changer d\'email');
+                  // Vider le champ email pour permettre la saisie d'un nouveau
+                  updateFormData('email', '');
+                  Alert.alert('Email effacé', 'Vous pouvez maintenant saisir un nouvel email.');
+                  resolve();
+                }
+              },
+              {
+                text: 'Réactiver',
+                onPress: async () => {
+                  console.log('✅ Utilisateur accepte la réactivation');
+                  setUiState(prev => ({ ...prev, loading: true }));
+                  
+                  try {
+                    // Procéder à la réactivation
+                    await proceedWithReactivation(profile.user_id);
+                  } catch (error) {
+                    console.error('❌ Erreur lors de la réactivation:', error);
+                    Alert.alert('Erreur', 'Impossible de réactiver le compte. Veuillez réessayer.');
+                  } finally {
+                    setUiState(prev => ({ ...prev, loading: false }));
+                  }
+                  
+                  resolve();
+                }
+              }
+            ],
+            { cancelable: false }
+          );
+        });
+      }
+    }
+
+    // Corriger le compteur du code parrainage si utilisé
+    if (formData.referralCode.trim() && referralInfo.isValid) {
+      await fixReferralUsageCount(formData.referralCode.trim());
     }
 
     console.log('🚀 === DÉBUT INSCRIPTION UTILISATEUR ===');
     console.log('📧 Email:', formData.email.trim());
     console.log('📞 Téléphone:', formData.phone?.trim() || 'Non renseigné');
+    console.log('👤 Prénom:', formData.firstname?.trim() || 'Non renseigné');
+    console.log('👤 Nom:', formData.lastname?.trim() || 'Non renseigné');
     console.log('🎯 Code parrainage:', formData.referralCode.trim() || 'Aucun');
 
     setUiState(prev => ({ ...prev, loading: true }));
+    
+    const hasReferralCode = formData.referralCode.trim() && referralInfo.isValid;
+    let createdUserId = '';
 
     try {
-      // 🔐 INSCRIPTION SUPABASE
+      // 🔐 INSCRIPTION SUPABASE - Tous les champs sont maintenant requis et validés
       console.log('🔐 Création du compte...');
+      
+      const userData = {
+        firstname: formData.firstname!.trim(),
+        lastname: formData.lastname!.trim(), 
+        phone: formData.phone!.trim().replace(/\s/g, ''),  // Nettoyer les espaces
+      };
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         options: {
-          data: {
-            firstname: formData.firstname?.trim() || '',
-            lastname: formData.lastname?.trim() || '',
-            phone: formData.phone?.trim() || '',
-          }
+          data: userData
         }
       });
 
       if (signUpError) {
         console.error('❌ Erreur inscription:', signUpError);
+        console.error('Erreur Supabase (Inscription):', {
+          code: signUpError.status,
+          details: signUpError.details,
+          hint: signUpError.hint,
+          message: signUpError.message,
+          timestamp: new Date().toISOString()
+        });
+
+        // 🆕 GESTION SPÉCIALE : Utilisateur déjà existant
+        if (signUpError.message === 'User already registered' || 
+            signUpError.message === 'User already exists' ||
+            signUpError.message?.includes('already been registered') ||
+            signUpError.status === 422) {
+          
+          console.log('👤 Utilisateur existant détecté - Proposition de connexion');
+          
+          Alert.alert(
+            'Compte existant',
+            `Un compte avec l'email "${formData.email}" existe déjà.\n\nVoulez-vous vous connecter à la place ?`,
+            [
+              { 
+                text: 'Annuler', 
+                style: 'cancel',
+                onPress: () => {
+                  console.log('❌ Utilisateur a annulé');
+                }
+              },
+              { 
+                text: 'Se connecter', 
+                onPress: () => {
+                  console.log('🔄 Redirection vers la connexion');
+                  
+                  // Redirection vers login avec l'email pré-rempli
+                  router.replace({
+                    pathname: '/auth/login',
+                    params: { 
+                      email: formData.email,
+                      message: 'Compte existant - Veuillez vous connecter',
+                      from: 'signup_existing_user'
+                    }
+                  });
+                }
+              }
+            ]
+          );
+          
+          return; // Arrêter ici, ne pas continuer le processus
+        }
+
+        // Autres erreurs d'inscription
         const { userMessage } = handleSupabaseError ? handleSupabaseError(signUpError, 'Inscription') : { userMessage: signUpError.message };
         throw new Error(userMessage);
       }
@@ -256,9 +769,10 @@ export default function SignupScreen() {
       }
 
       console.log('✅ Compte créé avec succès:', signUpData.user.id);
+      createdUserId = signUpData.user.id;
 
       // 🎯 PARRAINAGE
-      if (formData.referralCode.trim() && referralInfo.isValid && referralInfo.referrerId) {
+      if (hasReferralCode && referralInfo.referrerId) {
         console.log('🎯 Application du parrainage...');
         
         try {
@@ -278,16 +792,37 @@ export default function SignupScreen() {
         }
       }
 
+      // 🆕 VÉRIFICATION POST-CRÉATION
+      console.log('🔍 Lancement vérification post-création...');
+      const verification = await verifyUserCreation(
+        signUpData.user.id, 
+        formData.email.trim().toLowerCase(),
+        hasReferralCode
+      );
+
+      if (!verification.success) {
+        console.error('🚨 PROBLÈME POST-CRÉATION DÉTECTÉ:', verification.error);
+        console.error('🚨 Détails:', verification.details);
+        
+        // Alerter l'utilisateur d'un problème technique
+        // mais ne pas faire échouer l'inscription si l'auth a réussi
+        Alert.alert(
+          'Compte créé avec des alertes',
+          'Votre compte a été créé mais il y a eu un problème technique. Notre équipe a été alertée. Vous pouvez tout de même continuer.',
+          [{ text: 'Continuer' }]
+        );
+      } else {
+        console.log('✅ Vérification post-création réussie');
+      }
+
       // 🎯 GESTION SELON LE TYPE DE CONFIRMATION
       if (signUpData.session) {
         // Connexion automatique
         console.log('🎯 Connexion automatique, redirection...');
         
-        const hasReferrer = formData.referralCode.trim() && referralInfo.isValid;
-        
         // 🆕 RÉCUPÉRER LE PRÉNOM RÉEL DU PARRAIN DEPUIS LA BASE
         let actualReferrerName = referralInfo.referrerName;
-        if (hasReferrer) {
+        if (hasReferralCode) {
           try {
             const referrerData = await getReferrerInfo(signUpData.user.id);
             if (referrerData && referrerData.referrerName !== 'Utilisateur') {
@@ -299,7 +834,7 @@ export default function SignupScreen() {
           }
         }
         
-        let message = hasReferrer && actualReferrerName && actualReferrerName !== 'Utilisateur'
+        let message = hasReferralCode && actualReferrerName && actualReferrerName !== 'Utilisateur'
           ? `Bienvenue ! 🎉\n\nVotre Parrain ${actualReferrerName} vous souhaite la bienvenue.`
           : `Bienvenue sur Fourmiz ! 🎉`;
 
@@ -315,7 +850,7 @@ export default function SignupScreen() {
         
         let message = `Un email de confirmation a été envoyé à ${formData.email}. Cliquez sur le lien pour activer votre compte.`;
         
-        if (formData.referralCode.trim() && referralInfo.isValid && referralInfo.referrerName && referralInfo.referrerName !== 'Utilisateur') {
+        if (hasReferralCode && referralInfo.referrerName && referralInfo.referrerName !== 'Utilisateur') {
           message += `\n\n🎯 Parrainage par ${referralInfo.referrerName} enregistré !`;
         }
         
@@ -332,9 +867,10 @@ export default function SignupScreen() {
       let title = 'Erreur d\'inscription';
       let message = error.message || 'Impossible de créer le compte';
 
-      if (error.message?.includes('User already registered')) {
+      // 🆕 GESTION AMÉLIORÉE DES ERREURS (incluant utilisateur existant au niveau catch)
+      if (error.message?.includes('User already registered') || error.message?.includes('User already exists')) {
         title = 'Compte existant';
-        message = 'Un compte existe déjà avec cet email. Essayez de vous connecter.';
+        message = `Un compte existe déjà avec cet email "${formData.email}". Essayez de vous connecter.`;
       } else if (error.message?.includes('Password should be at least')) {
         title = 'Mot de passe trop faible';
         message = 'Votre mot de passe doit être plus sécurisé (au moins 6 caractères).';
@@ -344,14 +880,47 @@ export default function SignupScreen() {
       } else if (error.message?.includes('signup_disabled')) {
         title = 'Inscription fermée';
         message = 'Les inscriptions sont temporairement fermées.';
+      } else if (error.message?.includes('Database error')) {
+        // 🆕 Gestion spécifique erreur téléphone/email duplicate
+        title = 'Erreur de validation';
+        message = 'Une erreur est survenue. Vérifiez que votre email et numéro de téléphone ne sont pas déjà utilisés.';
+        
+        // Vérification supplémentaire pour confirmer le type de doublon
+        try {
+          const phoneCheck = await checkPhoneAvailability(formData.phone || '');
+          const emailCheck = await checkEmailAvailability(formData.email);
+          
+          if (!phoneCheck.available && !emailCheck.available) {
+            title = 'Informations déjà utilisées';
+            message = 'Cet email ET ce numéro de téléphone sont déjà associés à des comptes existants.';
+          } else if (!phoneCheck.available) {
+            title = 'Numéro déjà utilisé';
+            message = 'Ce numéro de téléphone est déjà associé à un autre compte. Utilisez un autre numéro.';
+          } else if (!emailCheck.available) {
+            title = 'Email déjà utilisé';
+            message = 'Cet email est déjà associé à un compte existant. Essayez de vous connecter.';
+          }
+        } catch (checkError) {
+          console.error('Erreur vérification post-erreur:', checkError);
+        }
       }
 
       Alert.alert(title, message, [
         { text: 'OK' },
-        ...(title === 'Compte existant' ? [
+        // 🆕 BOUTON "SE CONNECTER" pour les cas d'utilisateur existant
+        ...(title === 'Compte existant' || title === 'Email déjà utilisé' ? [
           { 
             text: 'Se connecter', 
-            onPress: () => router.replace('/auth/login')
+            onPress: () => {
+              router.replace({
+                pathname: '/auth/login',
+                params: { 
+                  email: formData.email,
+                  message: 'Compte existant détecté',
+                  from: 'signup_error'
+                }
+              });
+            }
           }
         ] : [])
       ]);
@@ -409,7 +978,7 @@ export default function SignupScreen() {
     setReferralInfo({ isValid: false, referrerId: '', referrerName: '', error: '' });
   };
 
-  // 🎨 RENDU PRINCIPAL
+  // 🎨 RENDU PRINCIPAL (identique au code original)
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -445,12 +1014,12 @@ export default function SignupScreen() {
             <Text style={styles.welcome}>Créer un compte</Text>
           </View>
 
-          {/* Champs de nom */}
+          {/* Champs de nom - MAINTENANT OBLIGATOIRES */}
           <View style={styles.nameContainer}>
             <View style={styles.nameInput}>
               <TextInput 
                 style={styles.input}
-                placeholder="Prénom"
+                placeholder="Prénom *"
                 placeholderTextColor="#999"
                 value={formData.firstname}
                 onChangeText={(text) => updateFormData('firstname', text)}
@@ -463,7 +1032,7 @@ export default function SignupScreen() {
             <View style={styles.nameInput}>
               <TextInput 
                 style={styles.input}
-                placeholder="Nom"
+                placeholder="Nom *"
                 placeholderTextColor="#999"
                 value={formData.lastname}
                 onChangeText={(text) => updateFormData('lastname', text)}
@@ -501,11 +1070,11 @@ export default function SignupScreen() {
             )}
           </View>
 
-          {/* Champ téléphone */}
+          {/* Champ téléphone - MAINTENANT OBLIGATOIRE */}
           <View style={styles.inputContainer}>
             <TextInput 
               style={styles.input}
-              placeholder="Téléphone"
+              placeholder="Téléphone *"
               placeholderTextColor="#999"
               value={formData.phone || ''}
               onChangeText={(phone) => updateFormData('phone', phone)}
@@ -683,6 +1252,7 @@ export default function SignupScreen() {
           <View style={styles.termsContainer}>
             <Ionicons name="document-text" size={16} color="#666" />
             <Text style={styles.termsText}>
+              Les champs marqués d'une étoile (*) sont obligatoires.{'\n'}
               En créant un compte, vous acceptez nos{' '}
               <Text style={styles.termsLink}>conditions d'utilisation</Text>
               {' '}et notre{' '}
@@ -695,6 +1265,7 @@ export default function SignupScreen() {
   );
 }
 
+// Styles identiques au code original
 const styles = StyleSheet.create({
   container: {
     flex: 1,

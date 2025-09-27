@@ -1,6 +1,6 @@
 ﻿import { SafeAreaView, Text, TouchableOpacity, StyleSheet, View, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 export default function RegisterSelectorScreen() {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);

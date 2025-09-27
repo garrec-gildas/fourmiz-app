@@ -1,5 +1,5 @@
 // src/hooks/useFavorites.ts
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FAVORITES_STORAGE_KEY = 'user_favorites_services';

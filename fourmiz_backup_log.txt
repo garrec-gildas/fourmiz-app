@@ -263,3 +263,138 @@
 2025-09-21 12:00:30 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
 2025-09-21 12:00:30 - === FIN DE LA SAUVEGARDE ===
 2025-09-21 12:00:30 - 
+2025-09-21 19:00:02 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-21 19:00:02 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250921_190002.sql
+2025-09-21 19:00:02 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-21 19:00:02 - Exécution de pg_dump...
+2025-09-21 19:00:31 - Code de sortie pg_dump : 0
+2025-09-21 19:00:31 -  Sauvegarde réussie ! Taille : 1.39 MB
+2025-09-21 19:00:31 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-21 19:00:31 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-21 19:00:31 -  Supprimé : fourmiz_backup_20250917_190157.sql
+2025-09-21 19:00:31 -  Nombre total de sauvegardes conservées : 7
+2025-09-21 19:00:31 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-21 19:00:31 - === FIN DE LA SAUVEGARDE ===
+2025-09-21 19:00:31 - 
+2025-09-22 12:00:09 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-22 12:00:09 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250922_120009.sql
+2025-09-22 12:00:09 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-22 12:00:09 - Exécution de pg_dump...
+2025-09-22 12:00:40 - Code de sortie pg_dump : 0
+2025-09-22 12:00:40 -  Sauvegarde réussie ! Taille : 1.4 MB
+2025-09-22 12:00:40 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-22 12:00:40 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-22 12:00:40 -  Supprimé : fourmiz_backup_20250918_120006.sql
+2025-09-22 12:00:40 -  Nombre total de sauvegardes conservées : 7
+2025-09-22 12:00:40 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-22 12:00:41 - === FIN DE LA SAUVEGARDE ===
+2025-09-22 12:00:41 - 
+2025-09-23 12:00:07 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-23 12:00:07 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250923_120007.sql
+2025-09-23 12:00:07 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-23 12:00:07 - Exécution de pg_dump...
+2025-09-23 12:00:41 - Code de sortie pg_dump : 0
+2025-09-23 12:00:41 -  Sauvegarde réussie ! Taille : 1.42 MB
+2025-09-23 12:00:41 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-23 12:00:41 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-23 12:00:41 -  Supprimé : fourmiz_backup_20250918_190012.sql
+2025-09-23 12:00:41 -  Nombre total de sauvegardes conservées : 7
+2025-09-23 12:00:41 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-23 12:00:41 - === FIN DE LA SAUVEGARDE ===
+2025-09-23 12:00:41 - 
+2025-09-23 19:00:05 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-23 19:00:05 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250923_190005.sql
+2025-09-23 19:00:05 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-23 19:00:05 - Exécution de pg_dump...
+2025-09-23 19:00:37 - Code de sortie pg_dump : 0
+2025-09-23 19:00:37 -  Sauvegarde réussie ! Taille : 1.43 MB
+2025-09-23 19:00:37 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-23 19:00:37 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-23 19:00:37 -  Supprimé : fourmiz_backup_20250919_120006.sql
+2025-09-23 19:00:38 -  Nombre total de sauvegardes conservées : 7
+2025-09-23 19:00:38 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-23 19:00:38 - === FIN DE LA SAUVEGARDE ===
+2025-09-23 19:00:38 - 
+2025-09-24 12:00:03 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-24 12:00:04 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250924_120004.sql
+2025-09-24 12:00:04 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-24 12:00:04 - Exécution de pg_dump...
+2025-09-24 12:00:35 - Code de sortie pg_dump : 0
+2025-09-24 12:00:35 -  Sauvegarde réussie ! Taille : 1.45 MB
+2025-09-24 12:00:35 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-24 12:00:35 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-24 12:00:35 -  Supprimé : fourmiz_backup_20250920_120003.sql
+2025-09-24 12:00:35 -  Nombre total de sauvegardes conservées : 7
+2025-09-24 12:00:35 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-24 12:00:35 - === FIN DE LA SAUVEGARDE ===
+2025-09-24 12:00:35 - 
+2025-09-24 19:00:05 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-24 19:00:05 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250924_190005.sql
+2025-09-24 19:00:05 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-24 19:00:05 - Exécution de pg_dump...
+2025-09-24 19:00:38 - Code de sortie pg_dump : 0
+2025-09-24 19:00:38 -  Sauvegarde réussie ! Taille : 1.48 MB
+2025-09-24 19:00:38 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-24 19:00:38 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-24 19:00:38 -  Supprimé : fourmiz_backup_20250920_190005.sql
+2025-09-24 19:00:38 -  Nombre total de sauvegardes conservées : 7
+2025-09-24 19:00:38 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-24 19:00:38 - === FIN DE LA SAUVEGARDE ===
+2025-09-24 19:00:38 - 
+2025-09-25 19:00:05 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-25 19:00:05 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250925_190005.sql
+2025-09-25 19:00:05 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-25 19:00:05 - Exécution de pg_dump...
+2025-09-25 19:00:06 - Code de sortie pg_dump : 1
+2025-09-25 19:00:06 -  ERREUR lors de la sauvegarde. Code: 1
+2025-09-25 19:00:06 -  EXCEPTION: Échec de la sauvegarde
+2025-09-25 19:00:06 - === FIN DE LA SAUVEGARDE ===
+2025-09-25 19:00:06 - 
+2025-09-26 12:11:58 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-26 12:11:58 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250926_121158.sql
+2025-09-26 12:11:58 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-26 12:11:58 - Exécution de pg_dump...
+2025-09-26 12:12:32 - Code de sortie pg_dump : 0
+2025-09-26 12:12:32 -  Sauvegarde réussie ! Taille : 1.52 MB
+2025-09-26 12:12:32 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-26 12:12:32 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-26 12:12:33 -  Supprimé : fourmiz_backup_20250921_120002.sql
+2025-09-26 12:12:33 -  Nombre total de sauvegardes conservées : 7
+2025-09-26 12:12:33 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-26 12:12:33 - === FIN DE LA SAUVEGARDE ===
+2025-09-26 12:12:33 - 
+2025-09-26 19:00:03 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-26 19:00:03 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250926_190003.sql
+2025-09-26 19:00:03 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-26 19:00:03 - Exécution de pg_dump...
+2025-09-26 19:00:41 - Code de sortie pg_dump : 0
+2025-09-26 19:00:41 -  Sauvegarde réussie ! Taille : 1.52 MB
+2025-09-26 19:00:41 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-26 19:00:41 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-26 19:00:42 -  Supprimé : fourmiz_backup_20250921_190002.sql
+2025-09-26 19:00:42 -  Nombre total de sauvegardes conservées : 7
+2025-09-26 19:00:42 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-26 19:00:42 - === FIN DE LA SAUVEGARDE ===
+2025-09-26 19:00:42 - 
+2025-09-27 12:03:04 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-27 12:03:04 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250927_120304.sql
+2025-09-27 12:03:04 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-27 12:03:04 - Exécution de pg_dump...
+2025-09-27 12:03:04 - Code de sortie pg_dump : 1
+2025-09-27 12:03:04 -  ERREUR lors de la sauvegarde. Code: 1
+2025-09-27 12:03:04 -  EXCEPTION: Échec de la sauvegarde
+2025-09-27 12:03:04 - === FIN DE LA SAUVEGARDE ===
+2025-09-27 12:03:05 - 
+2025-09-27 19:00:05 - === DÉBUT DE LA SAUVEGARDE AUTOMATIQUE FOURMIZ ===
+2025-09-27 19:00:05 - Début de la sauvegarde vers : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project\fourmiz_backup_20250927_190005.sql
+2025-09-27 19:00:05 - Dossier OneDrive : C:\Users\MILLET IMMOBILIER\OneDrive\Bureau\project
+2025-09-27 19:00:06 - Exécution de pg_dump...
+2025-09-27 19:00:52 - Code de sortie pg_dump : 0
+2025-09-27 19:00:52 -  Sauvegarde réussie ! Taille : 1.55 MB
+2025-09-27 19:00:52 -  Fichier sauvegardé et synchronisé avec OneDrive
+2025-09-27 19:00:53 -  Nettoyage des anciennes sauvegardes (conserver 7)...
+2025-09-27 19:00:53 -  Supprimé : fourmiz_backup_20250922_120009.sql
+2025-09-27 19:00:53 -  Nombre total de sauvegardes conservées : 7
+2025-09-27 19:00:53 -  SAUVEGARDE TERMINÉE AVEC SUCCÈS - SYNCHRONISÉE ONEDRIVE
+2025-09-27 19:00:53 - === FIN DE LA SAUVEGARDE ===
+2025-09-27 19:00:53 - 

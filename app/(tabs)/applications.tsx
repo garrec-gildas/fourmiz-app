@@ -1,4 +1,4 @@
-// app/(tabs)/applications.tsx - VERSION ÉPURÉE HARMONISÉE
+﻿// app/(tabs)/applications.tsx - VERSION ÉPURÉE HARMONISÉE
 // Style cohérent avec orders.tsx et available-orders.tsx
 // Design simple et fonctionnel sans fioritures
 // 🔧 MODIFIÉ: Bouton retour vers orders au lieu de router.back()

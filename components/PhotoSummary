@@ -1,0 +1,376 @@
+// components/PhotoSummary.tsx - Composant d'aperçu des photos dans la synthèse de commande
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { PhotoData } from '../hooks/usePhotoManager';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+interface PhotoSummaryProps {
+  photos: PhotoData[];
+}
+
+export const PhotoSummary: React.FC<PhotoSummaryProps> = ({ photos }) => {
+  const [previewPhoto, setPreviewPhoto] = useState<PhotoData | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
+
+  // Ouvrir l'aperçu plein écran
+  const openPreview = (photo: PhotoData, index: number) => {
+    setPreviewPhoto(photo);
+    setPreviewIndex(index);
+  };
+
+  // Fermer l'aperçu
+  const closePreview = () => {
+    setPreviewPhoto(null);
+  };
+
+  // Naviguer vers la photo précédente
+  const previousPhoto = () => {
+    if (previewIndex > 0) {
+      const newIndex = previewIndex - 1;
+      setPreviewIndex(newIndex);
+      setPreviewPhoto(photos[newIndex]);
+    }
+  };
+
+  // Naviguer vers la photo suivante
+  const nextPhoto = () => {
+    if (previewIndex < photos.length - 1) {
+      const newIndex = previewIndex + 1;
+      setPreviewIndex(newIndex);
+      setPreviewPhoto(photos[newIndex]);
+    }
+  };
+
+  if (!photos || photos.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* En-tête avec compteur */}
+      <View style={styles.header}>
+        <Ionicons name="images" size={16} color="#333333" />
+        <Text style={styles.headerText}>
+          {photos.length} photo{photos.length > 1 ? 's' : ''} jointe{photos.length > 1 ? 's' : ''}
+        </Text>
+      </View>
+
+      {/* Grille des miniatures */}
+      <View style={styles.photosGrid}>
+        {photos.map((photo, index) => (
+          <TouchableOpacity
+            key={photo.id}
+            style={styles.photoContainer}
+            onPress={() => openPreview(photo, index)}
+            activeOpacity={0.7}
+          >
+            <Image source={{ uri: photo.uri }} style={styles.photoThumbnail} />
+            
+            {/* Overlay avec numéro */}
+            <View style={styles.photoOverlay}>
+              <Text style={styles.photoNumber}>{index + 1}</Text>
+            </View>
+            
+            {/* Icône d'agrandissement */}
+            <View style={styles.expandIcon}>
+              <Ionicons name="expand" size={12} color="#ffffff" />
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Informations sur les photos */}
+      <View style={styles.photosInfo}>
+        <Text style={styles.infoText}>
+          Appuyez sur une photo pour l'agrandir
+        </Text>
+        <Text style={styles.totalSize}>
+          Taille totale : {(photos.reduce((total, photo) => total + (photo.fileSize || 0), 0) / 1024 / 1024).toFixed(1)}MB
+        </Text>
+      </View>
+
+      {/* Modal d'aperçu avec navigation */}
+      <Modal
+        visible={!!previewPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closePreview}
+      >
+        <View style={styles.previewModal}>
+          {/* En-tête avec navigation */}
+          <View style={styles.previewHeader}>
+            <Text style={styles.previewCounter}>
+              {previewIndex + 1} / {photos.length}
+            </Text>
+            <TouchableOpacity style={styles.previewCloseButton} onPress={closePreview}>
+              <Ionicons name="close" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Image avec contrôles de navigation */}
+          <View style={styles.previewImageContainer}>
+            {/* Bouton précédent */}
+            {previewIndex > 0 && (
+              <TouchableOpacity
+                style={[styles.navButton, styles.navButtonLeft]}
+                onPress={previousPhoto}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            )}
+            
+            {/* Image */}
+            <ScrollView
+              contentContainerStyle={styles.previewContent}
+              maximumZoomScale={3}
+              minimumZoomScale={1}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+            >
+              {previewPhoto && (
+                <Image
+                  source={{ uri: previewPhoto.uri }}
+                  style={styles.previewImage}
+                  resizeMode="contain"
+                />
+              )}
+            </ScrollView>
+            
+            {/* Bouton suivant */}
+            {previewIndex < photos.length - 1 && (
+              <TouchableOpacity
+                style={[styles.navButton, styles.navButtonRight]}
+                onPress={nextPhoto}
+              >
+                <Ionicons name="chevron-forward" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          {/* Pied de page avec informations */}
+          {previewPhoto && (
+            <View style={styles.previewFooter}>
+              <Text style={styles.previewInfo}>
+                {previewPhoto.fileName}
+              </Text>
+              <Text style={styles.previewDetails}>
+                {previewPhoto.width} × {previewPhoto.height}
+                {previewPhoto.fileSize && ` • ${(previewPhoto.fileSize / 1024 / 1024).toFixed(1)}MB`}
+              </Text>
+            </View>
+          )}
+          
+          {/* Indicateurs de photos (points) */}
+          {photos.length > 1 && (
+            <View style={styles.dotsContainer}>
+              {photos.map((_, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dot,
+                    index === previewIndex && styles.dotActive
+                  ]}
+                  onPress={() => {
+                    setPreviewIndex(index);
+                    setPreviewPhoto(photos[index]);
+                  }}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  
+  // En-tête
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  headerText: {
+    fontSize: 13,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  
+  // Grille des photos
+  photosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  },
+  photoContainer: {
+    position: 'relative',
+    margin: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  photoThumbnail: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#e0e0e0',
+  },
+  photoOverlay: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoNumber: {
+    fontSize: 11,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  expandIcon: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  // Informations
+  photosInfo: {
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    alignItems: 'center',
+    gap: 4,
+  },
+  infoText: {
+    fontSize: 11,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  totalSize: {
+    fontSize: 11,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  
+  // Modal d'aperçu
+  previewModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+  },
+  previewHeader: {
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  previewCounter: {
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  previewCloseButton: {
+    padding: 8,
+  },
+  
+  // Image et navigation
+  previewImageContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  previewContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewImage: {
+    width: screenWidth - 80,
+    height: screenWidth - 80,
+    maxWidth: screenWidth - 80,
+    maxHeight: screenWidth - 80,
+  },
+  navButton: {
+    position: 'absolute',
+    top: '50%',
+    transform: [{ translateY: -25 }],
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  navButtonLeft: {
+    left: 20,
+  },
+  navButtonRight: {
+    right: 20,
+  },
+  
+  // Pied de page
+  previewFooter: {
+    padding: 20,
+    alignItems: 'center',
+    gap: 4,
+  },
+  previewInfo: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  previewDetails: {
+    fontSize: 12,
+    color: '#cccccc',
+    textAlign: 'center',
+  },
+  
+  // Indicateurs
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingBottom: 20,
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  dotActive: {
+    backgroundColor: '#ffffff',
+  },
+});

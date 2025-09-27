@@ -1,16 +1,3 @@
-// app/(tabs)/_layout.tsx - VERSION CORRIGÉE NAVIGATION NORMALE + APPLICATIONS
-// ✅ CONSERVÉ: Toute la logique existante du layout (100% des fonctionnalités)
-// 🔧 CORRIGÉ: Redirection vers critères seulement depuis certaines pages spécifiques
-// 🔧 CORRIGÉ: Navigation normale entre tous les onglets
-// 🚀 CORRIGÉ: Redirection forcée vers available-orders pour Fourmiz après sauvegarde profil
-// 🔄 NOUVEAU: Système de retry et synchronisation forcée après sauvegarde critères
-// ⚡ AJOUTÉ: Méthode pour forcer reload profil et éviter désynchronisation hooks
-// 🛡️ NOUVEAU: Protection temporaire contre redirection après sauvegarde critères
-// 🎨 AJOUTÉ: Bordure noire sur le mini switch actif
-// 📄 AJOUTÉ: Exclusion route applications de la redirection automatique
-// 🆕 NOUVEAU: Onglet applications ajouté pour résoudre le routage
-// 🔧 CORRIGÉ: Maintient onglet "orders" actif quand sur page applications
-
 import React, { useEffect, useState, useMemo, useCallback, useRef, createContext, useContext } from 'react';
 import {
   View,
@@ -307,7 +294,7 @@ function GlobalFourmizHeader({ effectiveRole }: { effectiveRole: 'client' | 'fou
               
               // Redirection vers la page de connexion
               router.replace('/auth/signin');
-              
+            }, 50);
             } catch (error) {
               console.error('❌ Erreur lors de la déconnexion:', error);
               Alert.alert('Erreur', 'Impossible de vous déconnecter. Veuillez réessayer.');

@@ -1,5 +1,5 @@
 // hooks/useUnreadMessages.ts - Hook pour compter les messages non lus
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export const useUnreadMessages = (userId: string) => {

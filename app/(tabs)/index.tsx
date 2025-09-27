@@ -1,4 +1,4 @@
-﻿// app/(tabs)/index.tsx - VERSION CORRIGÉE PGRST116 SANS HEADER LOCAL
+﻿// app/(tabs)/index.tsx - VERSION CORRIGÉE PGRST116 SANS HEADER LOCAL + AUTHSESSIONMISSINGERROR
 // ✅ FONCTIONNALITÉS CONSERVÉES : switch rôles, modal upgrade, admin, etc.
 // 🎨 STYLE IDENTIQUE À services.tsx : couleurs noir/gris, textes épurés
 // 🔧 MODIFIÉ : Header local supprimé (utilise le header global du layout)
@@ -6,6 +6,7 @@
 // 🔧 AJOUTÉ : Bouton de déconnexion en haut de page
 // 🔧 MODIFIÉ : Suppression des textes de bienvenue
 // 🐛 CORRIGÉ : Erreur PGRST116 dans loadUserData
+// 🐛 CORRIGÉ : Erreur AuthSessionMissingError après suppression de compte
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
@@ -112,7 +113,7 @@ const AUTHORIZED_ADMIN_EMAILS = ['garrec.gildas@gmail.com'];
 // 🛡️ CONFIGURATION DÉVELOPPEMENT - Afficher le bouton de déconnexion
 const SHOW_SIGNOUT_BUTTON = __DEV__ || false; // true en dev, false en production
 
-// 🔧 Hook sécurisé pour l'authentification - VERSION CORRIGÉE PGRST116
+// 🔧 Hook sécurisé pour l'authentification - VERSION CORRIGÉE AUTHSESSIONMISSINGERROR
 const useSecureAuth = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -129,10 +130,37 @@ const useSecureAuth = () => {
       setLoading(true);
       setError(null);
 
+      // 🔧 NOUVEAU : Vérifier d'abord la session avant de récupérer l'utilisateur
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        // Gérer spécifiquement l'erreur de session manquante
+        if (sessionError.message?.includes('Auth session missing')) {
+          console.log('👤 Session supprimée/expirée - arrêt silencieux du chargement');
+          setError('Session expirée');
+          return;
+        }
+        console.error('❌ Erreur récupération session:', sessionError);
+        setError('Erreur de session');
+        return;
+      }
+
+      if (!session) {
+        console.log('👤 Pas de session active - utilisateur non connecté');
+        setError('Non connecté');
+        return;
+      }
+
       // Récupérer l'utilisateur actuel
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
+        // Gérer spécifiquement l'erreur de session manquante
+        if (userError.message?.includes('Auth session missing')) {
+          console.log('👤 Session supprimée pendant la récupération - arrêt silencieux');
+          setError('Session expirée');
+          return;
+        }
         console.error('❌ Erreur récupération utilisateur:', userError);
         setError('Erreur de connexion');
         return;
@@ -209,7 +237,14 @@ const useSecureAuth = () => {
         setProfile(userProfile);
       }
 
-    } catch (error) {
+    } catch (error: any) {
+      // 🔧 NOUVEAU : Gestion spécifique des erreurs de session
+      if (error.message?.includes('Auth session missing')) {
+        console.log('👤 Session supprimée (catch) - arrêt silencieux du chargement');
+        setError('Session expirée');
+        return;
+      }
+      
       console.error('💥 Erreur fatale chargement utilisateur:', error);
       setError('Erreur de chargement');
     } finally {

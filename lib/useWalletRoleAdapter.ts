@@ -1,8 +1,8 @@
-// lib/useWalletRoleAdapter.ts
+﻿// lib/useWalletRoleAdapter.ts
 // Hook unifié qui étend useRoleManagerAdapter avec les fonctionnalités wallet
 // Compatible avec l'architecture existante
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useRoleManagerAdapter } from './useRoleManagerAdapter';
 import { WalletIntegrationService, WalletBalance, CreateWalletOrderData } from './wallet-integration.service';

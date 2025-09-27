@@ -1,5 +1,5 @@
 // hooks/useFourmizCriteria.ts - VERSION SIMPLIFIÉE SANS DEBOUNCING
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fourmizService, FourmizCriteriaAdapted, FourmizSearchParams, FourmizSearchResult } from '@/lib/fourmiz.service';
 

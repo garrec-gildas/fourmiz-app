@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
+  Platform,
+  ActionSheetIOS,
 } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -71,11 +73,61 @@ const AddReference = () => {
     }
   };
 
-  const pickImages = async () => {
+  // 📸 FONCTIONS DE GESTION DES PHOTOS - MODÈLE COMPLET DEPUIS create.tsx
+  const requestPermissions = useCallback(async () => {
+    const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+    const mediaPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    return {
+      camera: cameraPermission.granted,
+      media: mediaPermission.granted
+    };
+  }, []);
+
+  const takePhoto = useCallback(async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission requise', 'L\'accès à la galerie est nécessaire');
+      setIsUploading(true);
+      const permissions = await requestPermissions();
+      
+      if (!permissions.camera) {
+        Alert.alert(
+          'Permission requise',
+          'L\'accès à l\'appareil photo est nécessaire pour prendre des photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [4, 3],
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const newImage = result.assets[0];
+        setSelectedImages(prev => [...prev, newImage].slice(0, 5));
+      }
+    } catch (error) {
+      console.error('❌ Erreur prise photo:', error);
+      Alert.alert('Erreur', 'Impossible de prendre la photo');
+    } finally {
+      setIsUploading(false);
+    }
+  }, []);
+
+  const pickFromGallery = useCallback(async () => {
+    try {
+      setIsUploading(true);
+      const permissions = await requestPermissions();
+      
+      if (!permissions.media) {
+        Alert.alert(
+          'Permission requise',
+          'L\'accès à la galerie est nécessaire pour sélectionner des photos.',
+          [{ text: 'OK' }]
+        );
         return;
       }
 
@@ -92,8 +144,38 @@ const AddReference = () => {
       }
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de sélectionner les images');
+    } finally {
+      setIsUploading(false);
     }
-  };
+  }, []);
+
+  const showPhotoOptions = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Annuler', 'Prendre une photo', 'Choisir dans la galerie'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takePhoto();
+          } else if (buttonIndex === 2) {
+            pickFromGallery();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Ajouter une photo',
+        'Choisissez une option',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Prendre une photo', onPress: takePhoto },
+          { text: 'Galerie', onPress: pickFromGallery },
+        ]
+      );
+    }
+  }, [takePhoto, pickFromGallery]);
 
   const removeImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
@@ -381,8 +463,19 @@ const AddReference = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Images ({selectedImages.length}/5)</Text>
             
-            <TouchableOpacity style={styles.imagePickerButton} onPress={pickImages}>
-              <Text style={styles.imagePickerText}>+ Ajouter des images</Text>
+            <TouchableOpacity 
+              style={[
+                styles.imagePickerButton, 
+                isUploading && styles.imagePickerButtonDisabled
+              ]} 
+              onPress={showPhotoOptions}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <ActivityIndicator color="#000000" size="small" />
+              ) : (
+                <Text style={styles.imagePickerText}>+ Ajouter des images</Text>
+              )}
             </TouchableOpacity>
 
             {selectedImages.length > 0 && (
@@ -552,6 +645,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e0e0e0',
+  },
+  imagePickerButtonDisabled: {
+    opacity: 0.6,
+    backgroundColor: '#f0f0f0',
   },
   imagePickerText: {
     color: '#000000',

@@ -1,5 +1,5 @@
 // hooks/useRequireCriteria.ts - VERSION DEBUG POUR DIAGNOSTIQUER LE PROBLÈME
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase, getCurrentUser } from '../lib/supabase';
 import { Alert } from 'react-native';

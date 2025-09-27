@@ -1,8 +1,8 @@
-﻿// app/orders/create-custom.tsx - VERSION COMPLÈTE AVEC AUTO-REMPLISSAGE DATE + MENU DÉROULANT AUTOMATIQUE + CANDIDATURES MULTIPLES
-// 🎯 CORRECTIONS : Gestion robuste utilisateur + validation montant + paiement sécurisé
-// 🔧 BASE : Toutes les fonctionnalités de create-custom.tsx + corrections de create.tsx
-// ✅ NOUVEAU : Bouton candidatures multiples pour toutes les catégories de demandes personnalisées
-// ✅ NOUVEAU : Auto-remplissage date du jour quand "dès que possible" est activé
+﻿// app/orders/create-custom.tsx - VERSION COMPLÈTE AVEC SYSTÈME PAIEMENT PRÉ-AUTORISATION HARMONISÉ
+// 🔧 ADAPTATION : Système pré-autorisation synchronisé avec create.tsx
+// ✅ CONSERVATION : Toutes les fonctionnalités spécifiques de create-custom.tsx
+// 💳 CORRECTION : Messages et logique pré-autorisation + capture différée identiques à create.tsx
+// 📸 PHOTOS CORRIGÉES + 🔄 CANDIDATURES MULTIPLES + 📅 CALENDRIER + 🎯 FIELD_CONFIG
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
@@ -18,17 +18,510 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { PaymentModal } from '@/components/PaymentModal';
+import { supabase } from '../../lib/supabase';
+import { PaymentModal } from '../../components/PaymentModal';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { ActionSheetIOS } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-// 📋 INTERFACES AVEC CANDIDATURES MULTIPLES
+// Types pour les photos
+interface PhotoData {
+  id: string;
+  uri: string;
+  name?: string;
+  type?: string;
+  size?: number;
+}
+
+// 📸 FONCTIONS D'UPLOAD COMPLÈTES - Basées sur create.tsx qui fonctionne
+const convertToUint8Array = async (uri: string): Promise<Uint8Array> => {
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+// Styles Photos - IDENTIQUES À create.tsx
+const photoStyles = StyleSheet.create({
+  container: { marginVertical: 8 },
+  title: { fontSize: 13, fontWeight: '600', marginBottom: 4, color: '#000000' },
+  subtitle: { fontSize: 12, color: '#666666', marginBottom: 12 },
+  photosList: { marginBottom: 12 },
+  photoContainer: { position: 'relative', marginRight: 8 },
+  photoThumbnail: { width: 80, height: 80, borderRadius: 8, backgroundColor: '#f0f0f0' },
+  removeButton: { position: 'absolute', top: -6, right: -6, backgroundColor: '#ffffff', borderRadius: 10 },
+  addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#40E0D0', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 6, justifyContent: 'center', gap: 8 },
+  addButtonDisabled: { opacity: 0.6 },
+  addButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '500' },
+});
+    
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    return bytes;
+  } catch (error) {
+    throw new Error(`Conversion échouée: ${(error as Error).message}`);
+  }
+};
+
+const uploadPhotoToSupabase = async (photo: PhotoData, userId: string): Promise<string> => {
+  try {
+    const uint8ArrayData = await convertToUint8Array(photo.uri);
+    
+    const timestamp = Date.now();
+    const fileName = `photo-${timestamp}.jpg`;
+    const filePath = `${userId}/${fileName}`;
+    
+    const { data, error } = await supabase.storage
+      .from('order-photos')
+      .upload(filePath, uint8ArrayData, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: 'image/jpeg',
+        metadata: {
+          userId,
+          uploadedAt: new Date().toISOString(),
+          originalName: photo.name || fileName,
+          uploadMethod: 'uint8Array-rn'
+        }
+      });
+
+    if (error) {
+      console.error('❌ Erreur upload Supabase:', error);
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('order-photos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error) {
+    console.error('❌ Erreur upload photo:', error);
+    throw error;
+  }
+};
+
+const uploadAllPhotos = async (photos: PhotoData[], userId: string): Promise<string[]> => {
+  if (photos.length === 0) return [];
+  
+  const uploadPromises = photos.map(photo => uploadPhotoToSupabase(photo, userId));
+  
+  try {
+    const results = await Promise.allSettled(uploadPromises);
+    const successfulUploads: string[] = [];
+    const errors: string[] = [];
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successfulUploads.push(result.value);
+      } else {
+        errors.push(`Photo ${index + 1}: ${result.reason.message}`);
+      }
+    });
+    
+    if (errors.length > 0) {
+      console.warn('⚠️ Certaines photos ont échoué:', errors);
+    }
+    
+    return successfulUploads;
+  } catch (error) {
+    console.error('❌ Erreur upload multiple:', error);
+    throw error;
+  }
+};
+
+// 📸 COMPOSANT PhotoSection COMPLET ET INTÉGRÉ - IDENTIQUE À create.tsx
+const PhotoSection: React.FC<{
+  photos: PhotoData[];
+  onPhotosChange: (photos: PhotoData[]) => void;
+  maxPhotos: number;
+}> = React.memo(({ photos, onPhotosChange, maxPhotos }) => {
+  const [loading, setLoading] = useState(false);
+
+  const requestPermissions = useCallback(async () => {
+    const [cameraPermission, mediaPermission] = await Promise.all([
+      ImagePicker.requestCameraPermissionsAsync(),
+      ImagePicker.requestMediaLibraryPermissionsAsync()
+    ]);
+    
+    return {
+      camera: cameraPermission.granted,
+      media: mediaPermission.granted
+    };
+  }, []);
+
+  const takePhoto = useCallback(async () => {
+    if (loading) return;
+    
+    try {
+      setLoading(true);
+      const permissions = await requestPermissions();
+      
+      if (!permissions.camera) {
+        Alert.alert(
+          'Permission requise',
+          'L\'accès à l\'appareil photo est nécessaire pour prendre des photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [4, 3],
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const newPhoto: PhotoData = {
+          id: Date.now().toString(),
+          uri: result.assets[0].uri,
+          name: `photo-${Date.now()}.jpg`,
+          type: 'image/jpeg',
+          size: result.assets[0].fileSize,
+        };
+        
+        onPhotosChange([...photos, newPhoto]);
+      }
+    } catch (error) {
+      console.error('❌ Erreur prise photo:', error);
+      Alert.alert('Erreur', 'Impossible de prendre la photo');
+    } finally {
+      setLoading(false);
+    }
+  }, [photos, onPhotosChange, requestPermissions, loading]);
+
+  const pickFromGallery = useCallback(async () => {
+    if (loading) return;
+    
+    try {
+      setLoading(true);
+      const permissions = await requestPermissions();
+      
+      if (!permissions.media) {
+        Alert.alert(
+          'Permission requise',
+          'L\'accès à la galerie est nécessaire pour sélectionner des photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [4, 3],
+        allowsMultipleSelection: true,
+        selectionLimit: maxPhotos - photos.length,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newPhotos: PhotoData[] = result.assets.map((asset, index) => ({
+          id: (Date.now() + index).toString(),
+          uri: asset.uri,
+          name: `photo-${Date.now() + index}.jpg`,
+          type: 'image/jpeg',
+          size: asset.fileSize,
+        }));
+        
+        const updatedPhotos = [...photos, ...newPhotos].slice(0, maxPhotos);
+        onPhotosChange(updatedPhotos);
+      }
+    } catch (error) {
+      console.error('❌ Erreur sélection galerie:', error);
+      Alert.alert('Erreur', 'Impossible de sélectionner les photos');
+    } finally {
+      setLoading(false);
+    }
+  }, [photos, onPhotosChange, maxPhotos, requestPermissions, loading]);
+
+  const showPhotoOptions = useCallback(() => {
+    if (loading) return;
+    
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Annuler', 'Prendre une photo', 'Choisir dans la galerie'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takePhoto();
+          } else if (buttonIndex === 2) {
+            pickFromGallery();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Ajouter une photo',
+        'Choisissez une option',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Prendre une photo', onPress: takePhoto },
+          { text: 'Galerie', onPress: pickFromGallery },
+        ]
+      );
+    }
+  }, [takePhoto, pickFromGallery, loading]);
+
+  const removePhoto = useCallback((photoId: string) => {
+    const updatedPhotos = photos.filter(photo => photo.id !== photoId);
+    onPhotosChange(updatedPhotos);
+  }, [photos, onPhotosChange]);
+
+  const canAddPhotos = photos.length < maxPhotos;
+
+  return (
+    <View style={photoStyles.container}>
+      <Text style={photoStyles.title}>
+        Photos ({photos.length}/{maxPhotos})
+      </Text>
+      <Text style={photoStyles.subtitle}>
+        Ajoutez des photos pour illustrer votre demande (facultatif)
+      </Text>
+      
+      {photos.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={photoStyles.photosList}
+        >
+          {photos.map((photo) => (
+            <View key={photo.id} style={photoStyles.photoContainer}>
+              <Image source={{ uri: photo.uri }} style={photoStyles.photoThumbnail} />
+              <TouchableOpacity
+                style={photoStyles.removeButton}
+                onPress={() => removePhoto(photo.id)}
+              >
+                <Ionicons name="close-circle" size={20} color="#ff4444" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {canAddPhotos && (
+        <TouchableOpacity
+          style={[
+            photoStyles.addButton,
+            loading && photoStyles.addButtonDisabled
+          ]}
+          onPress={showPhotoOptions}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#ffffff" size="small" />
+          ) : (
+            <Ionicons name="camera" size={20} color="#ffffff" />
+          )}
+          <Text style={photoStyles.addButtonText}>
+            {loading ? 'Chargement...' : 'Ajouter une photo'}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+});
+
+// 📸 COMPOSANT PhotoSummary CORRIGÉ avec interface harmonisée
+const PhotoSummary: React.FC<{photos: PhotoData[]}> = ({ photos }) => {
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+
+  if (photos.length === 0) return null;
+
+  const openViewer = (index: number) => {
+    setSelectedPhotoIndex(index);
+    setViewerVisible(true);
+  };
+
+  const navigatePhoto = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : photos.length - 1);
+    } else {
+      setSelectedPhotoIndex(prev => prev < photos.length - 1 ? prev + 1 : 0);
+    }
+  };
+
+  return (
+    <View style={photoSummaryStyles.container}>
+      <Text style={photoSummaryStyles.title}>
+        Photos jointes ({photos.length})
+      </Text>
+      
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={photoSummaryStyles.scrollContent}
+      >
+        {photos.map((photo, index) => (
+          <TouchableOpacity
+            key={photo.id}
+            style={photoSummaryStyles.thumbnail}
+            onPress={() => openViewer(index)}
+          >
+            <Image
+              source={{ uri: photo.uri }}
+              style={photoSummaryStyles.thumbnailImage}
+              resizeMode="cover"
+            />
+            <View style={photoSummaryStyles.thumbnailOverlay}>
+              <Ionicons name="eye" size={16} color="#ffffff" />
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <Modal
+        visible={viewerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewerVisible(false)}
+      >
+        <View style={photoSummaryStyles.viewerContainer}>
+          <TouchableOpacity
+            style={photoSummaryStyles.closeButton}
+            onPress={() => setViewerVisible(false)}
+          >
+            <Ionicons name="close" size={24} color="#ffffff" />
+          </TouchableOpacity>
+
+          {photos.length > 1 && (
+            <>
+              <TouchableOpacity
+                style={[photoSummaryStyles.navButton, photoSummaryStyles.prevButton]}
+                onPress={() => navigatePhoto('prev')}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[photoSummaryStyles.navButton, photoSummaryStyles.nextButton]}
+                onPress={() => navigatePhoto('next')}
+              >
+                <Ionicons name="chevron-forward" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </>
+          )}
+
+          <Image
+            source={{ uri: photos[selectedPhotoIndex]?.uri }}
+            style={photoSummaryStyles.fullImage}
+            resizeMode="contain"
+          />
+
+          {photos.length > 1 && (
+            <View style={photoSummaryStyles.indicator}>
+              <Text style={photoSummaryStyles.indicatorText}>
+                {selectedPhotoIndex + 1} / {photos.length}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+// Styles pour PhotoSummary inline
+const photoSummaryStyles = StyleSheet.create({
+  container: {
+    marginVertical: 8,
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#000000',
+  },
+  scrollContent: {
+    paddingRight: 16,
+  },
+  thumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f0f0f0',
+  },
+  thumbnailOverlay: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  viewerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+  },
+  navButton: {
+    position: 'absolute',
+    top: '50%',
+    zIndex: 10,
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+  },
+  prevButton: {
+    left: 20,
+  },
+  nextButton: {
+    right: 20,
+  },
+  fullImage: {
+    width: '90%',
+    height: '70%',
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 50,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  indicatorText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});
+
+// ✅ INTERFACE CORRIGÉE avec photos synchronisées avec create.tsx
 interface OrderForm {
   serviceTitle: string;
   description: string;
@@ -56,8 +549,9 @@ interface OrderForm {
   invoiceType: 'particulier' | 'entreprise';
   companyName: string;
   siret: string;
-  // ✅ NOUVEAU CHAMP
   allowMultipleCandidates: boolean;
+  // 📸 CORRECTION : Type PhotoData harmonisé avec usePhotoManager
+  photos: PhotoData[];
 }
 
 // Structure addresses comme dans Supabase
@@ -75,15 +569,15 @@ interface AddressesData {
 }
 
 interface SelectOption {
-  value: string;
   label: string;
+  value: string;
 }
 
 interface CategoryConfig {
   [fieldName: string]: boolean | 'optionnel' | 'obligatoire';
 }
 
-// 📅 INTERFACES POUR LE CALENDRIER
+// INTERFACES POUR LE CALENDRIER
 interface CalendarDay {
   day: number;
   dateKey: string;
@@ -93,7 +587,7 @@ interface CalendarDay {
   isDisabled: boolean;
 }
 
-// 📅 HELPERS CALENDRIER
+// HELPERS CALENDRIER
 const getDaysInMonth = (year: number, month: number): number => {
   return new Date(year, month + 1, 0).getDate();
 };
@@ -107,7 +601,7 @@ const formatDateKey = (year: number, month: number, day: number): string => {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 };
 
-// 📊 CONFIGURATION COMPLÈTE AVEC CHAMPS ESSENTIELS
+// ✅ CONSERVATION : CONFIGURATION COMPLÈTE AVEC CHAMPS ESSENTIELS (gardée identique)
 const FIELD_CONFIG: { categories: { [key: string]: CategoryConfig } } = {
   categories: {
     "Administratif": {
@@ -227,15 +721,13 @@ const FIELD_CONFIG: { categories: { [key: string]: CategoryConfig } } = {
   }
 };
 
-// 🛠️ HOOKS PERSONNALISÉS
-
-// Hook pour la gestion d'erreur
+// Hook pour la gestion d'erreur (identique à create.tsx)
 const useErrorHandler = () => {
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
   const handleError = useCallback((error: any, context: string) => {
-    console.error(`❌ Erreur ${context}:`, error);
+    console.error(`Erreur ${context}:`, error);
     
     let userMessage = 'Une erreur inattendue est survenue';
     
@@ -272,7 +764,7 @@ const useErrorHandler = () => {
   return { error, isRetrying, handleError, retryAction, clearError };
 };
 
-// Hook pour la validation du formulaire personnalisé
+// Hook pour la validation du formulaire personnalisé (CONSERVÉ de create-custom)
 const useCustomFormValidation = (form: OrderForm, selectedCategory: string) => {
   const validateField = useCallback((field: keyof OrderForm, value: any): string => {
     switch (field) {
@@ -294,6 +786,7 @@ const useCustomFormValidation = (form: OrderForm, selectedCategory: string) => {
         const amount = Number(cleanValue);
         if (isNaN(amount)) return 'Montant invalide - utilisez uniquement des chiffres';
         if (amount <= 0) return 'Le montant doit être positif';
+        if (amount < 5) return 'Montant minimum : 5€ (requis par Stripe)';
         if (amount > 10000) return 'Montant trop élevé (max 10 000€)';
         break;
         
@@ -398,7 +891,7 @@ const useCustomFormValidation = (form: OrderForm, selectedCategory: string) => {
   return { validateForm, validateField };
 };
 
-// Hook pour charger les catégories
+// Hook pour charger les catégories depuis Supabase (EXACT comme create.tsx)
 const useCategoriesLoader = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -408,7 +901,7 @@ const useCategoriesLoader = () => {
     try {
       setLoading(true);
       clearError();
-      console.log('📊 Chargement des catégories depuis Supabase...');
+      console.log('Chargement des catégories depuis Supabase...');
       
       const { data, error: supabaseError } = await supabase
         .from('services')
@@ -420,7 +913,7 @@ const useCategoriesLoader = () => {
       const uniqueCategories = [...new Set(data.map(item => item.categorie))];
       const sortedCategories = uniqueCategories.sort();
       
-      console.log('✅ Catégories chargées:', sortedCategories);
+      console.log('Catégories chargées:', sortedCategories);
       setCategories(sortedCategories);
 
     } catch (error) {
@@ -441,9 +934,9 @@ const useCategoriesLoader = () => {
   return { categories, loading, error, retryLoad };
 };
 
-// 🧩 COMPOSANTS RÉUTILISABLES
+// COMPOSANTS RÉUTILISABLES
 
-// 📅 CALENDRIER DE SÉLECTION (identique à create.tsx)
+// CALENDRIER DE SÉLECTION
 const CalendarPicker: React.FC<{
   visible: boolean;
   selectedDate?: string;
@@ -652,7 +1145,7 @@ const CalendarPicker: React.FC<{
   );
 };
 
-// 🕐 MODAL DE SÉLECTION AVEC ASCENSEUR 12H PAR DÉFAUT
+// MODAL DE SÉLECTION AVEC ASCENSEUR 12H PAR DÉFAUT
 const SelectModal: React.FC<{
   visible: boolean;
   title: string;
@@ -682,7 +1175,7 @@ const SelectModal: React.FC<{
               animated: true 
             });
             
-            console.log(`📅 Auto-scroll vers 12:00 (index: ${twelveOClockIndex}, offset: ${scrollOffset}px)`);
+            console.log(`Auto-scroll vers 12:00 (index: ${twelveOClockIndex}, offset: ${scrollOffset}px)`);
           }
         }, 300);
       }
@@ -735,48 +1228,53 @@ const DropdownButton: React.FC<{
   onPress: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   error?: boolean;
-}> = ({ value, placeholder, onPress, icon = "chevron-down", error = false }) => (
-  <TouchableOpacity
-    style={[styles.dropdownButton, error && styles.inputError]}
-    onPress={onPress}
-  >
-    <Text style={[styles.dropdownText, !value && styles.placeholderText]}>
-      {value || placeholder}
-    </Text>
-    <Ionicons name={icon} size={16} color="#333333" />
-  </TouchableOpacity>
-);
+}> = ({ value, placeholder, onPress, icon, error }) => {
+  return (
+    <TouchableOpacity
+      style={[styles.dropdownButton, error && styles.inputError]}
+      onPress={onPress}
+    >
+      <Text style={[styles.dropdownText, !value && styles.placeholderText]}>
+        {value || placeholder}
+      </Text>
+      <Ionicons name={icon} size={16} color="#333333" />
+    </TouchableOpacity>
+  );
+};
 
+// ErrorDisplay identique à create.tsx
 const ErrorDisplay: React.FC<{
   error: string;
   onRetry?: () => void;
   isRetrying?: boolean;
-}> = ({ error, onRetry, isRetrying }) => (
-  <View style={styles.errorContainer}>
-    <Ionicons name="alert-circle" size={48} color="#333333" />
-    <Text style={styles.errorTitle}>Oups !</Text>
-    <Text style={styles.errorMessage}>{error}</Text>
-    
-    {onRetry && (
-      <TouchableOpacity 
-        style={[styles.retryButton, isRetrying && styles.retryButtonDisabled]}
-        onPress={onRetry}
-        disabled={isRetrying}
-      >
-        {isRetrying ? (
-          <ActivityIndicator color="#fff" size="small" />
-        ) : (
-          <Ionicons name="refresh" size={20} color="#fff" />
-        )}
-        <Text style={styles.retryButtonText}>
-          {isRetrying ? 'Tentative...' : 'Réessayer'}
-        </Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
+}> = ({ error, onRetry, isRetrying }) => {
+  return (
+    <View style={styles.errorContainer}>
+      <Ionicons name="alert-circle" size={48} color="#333333" />
+      <Text style={styles.errorTitle}>Oups !</Text>
+      <Text style={styles.errorMessage}>{error}</Text>
+      
+      {onRetry && (
+        <TouchableOpacity 
+          style={[styles.retryButton, isRetrying && styles.retryButtonDisabled]}
+          onPress={onRetry}
+          disabled={isRetrying}
+        >
+          {isRetrying ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Ionicons name="refresh" size={20} color="#fff" />
+          )}
+          <Text style={styles.retryButtonText}>
+            {isRetrying ? 'Tentative...' : 'Réessayer'}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
-// 🎯 COMPOSANT PRINCIPAL
+// COMPOSANT PRINCIPAL
 export default function CreateCustomOrderScreen() {
   const params = useLocalSearchParams();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -789,7 +1287,7 @@ export default function CreateCustomOrderScreen() {
   const [showSummary, setShowSummary] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   
-  // 💳 ÉTATS POUR LE PAIEMENT
+  // 💳 ÉTATS POUR LE PAIEMENT - HARMONISÉS AVEC create.tsx
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentValidated, setPaymentValidated] = useState(false);
@@ -797,11 +1295,11 @@ export default function CreateCustomOrderScreen() {
   // États pour gérer le focus des inputs
   const [isInputFocused, setIsInputFocused] = useState(false);
   
-  // 🔍 États pour la recherche de catégories avec menu déroulant automatique
+  // États pour la recherche de catégories avec menu déroulant automatique
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   
-  // 📅 Modals (calendrier + sélections)
+  // Modals (calendrier + sélections)
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -810,7 +1308,16 @@ export default function CreateCustomOrderScreen() {
   const [showDurationPicker, setShowDurationPicker] = useState(false);
   const [showUrgencyDropdown, setShowUrgencyDropdown] = useState(false);
   
-  // Form state avec candidatures multiples
+  // 📸 ÉTAT PHOTOS INLINE - IDENTIQUE À create.tsx
+  const [photos, setPhotos] = useState<PhotoData[]>([]);
+  
+  // 📸 GESTIONNAIRE PHOTOS INLINE
+  const handlePhotosChange = useCallback((photos: PhotoData[]) => {
+    setPhotos(photos);
+    setForm(prev => ({ ...prev, photos }));
+  }, []);
+  
+  // Form state avec candidatures multiples + photos
   const [form, setForm] = useState<OrderForm>({
     serviceTitle: '',
     description: '',
@@ -829,7 +1336,7 @@ export default function CreateCustomOrderScreen() {
     arrivalCity: '',
     prestationDate: '',
     departureTime: '',
-    startTime: '', // Reste vide - champ facultatif
+    startTime: '',
     duration: '',
     pickupTime: '',
     packageNumber: '',
@@ -838,8 +1345,9 @@ export default function CreateCustomOrderScreen() {
     invoiceType: 'particulier',
     companyName: '',
     siret: '',
-    // ✅ NOUVEAU CHAMP - Activé par défaut
     allowMultipleCandidates: true,
+    // 📸 CORRECTION : Utiliser les photos du hook directement
+    photos: [],
   });
 
   // Hooks personnalisés
@@ -847,13 +1355,12 @@ export default function CreateCustomOrderScreen() {
   const { error: submitError, handleError } = useErrorHandler();
   const { validateForm } = useCustomFormValidation(form, selectedCategory);
 
-  // ✅ MODIFICATION : Toujours afficher le bouton candidatures multiples pour les demandes personnalisées
+  // Toujours afficher le bouton candidatures multiples pour les demandes personnalisées
   const shouldShowMultipleCandidatesOption = useCallback(() => {
-    // Pour les demandes personnalisées, toujours permettre le choix
     return selectedCategory ? true : false;
   }, [selectedCategory]);
 
-  // 🔍 Filtrer les catégories selon le terme de recherche
+  // Filtrer les catégories selon le terme de recherche
   const filteredCategories = useMemo(() => {
     if (!searchTerm.trim()) return categories;
     
@@ -870,7 +1377,7 @@ export default function CreateCustomOrderScreen() {
     }
   }, [params.selectedCategory, categories]);
 
-  // 📊 FONCTIONS MÉMORISÉES
+  // FONCTIONS MÉMORISÉES
 
   // Configuration pour la catégorie actuelle
   const currentFieldConfig = useMemo(() => {
@@ -950,7 +1457,7 @@ export default function CreateCustomOrderScreen() {
     return durations;
   }, []);
 
-  // 📅 Formater la date sélectionnée pour affichage
+  // Formater la date sélectionnée pour affichage
   const getSelectedDateLabel = useCallback(() => {
     if (!form.prestationDate) return '';
     
@@ -1014,7 +1521,7 @@ export default function CreateCustomOrderScreen() {
       
       return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
     } catch (error) {
-      console.error('❌ Erreur calcul heure fin:', error);
+      console.error('Erreur calcul heure fin:', error);
       return '';
     }
   }, []);
@@ -1025,7 +1532,7 @@ export default function CreateCustomOrderScreen() {
   }, [form.startTime, form.duration, calculateEndTime]);
 
   // Mise à jour du formulaire
-  const updateForm = useCallback((key: keyof OrderForm, value: string | boolean) => {
+  const updateForm = useCallback((key: keyof OrderForm, value: string | boolean | PhotoData[]) => {
     setForm(prev => ({ ...prev, [key]: value }));
     
     setErrors(prev => {
@@ -1035,7 +1542,7 @@ export default function CreateCustomOrderScreen() {
     });
   }, []);
 
-  // ✅ NOUVEAU : Gestionnaire pour le switch "Dès que possible" avec auto-remplissage
+  // Gestionnaire pour le switch "Dès que possible" avec auto-remplissage
   const handleUrgentToggle = useCallback((value: boolean) => {
     updateForm('isUrgent', value);
     
@@ -1045,17 +1552,17 @@ export default function CreateCustomOrderScreen() {
         updateForm('urgencyLevel', '1hour');
       }
       
-      // ✅ Auto-remplir la date du jour si aucune date n'est sélectionnée
+      // Auto-remplir la date du jour si aucune date n'est sélectionnée
       if (!form.prestationDate) {
         const today = new Date();
         const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
         updateForm('prestationDate', todayKey);
-        console.log('📅 Date du jour auto-remplie pour urgence:', todayKey);
+        console.log('Date du jour auto-remplie pour urgence:', todayKey);
       }
     }
   }, [updateForm, form.urgencyLevel, form.prestationDate]);
 
-  // 📅 Gestionnaire de sélection de date
+  // Gestionnaire de sélection de date
   const handleDateSelect = useCallback((dateKey: string) => {
     updateForm('prestationDate', dateKey);
     setShowCalendarPicker(false);
@@ -1078,7 +1585,7 @@ export default function CreateCustomOrderScreen() {
     setShowSearchDropdown(text.trim().length > 0 && filteredCategories.length > 0);
   }, [filteredCategories.length]);
 
-  // ✅ MODIFICATION : Sélection depuis le dropdown de recherche avec gestion candidatures multiples
+  // Sélection depuis le dropdown de recherche avec gestion candidatures multiples
   const handleSearchSelect = useCallback((category: string) => {
     setSelectedCategory(category);
     setSearchTerm('');
@@ -1089,7 +1596,6 @@ export default function CreateCustomOrderScreen() {
       setForm(prev => ({ 
         ...prev, 
         serviceTitle: '',
-        // ✅ NOUVEAU : Toujours permettre les candidatures multiples pour les demandes personnalisées
         allowMultipleCandidates: true,
       }));
     }
@@ -1123,7 +1629,7 @@ export default function CreateCustomOrderScreen() {
     }
   }, []);
 
-  // 📊 CHARGEMENT DES DONNÉES
+  // CHARGEMENT DES DONNÉES
   useEffect(() => {
     loadUserData();
   }, []);
@@ -1151,65 +1657,73 @@ export default function CreateCustomOrderScreen() {
         }
       }
     } catch (error) {
-      console.error('❌ Erreur chargement utilisateur:', error);
+      console.error('Erreur chargement utilisateur:', error);
     }
   }, []);
 
-  // 💳 FONCTIONS DE PAIEMENT
+  // 💳 FONCTIONS DE PAIEMENT - HARMONISÉES AVEC create.tsx
   const handleProceedToPayment = useCallback(() => {
-    console.log('💳 Validation du paiement pour le montant:', form.proposedAmount);
-    
-    // Fermer la synthèse et ouvrir la modal de paiement
     setShowSummary(false);
     setShowPaymentModal(true);
-  }, [form.proposedAmount]);
+  }, []);
 
-  // 🔧 CORRECTION : Modifier la fonction handlePaymentSuccess pour passer le montant validé
+  // 💳 SUCCESS HANDLER - IDENTIQUE À create.tsx
   const handlePaymentSuccess = useCallback(async (paymentIntentId: string) => {
-    console.log('✅ Paiement validé avec succès, ID:', paymentIntentId);
-    
     setPaymentValidated(true);
     setShowPaymentModal(false);
     
-    // ✅ NOUVEAU : Sauvegarder le montant validé avant d'appeler handleSubmit
     const validatedAmount = parseFloat(form.proposedAmount.replace(/[^\d.,]/g, '').replace(',', '.'));
-    console.log('💰 Montant validé pour création commande:', validatedAmount);
+    console.log('💳 Pré-autorisation réussie, montant validé:', validatedAmount);
     
-    // ✅ NOUVEAU : Appeler handleSubmit avec le montant pré-validé
     await handleSubmit(true, paymentIntentId, validatedAmount);
   }, [form.proposedAmount]);
 
+  // 💳 ERROR HANDLER - IDENTIQUE À create.tsx
   const handlePaymentError = useCallback((error: string) => {
-    console.error('❌ Erreur paiement:', error);
+    console.error('❌ Erreur pré-autorisation:', error);
     setProcessingPayment(false);
-    Alert.alert(
-      'Erreur de paiement', 
-      error,
-      [
-        { text: 'OK', onPress: () => setShowPaymentModal(false) }
-      ]
-    );
+    
+    let userMessage = error;
+    let actions = [{ text: 'Annuler', onPress: () => setShowPaymentModal(false) }];
+    
+    if (error.includes('card_declined')) {
+      userMessage = 'Carte refusée. Vérifiez vos informations ou utilisez une autre carte.';
+      actions = [
+        { text: 'Réessayer', onPress: () => setShowPaymentModal(true) },
+        { text: 'Annuler', onPress: () => setShowPaymentModal(false) }
+      ];
+    } else if (error.includes('insufficient_funds')) {
+      userMessage = 'Fonds insuffisants sur votre carte.';
+    } else if (error.includes('authentication_required')) {
+      userMessage = 'Authentification 3D Secure requise. Veuillez réessayer.';
+      actions = [
+        { text: 'Réessayer', onPress: () => setShowPaymentModal(true) },
+        { text: 'Annuler', onPress: () => setShowPaymentModal(false) }
+      ];
+    }
+    
+    Alert.alert('Erreur de pré-autorisation', userMessage, actions);
   }, []);
 
-  // 🔧 CORRECTION : Modifier la fonction handleSubmit pour accepter le montant pré-validé + candidatures multiples
+  // 📸 FONCTION handleSubmit CORRIGÉE avec système pré-autorisation harmonisé
   const handleSubmit = useCallback(async (
     paymentAlreadyValidated: boolean = false, 
     paymentIntentId?: string,
-    preValidatedAmount?: number  // ✅ NOUVEAU paramètre
+    preValidatedAmount?: number
   ) => {
-    console.log('🚀 === DÉBUT SOUMISSION CUSTOM CORRIGÉE ===');
+    console.log('=== DÉBUT SOUMISSION CUSTOM AVEC PRÉ-AUTORISATION HARMONISÉE ===');
     console.log('Payment already validated:', paymentAlreadyValidated);
     console.log('Payment Intent ID:', paymentIntentId);
     console.log('Pre-validated amount:', preValidatedAmount);
+    console.log('Nombre de photos depuis hook:', photos.length);
     
     // Vérifier que le paiement a été validé (soit via l'état, soit via le paramètre)
     if (!paymentAlreadyValidated && !paymentValidated) {
-      console.log('⚠️ Paiement non validé, arrêt de la soumission');
+      console.log('Paiement non validé, arrêt de la soumission');
       return;
     }
     
-    // ✅ CORRECTION CRITIQUE : Ne pas revalider si le paiement est déjà validé
-    // La validation a déjà été faite dans validateFormForSummary avant le paiement
+    // Ne pas revalider si le paiement est déjà validé
     if (!paymentAlreadyValidated) {
       const validation = validateForm();
       if (!validation.isValid) {
@@ -1227,25 +1741,25 @@ export default function CreateCustomOrderScreen() {
         return;
       }
     } else {
-      console.log('✅ Paiement validé - Skip de la re-validation du formulaire');
+      console.log('Paiement validé - Skip de la re-validation du formulaire');
     }
 
-    // 🔧 CORRECTION CRITIQUE : Récupérer l'utilisateur si currentUser est null
+    // Récupérer l'utilisateur si currentUser est null
     let activeUser = currentUser;
     if (!activeUser) {
-      console.log('⚠️ currentUser null, récupération de l\'utilisateur...');
+      console.log('currentUser null, récupération de l\'utilisateur...');
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
-          console.error('❌ Impossible de récupérer l\'utilisateur:', userError);
+          console.error('Impossible de récupérer l\'utilisateur:', userError);
           Alert.alert('Erreur', 'Session expirée, veuillez vous reconnecter');
           return;
         }
         activeUser = user;
         setCurrentUser(user);
-        console.log('✅ Utilisateur récupéré:', user.id);
+        console.log('Utilisateur récupéré:', user.id);
       } catch (error) {
-        console.error('❌ Erreur récupération utilisateur:', error);
+        console.error('Erreur récupération utilisateur:', error);
         Alert.alert('Erreur', 'Impossible de vérifier votre session');
         return;
       }
@@ -1254,26 +1768,80 @@ export default function CreateCustomOrderScreen() {
     setSubmitting(true);
     
     try {
-      console.log('🚀 Envoi de la demande personnalisée...');
+      console.log('Envoi de la demande personnalisée avec pré-autorisation...');
 
-      // ✅ CORRECTION : Utiliser le montant pré-validé si disponible
+      // Utiliser le montant pré-validé si disponible
       let parsedAmount;
       
       if (preValidatedAmount && preValidatedAmount > 0) {
         // Utiliser le montant pré-validé du paiement
         parsedAmount = preValidatedAmount;
-        console.log('✅ Utilisation du montant pré-validé:', parsedAmount);
+        console.log('Utilisation du montant pré-validé:', parsedAmount);
       } else {
         // Validation normale du montant
         const cleanAmount = form.proposedAmount.replace(/[^\d.,]/g, '').replace(',', '.');
         parsedAmount = parseFloat(cleanAmount);
         
         if (isNaN(parsedAmount) || parsedAmount <= 0) {
-          console.error('❌ Montant invalide:', form.proposedAmount, 'parsed:', parsedAmount);
+          console.error('Montant invalide:', form.proposedAmount, 'parsed:', parsedAmount);
           Alert.alert('Erreur', 'Le montant saisi est invalide. Veuillez vérifier et recommencer.');
           return;
         }
-        console.log('✅ Validation normale du montant:', parsedAmount);
+        console.log('Validation normale du montant:', parsedAmount);
+      }
+
+      // 📸 UPLOAD DES PHOTOS CORRIGÉ - Système inline identique à create.tsx
+      let photoUrls: string[] = [];
+      
+      if (photos && photos.length > 0) {
+        try {
+          console.log(`📸 Upload de ${photos.length} photos avec système inline...`);
+          photoUrls = await uploadAllPhotos(photos, activeUser.id);
+          console.log(`✅ Photos uploadées avec succès: ${photoUrls.length}/${photos.length}`);
+          
+          // Si certaines photos ont échoué mais pas toutes
+          if (photoUrls.length > 0 && photoUrls.length < photos.length) {
+            Alert.alert(
+              'Upload partiel des photos',
+              `${photoUrls.length}/${photos.length} photos ont été uploadées avec succès. Les autres photos n'ont pas pu être uploadées mais votre commande sera créée avec les photos disponibles.`,
+              [{ text: 'Continuer', style: 'default' }]
+            );
+          }
+          
+        } catch (photoError: any) {
+          console.error('❌ Erreur upload photos:', photoError);
+          
+          let errorMessage = 'Impossible d\'uploader les photos.';
+          
+          // Messages d'erreur spécifiques
+          if (photoError.message?.includes('Bucket not found')) {
+            errorMessage = 'Le stockage de photos n\'est pas configuré. Contactez le support technique.';
+          } else if (photoError.message?.includes('authentifié')) {
+            errorMessage = 'Session expirée. Veuillez vous reconnecter et réessayer.';
+          } else if (photoError.message?.includes('network') || photoError.message?.includes('fetch')) {
+            errorMessage = 'Problème de connexion lors de l\'upload des photos.';
+          }
+          
+          // Demander à l'utilisateur s'il veut continuer sans photos
+          const continueWithoutPhotos = await new Promise<boolean>((resolve) => {
+            Alert.alert(
+              'Erreur upload photos',
+              `${errorMessage}\n\nVoulez-vous continuer la création de votre demande sans photos ?`,
+              [
+                { text: 'Annuler', onPress: () => resolve(false) },
+                { text: 'Continuer sans photos', onPress: () => resolve(true) }
+              ]
+            );
+          });
+          
+          if (!continueWithoutPhotos) {
+            console.log('Utilisateur a annulé suite à l\'erreur photos');
+            return;
+          }
+          
+          console.log('Continuation sans photos suite au choix utilisateur');
+          photoUrls = [];
+        }
       }
 
       // Construire l'objet addresses
@@ -1284,7 +1852,7 @@ export default function CreateCustomOrderScreen() {
         ? calculateEndTime(form.startTime, form.duration) 
         : null;
 
-      // 🔧 CORRECTION : Structure d'insertion cohérente avec Supabase + candidatures multiples
+      // 💳 STRUCTURE D'INSERTION AVEC PRÉ-AUTORISATION - HARMONISÉE AVEC create.tsx
       const orderData = {
         // IDs et relations
         client_id: activeUser.id,
@@ -1295,7 +1863,7 @@ export default function CreateCustomOrderScreen() {
         // Titre et description
         service_title: form.serviceTitle, // Pour les demandes personnalisées
         description: form.description,
-        proposed_amount: parsedAmount, // ✅ Utilise le montant validé
+        proposed_amount: parsedAmount, // Utilise le montant validé
         
         // Dates et horaires
         date: form.prestationDate || null,
@@ -1313,13 +1881,18 @@ export default function CreateCustomOrderScreen() {
         // Statut 
         status: 'en_attente',
         
-        // 🔧 CORRECTION : Champs de paiement comme dans create.tsx
+        // 💳 CHAMPS DE PAIEMENT PRÉ-AUTORISATION - IDENTIQUES À create.tsx
         payment_status: 'authorized',
         payment_authorized_at: new Date().toISOString(),
+        authorization_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        payment_captured_at: null,
         payment_intent_id: paymentIntentId || null,
         
-        // ✅ NOUVEAU : Candidatures multiples
+        // Candidatures multiples
         allow_multiple_candidates: form.allowMultipleCandidates,
+        
+        // 📸 URLs des photos corrigées
+        photo_urls: photoUrls.length > 0 ? photoUrls : null,
         
         // Timestamps
         created_at: new Date().toISOString(),
@@ -1359,9 +1932,13 @@ export default function CreateCustomOrderScreen() {
         package_number: form.packageNumber || null,
       };
 
-      console.log('📊 Données de demande personnalisée à insérer (avec paiement + candidatures):', {
-        ...orderData,
-        allow_multiple_candidates: orderData.allow_multiple_candidates
+      console.log('📝 Données de demande personnalisée à insérer (avec pré-autorisation):', {
+        service_title: orderData.service_title,
+        proposed_amount: orderData.proposed_amount,
+        payment_status: orderData.payment_status,
+        authorization_expires_at: orderData.authorization_expires_at,
+        allow_multiple_candidates: orderData.allow_multiple_candidates,
+        photos_count: photoUrls.length
       });
 
       const { data: insertResult, error: insertError } = await supabase
@@ -1375,26 +1952,29 @@ export default function CreateCustomOrderScreen() {
         throw insertError;
       }
 
-      console.log('✅ Demande personnalisée créée avec succès:', insertResult);
+      console.log('✅ Demande personnalisée créée avec succès:', insertResult.id);
 
       // Traitement du parrainage client
       try {
         await supabase.rpc('process_referral_for_order', { 
           order_id_input: insertResult.id 
         });
-        console.log('Parrainage client traité pour demande personnalisée:', insertResult.id);
+        console.log('✅ Parrainage client traité pour demande personnalisée:', insertResult.id);
       } catch (referralError) {
-        console.error('Erreur traitement parrainage:', referralError);
+        console.error('⚠️ Erreur traitement parrainage:', referralError);
         // Ne pas bloquer la création de commande pour une erreur de parrainage
       }
 
+      const photoText = photoUrls.length > 0 ? `\n📸 ${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''} jointe${photoUrls.length > 1 ? 's' : ''}` : '';
+
+      // 💳 MESSAGE UTILISATEUR HARMONISÉ AVEC create.tsx - PRÉ-AUTORISATION
       Alert.alert(
-        'Demande créée et paiement confirmé !',
-        `Votre demande personnalisée #${insertResult.id} "${form.serviceTitle}" a été créée avec succès.\n\n💳 Votre paiement de ${parsedAmount.toFixed(2)}€ est confirmé.`,
+        'Demande créée et paiement pré-autorisé !',
+        `Votre demande personnalisée #${insertResult.id} "${form.serviceTitle}" a été créée avec succès.\n\n💳 Votre paiement de ${parsedAmount.toFixed(2)}€ est pré-autorisé et sera débité dès qu'une Fourmiz acceptera votre mission.${photoText}`,
         [
           { 
             text: 'Voir mes commandes', 
-            onPress: () => router.replace('/(tabs)/orders') 
+            onPress: () => router.push('/(tabs)/orders')
           }
         ]
       );
@@ -1406,11 +1986,11 @@ export default function CreateCustomOrderScreen() {
       setSubmitting(false);
       setPaymentValidated(false);
     }
-  }, [validateForm, currentUser, form, selectedCategory, handleError, calculateEndTime, calculateUrgencySurcharge, buildAddressesObject, paymentValidated, router]);
+  }, [validateForm, currentUser, form, selectedCategory, handleError, calculateEndTime, calculateUrgencySurcharge, buildAddressesObject, paymentValidated, router, photos, uploadAllPhotos]);
 
   // Validation pour la synthèse
   const validateFormForSummary = useCallback(() => {
-    console.log('🔍 Début validation synthèse custom...');
+    console.log('Début validation synthèse custom...');
     
     const validation = validateForm();
     
@@ -1449,7 +2029,7 @@ export default function CreateCustomOrderScreen() {
     );
   }, [shouldShowField, isFieldRequired, getFieldLabel]);
 
-  // 🛠️ GESTION DES ERREURS DE CHARGEMENT 
+  // GESTION DES ERREURS DE CHARGEMENT 
 
   if (categoriesError) {
     return (
@@ -1476,13 +2056,13 @@ export default function CreateCustomOrderScreen() {
     );
   }
 
-  // 🎨 RENDU PRINCIPAL
+  // RENDU PRINCIPAL
 
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen 
         options={{ 
-          title: 'Demande personnalisée',
+          title: 'Nouvelle demande personnalisée',
           headerLeft: () => (
             <TouchableOpacity 
               onPress={() => router.back()}
@@ -1518,9 +2098,9 @@ export default function CreateCustomOrderScreen() {
 
           {/* Sélection de catégorie avec menu déroulant automatique */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Catégorie *</Text>
+            <Text style={styles.sectionTitle}>Catégorie (obligatoire pour passer commande)*</Text>
             
-            {/* 🔍 Champ de recherche avec dropdown automatique */}
+            {/* Champ de recherche avec dropdown automatique */}
             <View style={styles.searchContainer}>
               <Ionicons name="search" size={16} color="#666666" style={styles.searchIcon} />
               <TextInput
@@ -1551,7 +2131,7 @@ export default function CreateCustomOrderScreen() {
               )}
             </View>
             
-            {/* 📋 Menu déroulant automatique */}
+            {/* Menu déroulant automatique */}
             {showSearchDropdown && filteredCategories.length > 0 && (
               <View style={styles.searchDropdown}>
                 {filteredCategories.slice(0, 5).map((category, index) => (
@@ -1649,9 +2229,18 @@ export default function CreateCustomOrderScreen() {
                 {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
               </View>
 
+              {/* 📸 SECTION PHOTOS CORRIGÉE - Système inline identique à create.tsx */}
+              <View style={styles.section}>
+                <PhotoSection 
+                  photos={photos} 
+                  onPhotosChange={handlePhotosChange}
+                  maxPhotos={5}
+                />
+              </View>
+
               {/* Adresse */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{getFieldLabel('adresse_lieu', 'Adresse')} *</Text>
+                <Text style={styles.sectionTitle}>{getFieldLabel('adresse_lieu', 'Adresse')} communiquée au seul prestataire Fourmiz validé *</Text>
                 <TextInput 
                   style={[styles.input, errors.address && styles.inputError]}
                   placeholder={selectedCategory === 'transport' ? 'Adresse de départ complète' : 'Adresse complète (rue, numéro)'}
@@ -1744,7 +2333,7 @@ export default function CreateCustomOrderScreen() {
                 )}
               </View>
 
-              {/* ✅ NOUVEAU : Candidatures multiples - toujours affiché pour demandes personnalisées */}
+              {/* Candidatures multiples - toujours affiché pour demandes personnalisées */}
               {shouldShowMultipleCandidatesOption() && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Candidatures</Text>
@@ -1775,7 +2364,7 @@ export default function CreateCustomOrderScreen() {
                 </View>
               )}
 
-              {/* 📅 Date de prestation AVEC CALENDRIER */}
+              {/* Date de prestation AVEC CALENDRIER */}
               {shouldShowField('date') && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>
@@ -1802,7 +2391,7 @@ export default function CreateCustomOrderScreen() {
                     </View>
                   )}
                   
-                  {/* 📅 BOUTON CALENDRIER */}
+                  {/* BOUTON CALENDRIER */}
                   <DropdownButton
                     value={form.prestationDate ? getSelectedDateLabel() : undefined}
                     placeholder={form.isUrgent ? "Choisir une date (facultatif)" : "Choisir une date"}
@@ -2001,7 +2590,6 @@ export default function CreateCustomOrderScreen() {
 
           <View style={styles.keyboardSpacer} />
         </ScrollView>
-      </View>
 
       {/* Modal sélection catégorie avec gestion candidatures multiples */}
       <SelectModal
@@ -2019,7 +2607,6 @@ export default function CreateCustomOrderScreen() {
             setForm(prev => ({ 
               ...prev, 
               serviceTitle: '',
-              // ✅ NOUVEAU : Toujours permettre les candidatures multiples pour les demandes personnalisées
               allowMultipleCandidates: true,
             }));
           }
@@ -2027,7 +2614,7 @@ export default function CreateCustomOrderScreen() {
         onCancel={() => setShowCategoryPicker(false)}
       />
 
-      {/* 📅 CALENDRIER DE SÉLECTION DE DATE */}
+      {/* CALENDRIER DE SÉLECTION DE DATE */}
       <CalendarPicker
         visible={showCalendarPicker}
         selectedDate={form.prestationDate}
@@ -2035,7 +2622,7 @@ export default function CreateCustomOrderScreen() {
         onCancel={() => setShowCalendarPicker(false)}
       />
 
-      {/* 💳 MODAL SYNTHÈSE AVEC PAIEMENT */}
+      {/* 💳 MODAL SYNTHÈSE AVEC PAIEMENT PRÉ-AUTORISATION - HARMONISÉE AVEC create.tsx */}
       <Modal visible={showSummary} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.summaryModal}>
           <View style={styles.summaryHeader}>
@@ -2054,7 +2641,6 @@ export default function CreateCustomOrderScreen() {
               {form.isUrgent && (
                 <Text style={styles.summaryUrgent}>• Dès que possible - {getUrgencyLabel(form.urgencyLevel)}</Text>
               )}
-              {/* ✅ NOUVEAU */}
               {shouldShowMultipleCandidatesOption() && (
                 <Text style={styles.summaryItem}>
                   • Candidatures multiples : {form.allowMultipleCandidates ? 'Oui' : 'Non'}
@@ -2127,6 +2713,14 @@ export default function CreateCustomOrderScreen() {
               <Text style={styles.summaryDescription}>{form.description}</Text>
             </View>
 
+            {/* 📸 SECTION PHOTOS DANS LA SYNTHÈSE - CORRIGÉE */}
+            {photos && photos.length > 0 && (
+              <View style={styles.summarySection}>
+                <Text style={styles.summarySectionTitle}>Photos jointes</Text>
+                <PhotoSummary photos={photos} />
+              </View>
+            )}
+
             {form.packageNumber && (
               <View style={styles.summarySection}>
                 <Text style={styles.summarySectionTitle}>Colis</Text>
@@ -2141,17 +2735,17 @@ export default function CreateCustomOrderScreen() {
               </View>
             )}
 
-            {/* 💳 SECTION PAIEMENT */}
+            {/* 💳 SECTION PAIEMENT PRÉ-AUTORISATION - HARMONISÉE AVEC create.tsx */}
             <View style={styles.summarySection}>
-              <Text style={styles.summarySectionTitle}>Paiement</Text>
-              <Text style={styles.summaryItem}>• Montant à autoriser : {form.proposedAmount}€</Text>
+              <Text style={styles.summarySectionTitle}>Pré-autorisation de paiement</Text>
+              <Text style={styles.summaryItem}>• Montant à pré-autoriser : {form.proposedAmount}€</Text>
               <Text style={styles.summaryPaymentNote}>
-                Le paiement sera autorisé maintenant et débité automatiquement dès qu'une Fourmiz acceptera votre mission.
+                Le paiement sera pré-autorisé maintenant et débité automatiquement dès qu'une Fourmiz acceptera votre mission. L'autorisation expire dans 7 jours si aucune Fourmiz n'accepte.
               </Text>
             </View>
           </ScrollView>
 
-          {/* 💳 ACTIONS AVEC PAIEMENT */}
+          {/* 💳 ACTIONS AVEC PRÉ-AUTORISATION - HARMONISÉES AVEC create.tsx */}
           <View style={styles.summaryActions}>
             <TouchableOpacity 
               style={styles.backButton}
@@ -2168,16 +2762,20 @@ export default function CreateCustomOrderScreen() {
               onPress={handleProceedToPayment}
               disabled={submitting || processingPayment}
             >
-              <Ionicons name="card" size={16} color="#fff" />
+              {processingPayment ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="shield-checkmark" size={16} color="#fff" />
+              )}
               <Text style={styles.paymentButtonText}>
-                Autoriser le paiement
+                {processingPayment ? 'Pré-autorisation...' : 'Pré-autoriser le paiement'}
               </Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>
 
-      {/* 💳 MODAL DE PAIEMENT STRIPE */}
+      {/* 💳 MODAL DE PAIEMENT STRIPE - IDENTIQUE À create.tsx */}
       <PaymentModal
         visible={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
@@ -2243,11 +2841,12 @@ export default function CreateCustomOrderScreen() {
         }}
         onCancel={() => setShowPickupTimePicker(false)}
       />
+      </View>
     </SafeAreaView>
   );
 }
 
-// 🎨 STYLES COMPLETS AVEC CALENDRIER, PAIEMENT, MENU DÉROULANT AUTOMATIQUE ET CANDIDATURES MULTIPLES
+// STYLES COMPLETS (IDENTIQUES À create.tsx avec ajouts pour create-custom + photos)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
   scrollView: { flex: 1 },
@@ -2268,12 +2867,6 @@ const styles = StyleSheet.create({
     fontSize: 13, 
     color: '#333333',
     fontWeight: '400'
-  },
-  
-  loadingButtonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
   },
   
   errorContainer: {
@@ -2445,7 +3038,6 @@ const styles = StyleSheet.create({
   searchDropdownMore: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#f8f8f8',
     borderBottomLeftRadius: 6,
     borderBottomRightRadius: 6,
   },
@@ -2454,44 +3046,6 @@ const styles = StyleSheet.create({
     color: '#666666',
     textAlign: 'center',
     fontStyle: 'italic',
-  },
-  
-  searchResults: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  searchResultsText: {
-    fontSize: 12,
-    color: '#666666',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  searchResultItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    padding: 10,
-    borderRadius: 4,
-    marginBottom: 4,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  searchResultItemText: {
-    fontSize: 13,
-    color: '#000000',
-    fontWeight: '500',
-  },
-  noSearchResults: {
-    fontSize: 12,
-    color: '#999999',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: 8,
   },
   
   urgentDropdownField: {
@@ -2528,7 +3082,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   
-  // ✅ NOUVEAUX STYLES POUR CANDIDATURES MULTIPLES
+  // STYLES POUR CANDIDATURES MULTIPLES
   multipleCandidatesField: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2796,7 +3350,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 
-  // 📅 STYLES CALENDRIER
+  // STYLES CALENDRIER
   calendarModal: { 
     flex: 1, 
     backgroundColor: '#ffffff' 
@@ -2978,6 +3532,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
+  // Modal de sélection générique
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',

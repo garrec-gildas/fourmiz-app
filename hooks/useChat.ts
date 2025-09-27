@@ -1,5 +1,5 @@
 // hooks/useChat.ts - Hook principal pour la gestion du chat
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Alert } from 'react-native';
 

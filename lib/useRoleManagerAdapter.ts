@@ -1,8 +1,8 @@
-// lib/useRoleManagerAdapter.ts
+﻿// lib/useRoleManagerAdapter.ts
 // 🔄 ADAPTATEUR pour faire le lien entre index.tsx et roleManager.ts
 // 🔧 CORRIGÉ : Priorisation fourmiz pour les utilisateurs multi-rôles
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRoleManager, UserRole } from './roleManager';
 import { Alert } from 'react-native';
 

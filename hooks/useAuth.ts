@@ -1,9 +1,8 @@
-﻿// hooks/useAuth.ts - HOOK D'AUTHENTIFICATION CORRIGÉ ET OPTIMISÉ
-// 🔧 Version complète avec réparation automatique des profils manquants + FIX SUBSCRIPTION + FIX USER_ID
-// 🆕 AJOUTÉ: Nettoyage automatique du cache lors des changements d'utilisateur
-// ✅ CORRECTIONS POUR CACHE CORROMPU ET OPTIMISATIONS
+﻿// hooks/useAuth.ts - VERSION CORRIGÉE AVEC GESTIONNAIRE D'ERREURS
+// 🎯 OBJECTIF : Éliminer complètement les re-rendus excessifs avec une approche minimaliste
+// 🔧 STRATÉGIE : Logique simple, états directs, pas de sur-optimisation + Gestion erreurs PGRST116
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,10 +12,12 @@ import {
   getCurrentUser,
   getCurrentSession,
   onAuthStateChange,
-  Database
 } from '../lib/supabase';
 
-// 📝 TYPES TYPESCRIPT STRICTS
+// Import du gestionnaire d'erreurs existant
+import { ProfileErrorHandler, safeGetProfile } from '../utils/profileErrorHandler';
+
+// Types de base
 type UserRole = 'client' | 'fourmiz' | 'admin';
 
 interface UserProfile {
@@ -43,29 +44,21 @@ interface AuthUser {
   email: string;
   email_confirmed_at?: string;
   created_at: string;
+  user_metadata?: any;
   profile?: UserProfile;
 }
 
 interface AuthState {
-  // États de base
   isAuthenticated: boolean;
   isLoading: boolean;
   isInitialized: boolean;
-  
-  // Utilisateur et profil
   user: AuthUser | null;
   profile: UserProfile | null;
-  
-  // États de processus
   isSigningIn: boolean;
   isSigningUp: boolean;
   isSigningOut: boolean;
   isRefreshing: boolean;
-  
-  // Erreurs et retry
   error: string | null;
-  retryCount: number;
-  lastError: Date | null;
 }
 
 interface SignInData {
@@ -81,36 +74,6 @@ interface SignUpData {
   roles: UserRole[];
 }
 
-interface UseAuthReturn extends AuthState {
-  // Méthodes d'authentification
-  signIn: (data: SignInData) => Promise<{ success: boolean; requiresProfile?: boolean }>;
-  signUp: (data: SignUpData) => Promise<{ success: boolean; needsConfirmation?: boolean }>;
-  signOut: () => Promise<void>;
-  
-  // Méthodes de profil
-  refreshProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<boolean>;
-  
-  // Méthodes utilitaires
-  hasRole: (role: UserRole) => boolean;
-  hasAnyRole: (roles: UserRole[]) => boolean;
-  isAdmin: () => boolean;
-  requireAuth: (redirectTo?: string) => boolean;
-  
-  // Méthodes de récupération
-  resetPassword: (email: string) => Promise<boolean>;
-  
-  // Nouvelles méthodes de réparation
-  ensureProfileExists: (user: AuthUser) => Promise<UserProfile | null>;
-  repairUserProfile: () => Promise<void>;
-  
-  // Debug et utilitaires
-  clearAuthData: () => Promise<void>;
-  savePushTokenSafely: (token: string) => Promise<void>;
-  clearAllUserCaches: () => Promise<void>;
-}
-
-// 🔐 CONSTANTES
 const AUTH_STORAGE_KEYS = {
   REMEMBER_EMAIL: 'fourmiz_remember_email',
   REMEMBER_ME: 'fourmiz_remember_me',
@@ -121,16 +84,12 @@ const AUTH_STORAGE_KEYS = {
 
 const AUTHORIZED_ADMIN_EMAILS = [
   'garrec.gildas@gmail.com',
-  // Ajouter d'autres emails admin autorisés
 ] as const;
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY_BASE = 2000; // 2 secondes
 
-// 🚀 HOOK PRINCIPAL
-const useAuth = (): UseAuthReturn => {
-  // 📊 ÉTAT LOCAL
+const useAuth = () => {
+  // État simple sans sur-optimisation
   const [state, setState] = useState<AuthState>({
     isAuthenticated: false,
     isLoading: true,
@@ -142,338 +101,175 @@ const useAuth = (): UseAuthReturn => {
     isSigningOut: false,
     isRefreshing: false,
     error: null,
-    retryCount: 0,
-    lastError: null,
   });
 
-  // Références pour éviter les re-renders
-  const authListenerRef = useRef<{ data: { subscription: any } } | null>(null);
+  // Ref pour éviter les réinitialisations multiples
   const isInitializingRef = useRef(false);
-  const currentUserIdRef = useRef<string | null>(null);
+  const authListenerRef = useRef<any>(null);
 
-  // 🔄 HELPERS INTERNES
-  const updateState = useCallback((updates: Partial<AuthState>) => {
-    setState(prev => ({ ...prev, ...updates }));
-  }, []);
-
-  const setError = useCallback((error: string | null) => {
-    updateState({ 
-      error,
-      lastError: error ? new Date() : null 
-    });
-  }, [updateState]);
-
-  const clearError = useCallback(() => {
-    updateState({ 
-      error: null, 
-      retryCount: 0,
-      lastError: null 
-    });
-  }, [updateState]);
-
-  // ====== CORRECTION 1: NETTOYAGE ROBUSTE DES CACHES CORROMPUS ======
-  const clearCorruptedUserCaches = useCallback(async (currentUserId: string): Promise<void> => {
+  // Fonction sécurisée pour charger le profil avec gestion d'erreurs PGRST116
+  const loadUserProfile = async (userId: string, userEmail?: string): Promise<UserProfile | null> => {
     try {
-      console.log('🧹 Nettoyage des caches corrompus pour utilisateur:', currentUserId);
-      
-      const allKeys = await AsyncStorage.getAllKeys();
-      
-      // Identifier TOUS les types de cache utilisateur
-      const corruptedKeys = allKeys.filter(key => {
-        // Cache de profil d'autres utilisateurs
-        const isProfileCache = key.includes('fourmiz_profile_cache_') && !key.includes(currentUserId);
-        
-        // Cache de temps d'autres utilisateurs  
-        const isTimeCache = key.includes('fourmiz_cache_time_') && !key.includes(currentUserId);
-        
-        // Autres caches spécifiques (critères, préférences, etc.)
-        const isOtherUserCache = (
-          key.includes('_criteria_') || 
-          key.includes('_preferences_') ||
-          key.includes('user_cache_')
-        ) && !key.includes(currentUserId);
-        
-        return isProfileCache || isTimeCache || isOtherUserCache;
-      });
-      
-      if (corruptedKeys.length > 0) {
-        console.log('🚨 CACHES CORROMPUS DÉTECTÉS:', corruptedKeys);
-        await AsyncStorage.multiRemove(corruptedKeys);
-        console.log('✅ Caches corrompus nettoyés:', corruptedKeys.length, 'éléments');
-      } else {
-        console.log('✅ Aucun cache corrompu détecté');
-      }
-      
-    } catch (error) {
-      console.error('❌ Erreur nettoyage caches corrompus:', error);
-    }
-  }, []);
+      console.log('📥 Chargement sécurisé du profil utilisateur:', userId);
 
-  // ====== CORRECTION 4: NETTOYAGE COMPLET AMÉLIORÉ ======
-  const clearAllUserCaches = useCallback(async (): Promise<void> => {
-    try {
-      console.log('🧹 Nettoyage COMPLET des caches utilisateur...');
-      
-      const allKeys = await AsyncStorage.getAllKeys();
-      
-      // Identifier TOUS les types de caches à nettoyer
-      const cacheKeysToRemove = allKeys.filter(key => 
-        key.includes('fourmiz_profile_cache_') || 
-        key.includes('fourmiz_cache_time_') ||
-        key.includes('_criteria_') ||
-        key.includes('_preferences_') ||
-        key.includes('user_cache_') ||
-        key.includes('last_role_preference') ||
-        key.startsWith('criteria_cache_')
-      );
-      
-      if (cacheKeysToRemove.length > 0) {
-        await AsyncStorage.multiRemove(cacheKeysToRemove);
-        console.log('✅ Nettoyage complet terminé:', cacheKeysToRemove.length, 'éléments supprimés');
-        
-        // Log détaillé pour debug
-        if (__DEV__) {
-          console.log('🔍 Clés supprimées:', cacheKeysToRemove);
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ Erreur nettoyage complet:', error);
-    }
-  }, []);
-
-  // 🧹 NETTOYER LES TOKENS PUSH ORPHELINS
-  const cleanupOrphanedPushTokens = useCallback(async (userId: string) => {
-    try {
-      console.log('🧹 Nettoyage des tokens push orphelins pour:', userId);
-      
-      const { error } = await supabase
-        .from('push_tokens')
-        .delete()
-        .eq('user_id', userId);
+      // Utilisation du gestionnaire sécurisé au lieu de la requête directe
+      const { data: profileData, error } = await safeGetProfile(userId);
 
       if (error) {
-        console.warn('⚠️ Erreur nettoyage tokens push:', error);
-      } else {
-        console.log('✅ Tokens push nettoyés');
+        console.error('❌ Erreur chargement profil (première tentative):', error);
+        
+        // Si c'est une erreur PGRST116, utiliser le gestionnaire complet
+        if (error.code === 'PGRST116') {
+          console.log('🔧 Erreur PGRST116 détectée, utilisation du gestionnaire de récupération...');
+          
+          const recovery = await ProfileErrorHandler.handleProfileError(
+            error, 
+            userId, 
+            userEmail || ''
+          );
+          
+          if (recovery.success && recovery.profileExists) {
+            // Re-tenter la récupération après récupération/création
+            const { data: recoveredProfile } = await safeGetProfile(userId);
+            if (recoveredProfile) {
+              console.log('✅ Profil récupéré après gestion d\'erreur');
+              return recoveredProfile as UserProfile;
+            }
+          }
+          
+          if (recovery.needsCompletion) {
+            console.log('🔄 Profil créé mais nécessite une complétion');
+            // Le profil a été créé mais n'est pas complet
+            const { data: newProfile } = await safeGetProfile(userId);
+            return newProfile as UserProfile || null;
+          }
+        }
+        
+        return null;
       }
-    } catch (error) {
-      console.warn('💥 Erreur dans cleanupOrphanedPushTokens:', error);
-    }
-  }, []);
 
-  // 🔧 FONCTION DE DIAGNOSTIC ET CRÉATION DE PROFIL - VERSION CORRIGÉE
-  const ensureProfileExists = useCallback(async (currentUser: AuthUser): Promise<UserProfile | null> => {
-    if (!currentUser?.id) return null;
+      if (!profileData) {
+        console.log('🔍 Aucun profil trouvé pour cet utilisateur');
+        return null;
+      }
+
+      console.log('✅ Profil utilisateur chargé:', profileData.email);
+      return profileData as UserProfile;
+
+    } catch (error: any) {
+      console.error('❌ Exception loadUserProfile:', error);
+      
+      // Gestion d'exception avec le gestionnaire d'erreurs
+      try {
+        const recovery = await ProfileErrorHandler.handleProfileError(
+          error, 
+          userId, 
+          userEmail || ''
+        );
+        
+        if (recovery.success) {
+          const { data: recoveredProfile } = await safeGetProfile(userId);
+          return recoveredProfile as UserProfile || null;
+        }
+      } catch (recoveryError) {
+        console.error('❌ Erreur dans la récupération:', recoveryError);
+      }
+      
+      return null;
+    }
+  };
+
+  // Fonction sécurisée pour créer un profil manquant avec gestion d'erreurs
+  const ensureProfileExists = async (user: AuthUser): Promise<UserProfile | null> => {
+    if (!user?.id) return null;
 
     try {
-      console.log('🔍 Vérification du profil pour:', currentUser.email);
+      console.log('🔍 Vérification du profil pour:', user.email);
 
-      // 1. Vérifier si le profil existe - CORRECTION : utiliser user_id pour la recherche
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', currentUser.id)  // ← CORRECTION : utiliser user_id au lieu de id
-        .single();
-
-      // Si le profil existe, le retourner
-      if (!fetchError && existingProfile) {
-        console.log('✅ Profil existant trouvé');
-        return existingProfile as UserProfile;
+      // Vérifier si le profil existe avec la fonction sécurisée
+      let profile = await loadUserProfile(user.id, user.email);
+      if (profile) {
+        return profile;
       }
 
-      // Si erreur autre que "profil non trouvé", la propager
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('❌ Erreur lors de la vérification du profil:', fetchError);
-        throw fetchError;
-      }
+      console.log('🔨 Création du profil manquant pour:', user.email);
 
-      // 2. Créer le profil s'il n'existe pas - CORRECTION PRINCIPALE
-      console.log('🔨 Création du profil manquant pour:', currentUser.email);
-      
+      // Créer le profil avec les métadonnées disponibles
+      const userMetadata = user.user_metadata || {};
       const newProfile = {
-        user_id: currentUser.id,  // ← CORRECTION : utiliser user_id au lieu de id
-        email: currentUser.email,
-        firstname: extractFirstName(currentUser.email),
-        lastname: extractLastName(currentUser.email),
-        phone: null,
+        user_id: user.id,
+        email: user.email,
+        firstname: userMetadata.firstname || null,
+        lastname: userMetadata.lastname || null,
+        phone: userMetadata.phone || null,
         address: null,
         city: null,
         postal_code: null,
         building: null,
         floor: null,
-        roles: ['client'] as UserRole[], // Rôle par défaut
+        roles: ['client'] as UserRole[],
         profile_completed: false,
         avatar_url: null,
         id_document_path: null,
-        created_at: currentUser.created_at || new Date().toISOString(),
+        created_at: user.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
       const { data: createdProfile, error: createError } = await supabase
         .from('profiles')
-        .insert([newProfile])
+        .upsert([newProfile], {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        })
         .select()
         .single();
 
       if (createError) {
         console.error('❌ Erreur création profil:', createError);
-        throw createError;
+        
+        // Gestion d'erreur avec le gestionnaire
+        const recovery = await ProfileErrorHandler.handleProfileError(
+          createError, 
+          user.id, 
+          user.email
+        );
+        
+        if (recovery.success) {
+          // Re-tenter la récupération
+          return await loadUserProfile(user.id, user.email);
+        }
+        
+        return null;
       }
 
       console.log('✅ Profil créé avec succès:', createdProfile.email);
-      
-      // Nettoyer les tokens push orphelins éventuels
-      await cleanupOrphanedPushTokens(currentUser.id);
-      
       return createdProfile as UserProfile;
 
     } catch (error: any) {
       console.error('💥 Erreur dans ensureProfileExists:', error);
-      const { userMessage } = handleSupabaseError(error, 'Création de profil');
-      setError(userMessage);
-      return null;
-    }
-  }, [cleanupOrphanedPushTokens, setError]);
-
-  // 📥 CHARGEMENT DU PROFIL UTILISATEUR AMÉLIORÉ
-  const loadUserProfile = useCallback(async (userId: string, useCache = true): Promise<UserProfile | null> => {
-    try {
-      console.log('📥 Chargement du profil utilisateur:', userId);
-
-      // Vérifier le cache si demandé
-      if (useCache) {
-        try {
-          const cachedProfile = await AsyncStorage.getItem(`${AUTH_STORAGE_KEYS.PROFILE_CACHE}_${userId}`);
-          const cacheTime = await AsyncStorage.getItem(`${AUTH_STORAGE_KEYS.CACHE_TIME}_${userId}`);
-          
-          if (cachedProfile && cacheTime && 
-              Date.now() - parseInt(cacheTime) < CACHE_DURATION) {
-            console.log('⚡ Profil chargé depuis le cache');
-            return JSON.parse(cachedProfile) as UserProfile;
-          }
-        } catch (cacheError) {
-          console.warn('⚠️ Erreur lecture cache profil:', cacheError);
-        }
-      }
-
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          email,
-          firstname,
-          lastname,
-          phone,
-          address,
-          city,
-          postal_code,
-          building,
-          floor,
-          roles,
-          profile_completed,
-          avatar_url,
-          id_document_path,
-          created_at,
-          updated_at
-        `)
-        .eq('user_id', userId)  // ← CORRECTION : utiliser user_id pour la recherche aussi
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          console.log('🔍 Aucun profil trouvé pour cet utilisateur');
-          return null;
-        }
-        
-        console.error('❌ Erreur chargement profil:', error);
-        const { userMessage } = handleSupabaseError(error, 'Chargement profil');
-        throw new Error(userMessage);
-      }
-
-      const profile = profileData as UserProfile;
-
-      // Mettre en cache
+      
+      // Gestion d'exception avec le gestionnaire d'erreurs
       try {
-        await AsyncStorage.setItem(`${AUTH_STORAGE_KEYS.PROFILE_CACHE}_${userId}`, JSON.stringify(profile));
-        await AsyncStorage.setItem(`${AUTH_STORAGE_KEYS.CACHE_TIME}_${userId}`, Date.now().toString());
-      } catch (cacheError) {
-        console.warn('⚠️ Erreur mise en cache profil:', cacheError);
-      }
-
-      console.log('✅ Profil utilisateur chargé:', profile.email);
-      return profile;
-
-    } catch (error: any) {
-      console.error('❌ Exception loadUserProfile:', error);
-      
-      // Retry automatique en cas d'erreur réseau
-      if (state.retryCount < MAX_RETRY_ATTEMPTS && 
-          error.message?.toLowerCase().includes('network')) {
-        const delay = RETRY_DELAY_BASE * (state.retryCount + 1);
-        console.log(`🔄 Retry automatique dans ${delay}ms (tentative ${state.retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
+        const recovery = await ProfileErrorHandler.handleProfileError(
+          error, 
+          user.id, 
+          user.email
+        );
         
-        updateState({ retryCount: state.retryCount + 1 });
-        
-        setTimeout(() => {
-          loadUserProfile(userId, false);
-        }, delay);
+        if (recovery.success) {
+          return await loadUserProfile(user.id, user.email);
+        }
+      } catch (recoveryError) {
+        console.error('❌ Erreur dans la récupération de ensureProfileExists:', recoveryError);
       }
       
       return null;
     }
-  }, [state.retryCount, updateState]);
+  };
 
-  // 🛠️ FONCTION DE RÉPARATION COMPLÈTE
-  const repairUserProfile = useCallback(async (): Promise<void> => {
-    try {
-      console.log('🛠️ Début de la réparation du profil utilisateur');
-      
-      const session = await getCurrentSession();
-      const user = await getCurrentUser();
-
-      if (!session || !user) {
-        console.log('❌ Aucun utilisateur connecté pour la réparation');
-        return;
-      }
-
-      console.log('✅ Utilisateur trouvé pour réparation:', user.email);
-
-      const authUser: AuthUser = {
-        id: user.id,
-        email: user.email,
-        email_confirmed_at: user.email_confirmed_at,
-        created_at: user.created_at,
-      };
-
-      // Vérifier/créer le profil
-      const profile = await ensureProfileExists(authUser);
-      
-      if (!profile) {
-        throw new Error('Impossible de créer ou récupérer le profil utilisateur');
-      }
-
-      // Mettre à jour l'état
-      updateState({
-        user: { ...authUser, profile },
-        profile,
-        isAuthenticated: true,
-        error: null,
-        retryCount: 0,
-      });
-
-      console.log('✅ Réparation terminée avec succès');
-
-    } catch (error: any) {
-      console.error('💥 Erreur dans repairUserProfile:', error);
-      setError(error.message);
-    }
-  }, [ensureProfileExists, updateState, setError]);
-
-  // ====== CORRECTION 2: INITIALISATION PLUS ROBUSTE ======
-  const initializeAuth = useCallback(async (): Promise<void> => {
-    // Éviter les initialisations multiples
+  // Initialisation simple
+  const initializeAuth = async () => {
     if (isInitializingRef.current) {
-      console.log('⏭️ Initialisation déjà en cours, abandon');
       return;
     }
     
@@ -482,151 +278,83 @@ const useAuth = (): UseAuthReturn => {
     try {
       console.log('🚀 Initialisation de l\'authentification...');
       
-      clearError();
-      updateState({ isLoading: true });
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Récupérer la session actuelle
       const session = await getCurrentSession();
       const user = await getCurrentUser();
 
       if (!session || !user) {
         console.log('🔍 Aucune session active');
-        updateState({ 
+        setState(prev => ({ 
+          ...prev,
           isAuthenticated: false, 
           user: null, 
           profile: null,
           isLoading: false,
           isInitialized: true 
-        });
+        }));
         return;
       }
 
       console.log('✅ Session active trouvée:', user.email);
-
-      // 🆕 CORRECTION: Nettoyer les caches corrompus AVANT de charger le profil
-      await clearCorruptedUserCaches(user.id);
 
       const authUser: AuthUser = {
         id: user.id,
         email: user.email,
         email_confirmed_at: user.email_confirmed_at,
         created_at: user.created_at,
+        user_metadata: user.user_metadata,
       };
 
-      // Charger le profil sans cache pour éviter les données corrompues
-      let profile = await loadUserProfile(user.id, false);
+      let profile = await loadUserProfile(user.id, user.email);
       
       if (!profile) {
         console.log('🔨 Aucun profil trouvé, création automatique...');
         profile = await ensureProfileExists(authUser);
       }
 
-      // Mettre à jour la référence utilisateur actuel
-      currentUserIdRef.current = user.id;
-
-      // Mettre à jour l'état
-      updateState({
+      setState(prev => ({
+        ...prev,
         isAuthenticated: !!profile,
         user: { ...authUser, profile: profile || undefined },
         profile,
         isLoading: false,
         isInitialized: true
-      });
+      }));
 
       if (profile) {
         console.log('🎉 Authentification initialisée avec succès');
       } else {
         console.warn('⚠️ Authentification initialisée mais sans profil');
-        setError('Impossible de charger ou créer votre profil utilisateur');
       }
 
     } catch (error: any) {
       console.error('❌ Erreur initialisation auth:', error);
-      setError('Erreur d\'initialisation de l\'authentification');
-      
-      updateState({ 
+      setState(prev => ({ 
+        ...prev,
         isAuthenticated: false, 
         user: null, 
         profile: null,
         isLoading: false,
-        isInitialized: true 
-      });
+        isInitialized: true,
+        error: 'Erreur d\'initialisation de l\'authentification'
+      }));
     } finally {
       isInitializingRef.current = false;
     }
-  }, [loadUserProfile, ensureProfileExists, updateState, clearError, setError, clearCorruptedUserCaches]);
+  };
 
-  // 🔒 SAUVEGARDE SÉCURISÉE DES PUSH TOKENS
-  const savePushTokenSafely = useCallback(async (token: string): Promise<void> => {
-    try {
-      if (!state.user?.id || !token) {
-        console.warn('⚠️ Token ou userId manquant pour sauvegarde push token');
-        return;
-      }
-
-      console.log('🔒 Sauvegarde sécurisée du push token...');
-
-      // 1. Vérifier que le profil existe
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', state.user.id)  // ← CORRECTION : utiliser user_id
-        .single();
-
-      if (profileError || !profile) {
-        console.error('❌ Profil non trouvé pour userId:', state.user.id);
-        // Essayer de réparer le profil
-        await repairUserProfile();
-        return;
-      }
-
-      // 2. Supprimer les anciens tokens pour cet utilisateur
-      await supabase
-        .from('push_tokens')
-        .delete()
-        .eq('user_id', state.user.id);
-
-      // 3. Insérer le nouveau token
-      const { data, error } = await supabase
-        .from('push_tokens')
-        .insert([{
-          user_id: state.user.id,
-          token: token,
-          device_type: Platform.OS,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Erreur sauvegarde token:', error);
-        throw error;
-      }
-
-      console.log('✅ Push token sauvegardé avec succès');
-
-    } catch (error: any) {
-      console.error('💥 Erreur dans savePushTokenSafely:', error);
-      // Ne pas faire échouer l'app pour un problème de push token
-    }
-  }, [state.user, repairUserProfile]);
-
-  // ====== CORRECTION 5: CONNEXION AVEC NETTOYAGE PRÉVENTIF ======
-  const signIn = useCallback(async (data: SignInData): Promise<{ success: boolean; requiresProfile?: boolean }> => {
+  // Connexion simplifiée
+  const signIn = useCallback(async (data: SignInData) => {
     try {
       console.log('🔐 === DÉBUT CONNEXION ===');
-      console.log('📧 Email:', data.email);
+      
+      setState(prev => ({ ...prev, isSigningIn: true, error: null }));
 
-      clearError();
-      updateState({ isSigningIn: true });
-
-      // Validation
       if (!data.email.trim() || !data.password) {
         throw new Error('Email et mot de passe requis');
       }
 
-      // Tentative de connexion
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: data.email.trim().toLowerCase(),
         password: data.password
@@ -644,18 +372,15 @@ const useAuth = (): UseAuthReturn => {
 
       console.log('✅ Connexion réussie');
 
-      // 🆕 CORRECTION: Nettoyer les caches corrompus IMMÉDIATEMENT après connexion
-      await clearCorruptedUserCaches(signInData.user.id);
-
       const authUser: AuthUser = {
         id: signInData.user.id,
         email: signInData.user.email,
         email_confirmed_at: signInData.user.email_confirmed_at,
         created_at: signInData.user.created_at,
+        user_metadata: signInData.user.user_metadata,
       };
 
-      // Charger le profil SANS cache pour éviter les données corrompues
-      let profile = await loadUserProfile(signInData.user.id, false);
+      let profile = await loadUserProfile(signInData.user.id, signInData.user.email);
       
       if (!profile) {
         console.log('🔨 Profil manquant détecté, création...');
@@ -668,21 +393,13 @@ const useAuth = (): UseAuthReturn => {
         await AsyncStorage.setItem(AUTH_STORAGE_KEYS.REMEMBER_ME, 'true');
       }
 
-      // Sauvegarder le rôle par défaut
-      if (profile?.roles && profile.roles.length > 0) {
-        await AsyncStorage.setItem(AUTH_STORAGE_KEYS.USER_ROLE, profile.roles[0]);
-      }
-
-      // Mettre à jour la référence utilisateur
-      currentUserIdRef.current = signInData.user.id;
-
-      // Mettre à jour l'état
-      updateState({
+      setState(prev => ({
+        ...prev,
         isAuthenticated: !!profile,
         user: { ...authUser, profile: profile || undefined },
         profile,
         isSigningIn: false
-      });
+      }));
 
       console.log('🎉 Connexion terminée avec succès');
 
@@ -693,23 +410,22 @@ const useAuth = (): UseAuthReturn => {
 
     } catch (error: any) {
       console.error('💥 ERREUR CONNEXION:', error);
-      setError(error.message);
-      updateState({ isSigningIn: false });
+      setState(prev => ({ 
+        ...prev, 
+        error: error.message, 
+        isSigningIn: false 
+      }));
       return { success: false };
     }
-  }, [loadUserProfile, ensureProfileExists, updateState, clearError, setError, clearCorruptedUserCaches]);
+  }, []);
 
-  // 📝 INSCRIPTION AMÉLIORÉE
-  const signUp = useCallback(async (data: SignUpData): Promise<{ success: boolean; needsConfirmation?: boolean }> => {
+  // Inscription simplifiée
+  const signUp = useCallback(async (data: SignUpData) => {
     try {
       console.log('📝 === DÉBUT INSCRIPTION ===');
-      console.log('📧 Email:', data.email);
-      console.log('👤 Rôles:', data.roles);
+      
+      setState(prev => ({ ...prev, isSigningUp: true, error: null }));
 
-      clearError();
-      updateState({ isSigningUp: true });
-
-      // Validation
       if (!data.email.trim() || !data.password || !data.firstname.trim()) {
         throw new Error('Tous les champs sont requis');
       }
@@ -718,7 +434,6 @@ const useAuth = (): UseAuthReturn => {
         throw new Error('Au moins un rôle doit être sélectionné');
       }
 
-      // Tentative d'inscription
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.email.trim().toLowerCase(),
         password: data.password,
@@ -742,19 +457,20 @@ const useAuth = (): UseAuthReturn => {
 
       console.log('✅ Inscription réussie');
 
-      // Créer le profil immédiatement si l'utilisateur est confirmé
+      // Créer le profil si la session existe
       if (signUpData.session) {
         const authUser: AuthUser = {
           id: signUpData.user.id,
           email: signUpData.user.email,
           email_confirmed_at: signUpData.user.email_confirmed_at,
           created_at: signUpData.user.created_at,
+          user_metadata: signUpData.user.user_metadata,
         };
 
         await ensureProfileExists(authUser);
       }
 
-      updateState({ isSigningUp: false });
+      setState(prev => ({ ...prev, isSigningUp: false }));
 
       console.log('🎉 Inscription terminée avec succès');
 
@@ -765,166 +481,119 @@ const useAuth = (): UseAuthReturn => {
 
     } catch (error: any) {
       console.error('💥 ERREUR INSCRIPTION:', error);
-      setError(error.message);
-      updateState({ isSigningUp: false });
+      setState(prev => ({ 
+        ...prev, 
+        error: error.message, 
+        isSigningUp: false 
+      }));
       return { success: false };
     }
-  }, [ensureProfileExists, updateState, clearError, setError]);
+  }, []);
 
-  // 🚪 DÉCONNEXION AMÉLIORÉE
-  const signOut = useCallback(async (): Promise<void> => {
+  // Déconnexion simplifiée
+  const signOut = useCallback(async () => {
     try {
       console.log('🚪 === DÉBUT DÉCONNEXION ===');
 
-      clearError();
-      updateState({ isSigningOut: true });
+      setState(prev => ({ ...prev, isSigningOut: true, error: null }));
 
-      // Déconnexion Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('❌ Erreur déconnexion:', error);
-        // Ne pas bloquer la déconnexion pour une erreur Supabase
       }
 
-      // Utiliser clearAllUserCaches pour nettoyer tous les caches
-      await clearAllUserCaches();
-
-      // Nettoyer les données locales (optionnel)
+      // Nettoyer les données locales
       try {
         const rememberMe = await AsyncStorage.getItem(AUTH_STORAGE_KEYS.REMEMBER_ME);
         if (rememberMe !== 'true') {
           await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.REMEMBER_EMAIL);
         }
-        
         await AsyncStorage.removeItem(AUTH_STORAGE_KEYS.USER_ROLE);
       } catch (storageError) {
         console.warn('⚠️ Erreur nettoyage stockage:', storageError);
       }
 
-      // Réinitialiser l'état
-      updateState({
+      setState({
         isAuthenticated: false,
+        isLoading: false,
+        isInitialized: true,
         user: null,
         profile: null,
+        isSigningIn: false,
+        isSigningUp: false,
         isSigningOut: false,
-        retryCount: 0,
+        isRefreshing: false,
         error: null,
       });
-
-      // Réinitialiser la référence utilisateur
-      currentUserIdRef.current = null;
 
       console.log('✅ Déconnexion réussie');
 
     } catch (error: any) {
       console.error('💥 ERREUR DÉCONNEXION:', error);
-      setError(error.message);
-      
-      // En cas d'erreur, forcer la réinitialisation locale
-      updateState({
+      setState(prev => ({
+        ...prev,
         isAuthenticated: false,
         user: null,
         profile: null,
         isSigningOut: false,
-      });
-      currentUserIdRef.current = null;
+      }));
     }
-  }, [clearAllUserCaches, updateState, clearError, setError]);
+  }, []);
 
-  // 🔄 RAFRAÎCHIR LE PROFIL AMÉLIORÉ
-  const refreshProfile = useCallback(async (): Promise<void> => {
+  // Rafraîchir le profil avec gestion d'erreurs
+  const refreshProfile = useCallback(async () => {
     if (!state.user?.id) return;
 
     try {
       console.log('🔄 Rafraîchissement du profil...');
       
-      updateState({ isRefreshing: true });
+      setState(prev => ({ ...prev, isRefreshing: true }));
       
-      // Forcer le rechargement sans cache
-      const profile = await loadUserProfile(state.user.id, false);
+      const profile = await loadUserProfile(state.user.id, state.user.email);
       
-      updateState({
+      setState(prev => ({
+        ...prev,
         profile,
-        user: { ...state.user, profile: profile || undefined },
+        user: prev.user ? { ...prev.user, profile: profile || undefined } : null,
         isRefreshing: false
-      });
+      }));
 
       console.log('✅ Profil rafraîchi');
 
     } catch (error: any) {
       console.error('❌ Erreur rafraîchissement profil:', error);
-      setError('Impossible de rafraîchir le profil');
-      updateState({ isRefreshing: false });
+      setState(prev => ({ 
+        ...prev, 
+        error: 'Impossible de rafraîchir le profil',
+        isRefreshing: false 
+      }));
     }
-  }, [state.user, loadUserProfile, updateState, setError]);
+  }, [state.user?.id, state.user?.email]);
 
-  // ✏️ METTRE À JOUR LE PROFIL
-  const updateProfile = useCallback(async (updates: Partial<UserProfile>): Promise<boolean> => {
-    if (!state.user?.id) return false;
-
+  // Fonctions utilitaires
+  const clearAllUserCaches = useCallback(async () => {
     try {
-      console.log('✏️ Mise à jour du profil...');
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', state.user.id);  // ← CORRECTION : utiliser user_id
-
-      if (error) {
-        console.error('❌ Erreur mise à jour profil:', error);
-        const { userMessage } = handleSupabaseError(error, 'Mise à jour profil');
-        throw new Error(userMessage);
-      }
-
-      // Rafraîchir le profil
-      await refreshProfile();
-
-      console.log('✅ Profil mis à jour');
-      return true;
-
-    } catch (error: any) {
-      console.error('💥 ERREUR MISE À JOUR PROFIL:', error);
-      setError(error.message);
-      return false;
-    }
-  }, [state.user, refreshProfile, setError]);
-
-  // 🔑 RÉCUPÉRATION MOT DE PASSE
-  const resetPassword = useCallback(async (email: string): Promise<boolean> => {
-    try {
-      console.log('🔑 Récupération mot de passe pour:', email);
-
-      const redirectUrl = `${process.env.EXPO_PUBLIC_APP_URL || 'exp://127.0.0.1:8081'}/auth/recovery-redirect`;
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
-        { redirectTo: redirectUrl }
+      console.log('🧹 Nettoyage des caches utilisateur...');
+      const allKeys = await AsyncStorage.getAllKeys();
+      const cacheKeys = allKeys.filter(key => 
+        key.includes('fourmiz_') || 
+        key.includes('criteria_') ||
+        key.includes('user_cache_')
       );
-
-      if (error) {
-        console.error('❌ Erreur reset password:', error);
-        const { userMessage } = handleSupabaseError(error, 'Récupération mot de passe');
-        throw new Error(userMessage);
+      
+      if (cacheKeys.length > 0) {
+        await AsyncStorage.multiRemove(cacheKeys);
+        console.log('✅ Caches nettoyés:', cacheKeys.length);
       }
-
-      console.log('✅ Email de récupération envoyé');
-      return true;
-
-    } catch (error: any) {
-      console.error('💥 ERREUR RESET PASSWORD:', error);
-      setError(error.message);
-      return false;
+    } catch (error) {
+      console.warn('⚠️ Erreur nettoyage caches:', error);
     }
-  }, [setError]);
+  }, []);
 
-  // 🔍 MÉTHODES UTILITAIRES
   const hasRole = useCallback((role: UserRole): boolean => {
     return state.profile?.roles?.includes(role) || false;
-  }, [state.profile]);
+  }, [state.profile?.roles]);
 
   const hasAnyRole = useCallback((roles: UserRole[]): boolean => {
     return roles.some(role => hasRole(role));
@@ -932,90 +601,34 @@ const useAuth = (): UseAuthReturn => {
 
   const isAdmin = useCallback((): boolean => {
     return hasRole('admin') || AUTHORIZED_ADMIN_EMAILS.includes(state.user?.email || '');
-  }, [hasRole, state.user]);
+  }, [hasRole, state.user?.email]);
 
-  const requireAuth = useCallback((redirectTo: string = '/auth/signin'): boolean => {
-    if (!state.isAuthenticated || !state.user) {
-      Alert.alert(
-        'Authentification requise',
-        'Vous devez être connecté pour accéder à cette fonctionnalité',
-        [{ text: 'Se connecter', onPress: () => router.replace(redirectTo) }]
-      );
-      return false;
-    }
-    return true;
-  }, [state.isAuthenticated, state.user]);
-
-  // 🧹 NETTOYER LES DONNÉES (DEV ONLY)
-  const clearAuthData = useCallback(async (): Promise<void> => {
-    if (__DEV__) {
-      try {
-        const keys = Object.values(AUTH_STORAGE_KEYS);
-        await AsyncStorage.multiRemove(keys);
-        
-        // Nettoyer aussi les caches spécifiques à l'utilisateur
-        if (state.user?.id) {
-          await AsyncStorage.removeItem(`${AUTH_STORAGE_KEYS.PROFILE_CACHE}_${state.user.id}`);
-          await AsyncStorage.removeItem(`${AUTH_STORAGE_KEYS.CACHE_TIME}_${state.user.id}`);
-        }
-        
-        console.log('🧹 Données d\'authentification nettoyées (DEV)');
-      } catch (error) {
-        console.error('❌ Erreur nettoyage données auth:', error);
-      }
-    }
-  }, [state.user]);
-
-  // ====== CORRECTION 3: LISTENER AUTH OPTIMISÉ ======
+  // Configuration du listener auth (une seule fois)
   useEffect(() => {
-    // Éviter de reconfigurer le listener si déjà configuré
-    if (authListenerRef.current) {
-      console.log('👂 Listener déjà configuré, pas de reconfiguration');
-      return;
-    }
+    if (authListenerRef.current) return;
 
     console.log('👂 Configuration du listener d\'authentification...');
 
     authListenerRef.current = onAuthStateChange(async (user) => {
-      const newUserId = user?.id || null;
-      const oldUserId = currentUserIdRef.current;
-
-      console.log('🔄 Auth state changed:', user ? `${user.email}` : 'SIGNED_OUT');
+      console.log('🔄 Auth state changed:', user ? user.email : 'SIGNED_OUT');
       
-      // Gestion des changements d'utilisateur
-      if (oldUserId && newUserId && oldUserId !== newUserId) {
-        console.log('🧹 Changement utilisateur détecté:', { oldUserId, newUserId });
-        
-        // Nettoyer complètement les caches de l'ancien utilisateur
-        await clearCorruptedUserCaches(newUserId);
-        
-        // Forcer rechargement complet
-        currentUserIdRef.current = null; // Reset pour forcer la réinitialisation
-        setTimeout(() => initializeAuth(), 100);
-        return;
-      }
-
-      // Gestion déconnexion
       if (!user && state.isAuthenticated) {
         console.log('🚪 Déconnexion détectée via listener');
-        updateState({
+        setState(prev => ({
+          ...prev,
           isAuthenticated: false,
           user: null,
           profile: null,
-        });
+        }));
         return;
       }
 
-      // Initialisation uniquement si pas encore initialisé
       if (!state.isInitialized && user) {
         console.log('🔄 Initialisation via listener pour:', user.email);
         await initializeAuth();
       }
     });
 
-    console.log('✅ Auth listener configuré');
-
-    // Cleanup
     return () => {
       if (authListenerRef.current?.data?.subscription?.unsubscribe) {
         try {
@@ -1028,65 +641,106 @@ const useAuth = (): UseAuthReturn => {
     };
   }, []); // Dépendances vides pour éviter les re-créations
 
-  // 🚀 INITIALISATION AU MONTAGE
+  // Initialisation au montage (une seule fois)
   useEffect(() => {
     initializeAuth();
-  }, [initializeAuth]);
+  }, []); // Pas de dépendances pour éviter les re-exécutions
 
-  // 📤 RETURN COMPLET
   return {
     // États
     ...state,
     
-    // Méthodes d'authentification
+    // Méthodes principales
     signIn,
     signUp,
     signOut,
-    
-    // Méthodes de profil
     refreshProfile,
-    updateProfile,
     
-    // Méthodes utilitaires
+    // Utilitaires
     hasRole,
     hasAnyRole,
     isAdmin,
-    requireAuth,
-    
-    // Méthodes de récupération
-    resetPassword,
-    
-    // Nouvelles méthodes de réparation
-    ensureProfileExists,
-    repairUserProfile,
-    
-    // Debug et utilitaires
-    clearAuthData,
-    savePushTokenSafely,
     clearAllUserCaches,
+    ensureProfileExists,
+    
+    // Fonction de mise à jour simple avec gestion d'erreurs
+    updateProfile: async (updates: Partial<UserProfile>): Promise<boolean> => {
+      if (!state.user?.id) return false;
+      
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq('user_id', state.user.id);
+
+        if (error) {
+          console.error('❌ Erreur mise à jour profil:', error);
+          
+          // Gestion d'erreur avec le gestionnaire
+          const recovery = await ProfileErrorHandler.handleProfileError(
+            error, 
+            state.user.id, 
+            state.user.email
+          );
+          
+          if (!recovery.success) {
+            return false;
+          }
+        }
+
+        await refreshProfile();
+        return true;
+      } catch (error) {
+        console.error('💥 ERREUR MISE À JOUR PROFIL:', error);
+        
+        // Gestion d'exception avec le gestionnaire
+        try {
+          await ProfileErrorHandler.handleProfileError(
+            error, 
+            state.user.id, 
+            state.user.email
+          );
+        } catch (recoveryError) {
+          console.error('❌ Erreur dans la récupération de updateProfile:', recoveryError);
+        }
+        
+        return false;
+      }
+    },
+    
+    // Fonction de reset password simple
+    resetPassword: async (email: string): Promise<boolean> => {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          email.trim().toLowerCase()
+        );
+
+        if (error) {
+          console.error('❌ Erreur reset password:', error);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('💥 ERREUR RESET PASSWORD:', error);
+        return false;
+      }
+    },
+    
+    // Fonction pour gérer l'authentification requise
+    requireAuth: (redirectTo: string = '/auth/login'): boolean => {
+      if (!state.isAuthenticated || !state.user) {
+        Alert.alert(
+          'Authentification requise',
+          'Vous devez être connecté pour accéder à cette fonctionnalité',
+          [{ text: 'Se connecter', onPress: () => router.replace(redirectTo) }]
+        );
+        return false;
+      }
+      return true;
+    },
   };
 };
 
-// 🔧 FONCTIONS UTILITAIRES - CORRIGÉES POUR CONTRAINTES DB
-const extractFirstName = (email: string): string => {
-  if (!email) return 'Utilisateur';
-  const parts = email.split('@')[0].split('.');
-  const firstName = parts[0];
-  if (firstName.length < 2) return 'Utilisateur'; // Respect contrainte longueur minimale
-  return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-};
-
-const extractLastName = (email: string): string => {
-  if (!email) return 'Inconnu';
-  const parts = email.split('@')[0].split('.');
-  if (parts.length > 1 && parts[1].length >= 2) {
-    const lastName = parts[1];
-    return lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
-  }
-  // Valeur par défaut respectant la contrainte lastname_min_length (>= 2 caractères)
-  return 'Utilisateur';
-};
-
-// 📤 EXPORTS MULTIPLES POUR COMPATIBILITÉ
 export { useAuth };
 export default useAuth;

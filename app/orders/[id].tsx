@@ -1,12 +1,4 @@
-// app/orders/[id].tsx - Fiche de synthèse épurée - VERSION CORRIGÉE AVEC FALLBACK
-// 🎨 STYLE ÉPURÉ ALIGNÉ SUR services.tsx
-// ✅ CONSERVATION DE TOUTES LES FONCTIONNALITÉS EXISTANTES
-// 🔧 AJOUT: Accès aux missions disponibles pour consultation
-// 🔒 SÉCURITÉ: Masquage adresse pour fourmiz en attente
-// 📝 URGENT remplacé par "Dès que possible"
-// 🛡️ CORRECTIONS: Protection contre les erreurs null
-// 🔧 CORRIGÉ: Logique de fallback pour services (service_title quand service_id est null)
-
+// app/orders/[id].tsx - VERSION COMPLÈTE AVEC PhotoSummary INLINE (contournement)
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -20,11 +12,201 @@ import {
   Image,
   RefreshControl,
   SafeAreaView,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../lib/supabase';
+import { PhotoData } from '../../hooks/usePhotoManager';
+
+// 📸 COMPOSANT PhotoSummary INLINE (solution de contournement)
+const PhotoSummary: React.FC<{photos: PhotoData[]; title?: string}> = ({ photos, title = "Photos jointes" }) => {
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+
+  if (photos.length === 0) return null;
+
+  const handlePhotoPress = (index: number) => {
+    setSelectedPhotoIndex(index);
+    setShowPhotoModal(true);
+  };
+
+  const handleNextPhoto = () => {
+    if (selectedPhotoIndex !== null && selectedPhotoIndex < photos.length - 1) {
+      setSelectedPhotoIndex(selectedPhotoIndex + 1);
+    }
+  };
+
+  const handlePreviousPhoto = () => {
+    if (selectedPhotoIndex !== null && selectedPhotoIndex > 0) {
+      setSelectedPhotoIndex(selectedPhotoIndex - 1);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowPhotoModal(false);
+    setSelectedPhotoIndex(null);
+  };
+
+  return (
+    <View style={inlineStyles.photoSummaryContainer}>
+      <Text style={inlineStyles.photoSummaryTitle}>
+        {title} ({photos.length})
+      </Text>
+      
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={inlineStyles.photosScrollView}
+        contentContainerStyle={inlineStyles.photosContainer}
+      >
+        {photos.map((photo, index) => (
+          <TouchableOpacity
+            key={photo.id}
+            style={inlineStyles.photoThumbnailContainer}
+            onPress={() => handlePhotoPress(index)}
+          >
+            <Image
+              source={{ uri: photo.uri }}
+              style={inlineStyles.photoThumbnail}
+              resizeMode="cover"
+            />
+            <View style={inlineStyles.photoIndex}>
+              <Text style={inlineStyles.photoIndexText}>{index + 1}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Modal d'aperçu photo */}
+      <Modal
+        visible={showPhotoModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={inlineStyles.modalOverlay}>
+          <View style={inlineStyles.modalHeader}>
+            <Text style={inlineStyles.modalTitle}>
+              Photo {selectedPhotoIndex !== null ? selectedPhotoIndex + 1 : 1} sur {photos.length}
+            </Text>
+            <TouchableOpacity onPress={handleCloseModal} style={inlineStyles.closeButton}>
+              <Ionicons name="close" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+
+          {selectedPhotoIndex !== null && (
+            <View style={inlineStyles.modalContent}>
+              <Image
+                source={{ uri: photos[selectedPhotoIndex].uri }}
+                style={inlineStyles.fullSizePhoto}
+                resizeMode="contain"
+              />
+
+              {/* Navigation entre photos */}
+              {photos.length > 1 && (
+                <View style={inlineStyles.photoNavigation}>
+                  <TouchableOpacity
+                    style={[inlineStyles.navButton, selectedPhotoIndex === 0 && inlineStyles.navButtonDisabled]}
+                    onPress={handlePreviousPhoto}
+                    disabled={selectedPhotoIndex === 0}
+                  >
+                    <Ionicons 
+                      name="chevron-back" 
+                      size={24} 
+                      color={selectedPhotoIndex === 0 ? "#666666" : "#ffffff"}
+                    />
+                  </TouchableOpacity>
+
+                  <View style={inlineStyles.photoIndicators}>
+                    {photos.map((_, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          inlineStyles.photoIndicator,
+                          index === selectedPhotoIndex && inlineStyles.photoIndicatorActive
+                        ]}
+                      />
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    style={[inlineStyles.navButton, selectedPhotoIndex === photos.length - 1 && inlineStyles.navButtonDisabled]}
+                    onPress={handleNextPhoto}
+                    disabled={selectedPhotoIndex === photos.length - 1}
+                  >
+                    <Ionicons 
+                      name="chevron-forward" 
+                      size={24} 
+                      color={selectedPhotoIndex === photos.length - 1 ? "#666666" : "#ffffff"}
+                    />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Informations photo */}
+              <View style={inlineStyles.photoInfo}>
+                <Text style={inlineStyles.photoFileName}>
+                  {photos[selectedPhotoIndex].fileName}
+                </Text>
+                {photos[selectedPhotoIndex].fileSize > 0 && (
+                  <Text style={inlineStyles.photoSize}>
+                    {Math.round(photos[selectedPhotoIndex].fileSize / 1024)} KB
+                  </Text>
+                )}
+                {photos[selectedPhotoIndex].width > 0 && photos[selectedPhotoIndex].height > 0 && (
+                  <Text style={inlineStyles.photoDimensions}>
+                    {photos[selectedPhotoIndex].width} × {photos[selectedPhotoIndex].height}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+// Styles inline pour PhotoSummary
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const inlineStyles = StyleSheet.create({
+  photoSummaryContainer: { marginVertical: 8 },
+  photoSummaryTitle: { fontSize: 13, fontWeight: '600', color: '#000000', marginBottom: 12 },
+  photosScrollView: { flexGrow: 0 },
+  photosContainer: { paddingRight: 8 },
+  photoThumbnailContainer: { position: 'relative', marginRight: 8 },
+  photoThumbnail: { width: 80, height: 80, borderRadius: 8, backgroundColor: '#f0f0f0' },
+  photoIndex: {
+    position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center'
+  },
+  photoIndexText: { fontSize: 12, color: '#ffffff', fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)' },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20
+  },
+  modalTitle: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+  closeButton: { padding: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)' },
+  modalContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  fullSizePhoto: { width: screenWidth - 40, height: screenHeight * 0.6, borderRadius: 8 },
+  photoNavigation: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    width: '100%', paddingHorizontal: 20, marginTop: 30
+  },
+  navButton: { padding: 12, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.2)' },
+  navButtonDisabled: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  photoIndicators: { flexDirection: 'row', gap: 8 },
+  photoIndicator: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.4)' },
+  photoIndicatorActive: { backgroundColor: '#ffffff' },
+  photoInfo: { alignItems: 'center', marginTop: 20, paddingHorizontal: 20 },
+  photoFileName: { fontSize: 14, color: '#ffffff', fontWeight: '500', marginBottom: 4 },
+  photoSize: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
+  photoDimensions: { fontSize: 12, color: 'rgba(255,255,255,0.7)' }
+});
 
 interface OrderDetail {
   id: number;
@@ -64,6 +246,7 @@ interface OrderDetail {
   cancellation_fee: number;
   fourmiz_commission: number;
   service_title: string;
+  photo_urls: string[] | null;
   
   services: {
     id: number;
@@ -159,6 +342,20 @@ export default function OrderDetailScreen() {
   const [showContactDetails, setShowContactDetails] = useState(false);
   const [showPricingDetails, setShowPricingDetails] = useState(false);
   const [showOrderInfo, setShowOrderInfo] = useState(false);
+  const [showPhotosDetails, setShowPhotosDetails] = useState(true);
+
+  // Fonction pour convertir les URLs en PhotoData
+  const convertUrlsToPhotoData = (urls: string[]): PhotoData[] => {
+    return urls.map((url, index) => ({
+      id: `photo-${index}`,
+      uri: url,
+      width: 0,
+      height: 0,
+      fileSize: 0,
+      type: 'image/jpeg',
+      fileName: `photo_${index + 1}.jpg`,
+    }));
+  };
 
   const normalizeStatus = (status: any): string => {
     const safeStatus = String(status || '').toLowerCase();
@@ -222,8 +419,6 @@ export default function OrderDetailScreen() {
       setLoading(true);
       console.log('🐛 DEBUG - Starting order query for ID:', id);
 
-      // Test séparé pour vérifier l'accès aux services
-      console.log('🐛 DEBUG - Testing direct service access...');
       const { data: serviceTest, error: serviceTestError } = await supabase
         .from('services')
         .select('*')
@@ -257,18 +452,10 @@ export default function OrderDetailScreen() {
         .eq('id', id)
         .single();
 
-      // LOGS DE DEBUG DÉTAILLÉS
       console.log('🐛 DEBUG - Requête order terminée');
       console.log('🐛 DEBUG - Error:', orderError);
       console.log('🐛 DEBUG - Data exists:', !!orderData);
-      console.log('🐛 DEBUG - Data keys:', orderData ? Object.keys(orderData) : 'No data');
-      console.log('🐛 DEBUG - Service ID dans order:', orderData?.service_id);
-      console.log('🐛 DEBUG - Services relation:', orderData?.services);
-      console.log('🐛 DEBUG - Services relation type:', typeof orderData?.services);
-      console.log('🐛 DEBUG - Services relation keys:', orderData?.services ? Object.keys(orderData.services) : 'No services');
-      console.log('🐛 DEBUG - Service title fallback:', orderData?.service_title);
-      console.log('🐛 DEBUG - Client profile:', !!orderData?.client_profile);
-      console.log('🐛 DEBUG - Fourmiz profile:', !!orderData?.fourmiz_profile);
+      console.log('📸 DEBUG - Photo URLs:', orderData?.photo_urls);
 
       if (orderError) {
         console.error('🐛 DEBUG - Order query error:', orderError);
@@ -285,13 +472,11 @@ export default function OrderDetailScreen() {
       console.log('🐛 DEBUG - Order client_id:', orderData.client_id);
       console.log('🐛 DEBUG - Order fourmiz_id:', orderData.fourmiz_id);
 
-      // LOGIQUE D'AUTORISATION MODIFIÉE
       const isClient = orderData.client_id === currentUser.id;
       const isFourmiz = orderData.fourmiz_id === currentUser.id;
       
       console.log('🐛 DEBUG - Access check - isClient:', isClient, 'isFourmiz:', isFourmiz);
       
-      // Permettre l'accès aux missions disponibles pour tous les utilisateurs (sauf le client)
       const isAvailableOrder = orderData.status === 'en_attente' && !isClient;
       
       console.log('🐛 DEBUG - isAvailableOrder:', isAvailableOrder);
@@ -310,7 +495,6 @@ export default function OrderDetailScreen() {
         return;
       }
 
-      // LOGIQUE DE FALLBACK POUR LES SERVICES - NOUVEAU
       console.log('✅ NOUVEAU - Création serviceInfo avec fallback');
       const unifiedServiceInfo: ServiceInfo = {
         title: orderData.services?.title || orderData.service_title || 'Service non défini',
@@ -322,7 +506,6 @@ export default function OrderDetailScreen() {
       console.log('✅ NOUVEAU - Service info unified:', unifiedServiceInfo);
       setServiceInfo(unifiedServiceInfo);
 
-      // Déterminer le rôle de l'utilisateur
       let userRole: 'client' | 'fourmiz' | 'viewer' = 'viewer';
       if (isClient) userRole = 'client';
       else if (isFourmiz) userRole = 'fourmiz';
@@ -529,12 +712,16 @@ export default function OrderDetailScreen() {
   const otherPartyRole = userRole === 'client' ? 'Fourmiz' : 'Client';
   const normalizedStatus = normalizeStatus(order.status);
 
+  // Préparation des données photos
+  const hasPhotos = order.photo_urls && order.photo_urls.length > 0;
+  const photoData = hasPhotos ? convertUrlsToPhotoData(order.photo_urls) : [];
+
   console.log('🐛 DEBUG - Rendering main component with:');
   console.log('🐛 DEBUG - User role:', userRole);
   console.log('🐛 DEBUG - Status:', normalizedStatus);
   console.log('🐛 DEBUG - Services title (via serviceInfo):', serviceInfo.title);
+  console.log('📸 DEBUG - Has photos:', hasPhotos, 'Count:', photoData.length);
 
-  // Fonction pour obtenir la description du statut selon le rôle
   const getStatusDescription = () => {
     if (userRole === 'client') return statusConfig.client_description;
     if (userRole === 'fourmiz') return statusConfig.fourmiz_description;
@@ -607,7 +794,7 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {/*Service en demande - UTILISE serviceInfo*/}
+        {/* Service en demande */}
         <View style={styles.section}>
           <View style={styles.sectionCard}>
             <TouchableOpacity 
@@ -655,7 +842,42 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {/* Planning - UTILISE serviceInfo*/}
+        {/* 📸 SECTION PHOTOS - Après le service */}
+        {hasPhotos && (
+          <View style={styles.section}>
+            <View style={styles.sectionCard}>
+              <TouchableOpacity 
+                style={styles.sectionHeader}
+                onPress={() => setShowPhotosDetails(!showPhotosDetails)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="images-outline" size={16} color="#000000" />
+                <Text style={styles.sectionTitle}>Photos jointes</Text>
+                <View style={styles.expandButton}>
+                  <Ionicons 
+                    name={showPhotosDetails ? "chevron-up" : "chevron-down"} 
+                    size={14} 
+                    color="#666666" 
+                  />
+                </View>
+              </TouchableOpacity>
+              
+              {showPhotosDetails && (
+                <View style={styles.sectionContent}>
+                  <PhotoSummary photos={photoData} />
+                  <View style={styles.photosNote}>
+                    <Ionicons name="information-circle" size={12} color="#666666" />
+                    <Text style={styles.photosNoteText}>
+                      Photos illustrant la demande du client
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Planning */}
         <View style={styles.section}>
           <View style={styles.sectionCard}>
             <TouchableOpacity 
@@ -702,7 +924,7 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {/* Localisation complète - Seulement pour commandes acceptées - UTILISE serviceInfo*/}
+        {/* Localisation complète - Seulement pour commandes acceptées */}
         {normalizedStatus !== 'en_attente' && (
           <View style={styles.section}>
             <View style={styles.sectionCard}>
@@ -780,7 +1002,7 @@ export default function OrderDetailScreen() {
           </View>
         )}
 
-        {/* Localisation limitée - Pour commandes en attente - UTILISE serviceInfo*/}
+        {/* Localisation limitée - Pour commandes en attente */}
         {normalizedStatus === 'en_attente' && (
           <View style={styles.section}>
             <View style={styles.sectionCard}>
@@ -985,12 +1207,12 @@ export default function OrderDetailScreen() {
             {showPricingDetails && (
               <View style={styles.sectionContent}>
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Montant proposé</Text>
+                  <Text style={styles.infoLabel}>Montant payé par le Client</Text>
                   <Text style={styles.priceValue}>{order.proposed_amount || 0}€</Text>
                 </View>
 
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Montant Fourmiz</Text>
+                  <Text style={styles.infoLabel}>Montant reversé au prestataire Fourmiz</Text>
                   <Text style={styles.priceValue}>{order.fourmiz_amount || 0}€</Text>
                 </View>
 
@@ -1284,6 +1506,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
     padding: 12,
     borderRadius: 6,
+    fontStyle: 'italic',
+  },
+
+  // NOUVEAUX STYLES POUR LA SECTION PHOTOS
+  photosNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  photosNoteText: {
+    fontSize: 11,
+    color: '#666666',
     fontStyle: 'italic',
   },
 

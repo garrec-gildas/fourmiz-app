@@ -1,6 +1,6 @@
 ﻿// components/SafeAreaWrapper.tsx
 // 🛡️ WRAPPER ULTRA-ROBUSTE POUR SafeAreaView
-import React from 'react';
+import React , { useState, useEffect } from 'react';
 import { View, Platform } from 'react-native';
 
 // Import conditionnel pour éviter les erreurs

@@ -1,6 +1,7 @@
 ﻿// app/(tabs)/available-orders.tsx - VERSION CORRIGÉE COMPLÈTE
 // Fonctionnalités GPS conservées mais interface et logs supprimés
 // MISE À JOUR: Suppression prix/durée des candidatures + Gestion candidatures existantes
+// CORRECTION: Utilisation des nouvelles colonnes client_rating au lieu de rating
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
@@ -72,7 +73,8 @@ interface AvailableOrder {
     firstname: string;
     lastname: string;
     avatar_url?: string;
-    rating?: number;
+    client_rating?: number;  // ← CORRIGÉ : client_rating au lieu de rating
+    client_has_real_rating?: boolean;  // ← AJOUTÉ
     latitude?: number;
     longitude?: number;
     city?: string;
@@ -655,14 +657,16 @@ export default function AvailableOrdersScreen() {
     return order.avatar_url || order.client_profile?.avatar_url || null;
   }, []);
 
-  // Rating client
+  // Rating client - CORRIGÉ
   const getClientRating = useCallback((order: AvailableOrder): number | null => {
+    // Vérifier d'abord le champ direct profile_client_rating (peut-être déjà corrigé)
     if (order.profile_client_rating && order.profile_client_rating > 0) {
       return order.profile_client_rating;
     }
 
-    if (order.client_profile?.rating && order.client_profile.rating > 0) {
-      return order.client_profile.rating;
+    // Utiliser le nouveau champ client_rating au lieu de rating
+    if (order.client_profile?.client_rating && order.client_profile.client_rating > 0) {
+      return order.client_profile.client_rating;
     }
     
     return null;
@@ -888,7 +892,7 @@ export default function AvailableOrdersScreen() {
     }, [currentUser])
   );
 
-  // Chargement commandes avec GPS
+  // Chargement commandes avec GPS - CORRIGÉ
   const loadAvailableOrders = async () => {
     if (!currentUser) {
       return;
@@ -913,7 +917,8 @@ export default function AvailableOrdersScreen() {
             firstname,
             lastname,
             avatar_url,
-            rating
+            client_rating,
+            client_has_real_rating
           )
         `)
         .neq('client_id', currentUser.id)

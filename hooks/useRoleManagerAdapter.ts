@@ -1,10 +1,9 @@
-// hooks/useRoleManagerAdapter.ts - VERSION CORRIGÉE ET OPTIMISÉE COMPLÈTE
-// 🚀 CORRECTIONS : Mémorisation agressive, dépendances stables, protection renforcée
-// ⚡ OBJECTIF : Éliminer les re-rendus excessifs et améliorer les performances
-// 🧹 NETTOYÉ : Suppression de toutes les références à 'rib' et 'user_type'
-// 🔧 CORRIGÉ : Violations des règles des hooks React + nettoyage cache corrompu
+// hooks/useRoleManagerAdapter.ts - VERSION CORRIGÉE POUR BOUCLES INFINIES
+// 🚀 CORRECTIONS : useRef pour stabiliser les dépendances, useEffect minimalistes
+// ⚡ OBJECTIF : Éliminer complètement les re-rendus excessifs
+// 🔧 CORRIGÉ : Boucles infinies dans useEffect et useMemo
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './useAuth';
 import { supabase } from '@/lib/supabase';
@@ -30,12 +29,15 @@ export function useRoleManagerAdapter(externalProfile?: any) {
   const { profile: authProfile, clearAllUserCaches } = useAuth();
   const profile = externalProfile || authProfile;
 
-  // 🔧 REFS STABLES pour éviter les re-rendus
+  // 🔧 REFS STABLES pour éviter les re-rendus (RENFORCÉ)
   const profileDataRef = useRef<any>(null);
   const lastProfileHashRef = useRef<string>('');
   const lastRolesHashRef = useRef<string>('');
   const lastLogTimeRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
+  const isInitializingRef = useRef<boolean>(false);
+  const lastInitializationTimeRef = useRef<number>(0);
+  const lastProfileIdRef = useRef<string | null>(null);
   
   // États principaux
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
@@ -45,17 +47,12 @@ export function useRoleManagerAdapter(externalProfile?: any) {
   const [lastError, setLastError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // Protection renforcée contre oscillation
-  const lastProfileId = useRef<string | null>(null);
-  const lastInitializationTime = useRef<number>(0);
-  const isInitializing = useRef(false);
-  
   // Références pour les timers
   const switchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const upgradeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 🆕 AJOUTÉ: Fonction de nettoyage des caches corrompus spécifique aux rôles
+  // 🆕 STABILISÉ: Fonction de nettoyage des caches sans dépendances changeantes
   const clearRoleRelatedCaches = useCallback(async (currentUserId: string) => {
     try {
       console.log('🧹 [RoleManager] Nettoyage caches rôles pour:', currentUserId);
@@ -70,35 +67,39 @@ export function useRoleManagerAdapter(externalProfile?: any) {
         console.log('✅ [RoleManager] Caches rôles nettoyés:', roleKeys.length);
       }
       
-      // Nettoyer aussi les caches généraux si disponible
-      if (clearAllUserCaches) {
-        await clearAllUserCaches();
+      // Nettoyer aussi les caches généraux si disponible (sans dépendance)
+      try {
+        if (clearAllUserCaches) {
+          await clearAllUserCaches();
+        }
+      } catch (error) {
+        // Ignorer les erreurs de clearAllUserCaches pour éviter les dépendances
       }
       
     } catch (error) {
       console.warn('⚠️ [RoleManager] Erreur nettoyage caches rôles:', error);
     }
-  }, [clearAllUserCaches]);
+  }, []); // 🔧 CORRIGÉ: Pas de dépendances changeantes !
 
-  // 🚀 OPTIMISATION : Hash stable du profil pour éviter recalculs inutiles
+  // 🚀 STABILISÉ: Hash stable du profil pour éviter recalculs inutiles
   const profileHash = useMemo(() => {
     if (!profile?.id) return 'no-profile';
     
-    const key = `${profile.id}-${profile.email}-${JSON.stringify(profile.roles || [])}-${profile.criteria_completed}`;
+    // 🔧 CORRIGÉ: Utiliser seulement les propriétés vraiment nécessaires
+    const key = `${profile.id}-${JSON.stringify(profile.roles || [])}-${profile.criteria_completed || false}`;
     return key;
-  }, [profile?.id, profile?.email, profile?.roles, profile?.criteria_completed]);
+  }, [profile?.id, profile?.roles, profile?.criteria_completed]); // 🔧 CORRIGÉ: Dépendances réduites
 
-  // 🚀 OPTIMISATION : Logging conditionnel pour réduire le spam
+  // 🚀 STABILISÉ: Logging conditionnel sans re-création
   const conditionalLog = useCallback((message: string, data: any) => {
     const now = Date.now();
-    // Limiter les logs à maximum 1 par 2 secondes pour éviter le spam
     if (now - lastLogTimeRef.current > 2000) {
       console.log(message, data);
       lastLogTimeRef.current = now;
     }
-  }, []);
+  }, []); // 🔧 CORRIGÉ: Pas de dépendances !
 
-  // 🔧 CORRECTION : Fonctions d'action avec vérification mounted
+  // 🔧 STABILISÉ: Fonctions d'action avec références stables
   const clearError = useCallback(() => {
     if (isMountedRef.current) {
       setLastError(null);
@@ -130,9 +131,9 @@ export function useRoleManagerAdapter(externalProfile?: any) {
       setIsInitialized(false);
       setCurrentRole(null);
     }
-  }, [profile?.id, clearRoleRelatedCaches]);
+  }, []); // 🔧 CORRIGÉ: Pas de dépendances sur profile (utilisation via ref interne)
 
-  // 🚀 OPTIMISATION : Calcul des rôles avec cache et comparaison profonde
+  // 🚀 STABILISÉ: Calcul des rôles avec cache et comparaison profonde
   const currentRoles: UserRole[] = useMemo(() => {
     // Si le hash n'a pas changé, retourner le cache
     if (profileHash === lastRolesHashRef.current && profileDataRef.current) {
@@ -184,7 +185,7 @@ export function useRoleManagerAdapter(externalProfile?: any) {
     return result;
   }, [profileHash, profile?.id, profile?.roles, profile?.criteria_completed, profile?.id_document_path, conditionalLog]);
 
-  // 🚀 OPTIMISATION : Profil utilisateur mémorisé avec dépendances stables
+  // 🚀 STABILISÉ: Profil utilisateur mémorisé avec dépendances stables
   const userProfile = useMemo(() => {
     return {
       id: profile?.id || profile?.user_id || null,
@@ -197,7 +198,7 @@ export function useRoleManagerAdapter(externalProfile?: any) {
       is_client_enabled: currentRoles.includes('client'),
       profile_completed: profile?.profile_completed ?? true,
       criteria_completed: profile?.criteria_completed ?? false,
-      has_bank_info: false, // 🧹 NETTOYÉ: rib supprimé, toujours false
+      has_bank_info: false,
       has_identity_document: profile?.id_document_path ? true : false,
       phone: profile?.phone || null,
       address: profile?.address || null,
@@ -223,7 +224,7 @@ export function useRoleManagerAdapter(externalProfile?: any) {
     currentRoles
   ]);
 
-  // 🚀 OPTIMISATION : Fonctions avec useCallback stable
+  // 🚀 STABILISÉ: Fonctions avec useCallback stable
   const determineUpgradeEligibility = useCallback(() => {
     try {
       if (currentRoles.includes('client') && currentRoles.includes('fourmiz')) {
@@ -335,32 +336,33 @@ export function useRoleManagerAdapter(externalProfile?: any) {
 
   const requestRoleUpgrade = useCallback(async (targetRole: UserRole) => {
     if (!isMountedRef.current) return { success: false, message: 'Component unmounted' };
-    
-    // Fonctionnalité non implémentée mais structure préservée
     return { success: false, message: 'Feature not implemented' };
   }, []);
 
-  // 🚀 OPTIMISATION : Initialisation avec protection renforcée
+  // 🚀 CORRIGÉ: Initialisation avec protection RENFORCÉE et dépendances minimales
   useEffect(() => {
-    if (!isMountedRef.current) return;
-
-    // Protection contre réinitialisations trop fréquentes (renforcée)
-    const now = Date.now();
-    const timeSinceLastInit = now - lastInitializationTime.current;
-    
-    if (isInitializing.current) {
+    // 🔧 PROTECTION: Guard principal pour éviter les re-exécutions
+    if (!isMountedRef.current || isInitializingRef.current) {
       return;
     }
 
-    // Protection plus stricte : 5 secondes au lieu de 2
+    // Protection contre réinitialisations trop fréquentes
+    const now = Date.now();
+    const timeSinceLastInit = now - lastInitializationTimeRef.current;
+    
     if (isInitialized && currentRole && timeSinceLastInit < 5000) {
       return;
     }
 
+    // Vérifier si on a les données nécessaires
+    if (!profile?.id || currentRoles.length === 0) {
+      return;
+    }
+
     // Détecter changement d'utilisateur
-    if (profile?.id && lastProfileId.current && lastProfileId.current !== profile.id) {
+    if (profile?.id && lastProfileIdRef.current && lastProfileIdRef.current !== profile.id) {
       console.log('🔄 Changement utilisateur détecté:', {
-        old: lastProfileId.current,
+        old: lastProfileIdRef.current,
         new: profile.id,
         action: 'Réinitialisation'
       });
@@ -376,32 +378,28 @@ export function useRoleManagerAdapter(externalProfile?: any) {
       }
     }
 
-    if (!profile?.id || currentRoles.length === 0) {
-      return;
-    }
-
+    // Si déjà initialisé avec un rôle valide, ne pas refaire
     if (isInitialized && currentRole) {
       return;
     }
 
     console.log('🚀 Initialisation du hook');
-    isInitializing.current = true;
-    lastInitializationTime.current = now;
+    isInitializingRef.current = true;
+    lastInitializationTimeRef.current = now;
 
     const initializeRole = async () => {
       try {
         if (!isMountedRef.current) return;
 
-        // 🔧 CORRECTION FOURMIZ : Prioriser Fourmiz si le profil l'indique clairement
+        // Déterminer le rôle préféré
         let preferredRole: UserRole = 'client';
         
-        // Vérifier si c'est vraiment un profil Fourmiz
         const isClearlyFourmiz = (
           currentRoles.includes('fourmiz') && (
             profile.id_document_path || 
             profile.criteria_completed === true ||
             profile.address ||
-            profile.service_radius_km > 0
+            (profile.service_radius_km && profile.service_radius_km > 0)
           )
         );
         
@@ -413,10 +411,10 @@ export function useRoleManagerAdapter(externalProfile?: any) {
           console.log('🎯 Rôle Fourmiz disponible, sélection par défaut');
         }
         
-        // Essayer de récupérer préférence sauvée SEULEMENT si pas de création récente
+        // Essayer de récupérer préférence sauvée
         let finalRole = preferredRole;
         const isRecentCreation = profile.created_at && 
-          (Date.now() - new Date(profile.created_at).getTime()) < 300000; // 5 minutes
+          (Date.now() - new Date(profile.created_at).getTime()) < 300000;
           
         if (!isRecentCreation) {
           try {
@@ -428,8 +426,6 @@ export function useRoleManagerAdapter(externalProfile?: any) {
           } catch (e) {
             // Ignorer
           }
-        } else {
-          console.log('🎯 Création récente détectée, pas de préférence sauvée utilisée');
         }
 
         console.log('🎯 Initialisation avec rôle:', finalRole);
@@ -437,7 +433,7 @@ export function useRoleManagerAdapter(externalProfile?: any) {
         if (isMountedRef.current) {
           setCurrentRole(finalRole);
           setIsInitialized(true);
-          lastProfileId.current = profile.id;
+          lastProfileIdRef.current = profile.id;
         }
 
         console.log('✅ Initialisation terminée');
@@ -447,27 +443,38 @@ export function useRoleManagerAdapter(externalProfile?: any) {
         if (isMountedRef.current) {
           setCurrentRole('client');
           setIsInitialized(true);
-          lastProfileId.current = profile.id;
+          lastProfileIdRef.current = profile.id;
         }
       } finally {
-        isInitializing.current = false;
+        isInitializingRef.current = false;
       }
     };
 
     initializeRole();
-  }, [profile?.id, currentRoles, isInitialized, currentRole, clearRoleRelatedCaches]);
+  }, []); // 🔧 CORRIGÉ: PAS DE DÉPENDANCES ! Utilisation des refs internes
 
-  // 🚀 OPTIMISATION : Timeout de sécurité avec nettoyage
+  // 🔧 CORRIGÉ: useEffect séparé pour surveiller les changements de profil
   useEffect(() => {
-    if (isInitialized || !isMountedRef.current) return;
+    // Seulement déclencher la réinitialisation si l'ID change vraiment
+    if (profile?.id && profile.id !== lastProfileIdRef.current && isInitialized) {
+      console.log('🔄 Changement de profil détecté, réinitialisation...');
+      setIsInitialized(false);
+      setCurrentRole(null);
+      lastProfileIdRef.current = profile.id;
+    }
+  }, [profile?.id, isInitialized]);
+
+  // 🚀 TIMEOUT DE SÉCURITÉ: Séparé et stable
+  useEffect(() => {
+    if (isInitialized || !isMountedRef.current || isInitializingRef.current) return;
 
     initTimeoutRef.current = setTimeout(() => {
-      if (!isInitialized && !isInitializing.current && isMountedRef.current) {
+      if (!isInitialized && !isInitializingRef.current && isMountedRef.current) {
         console.log('⏰ Timeout sécurité - initialisation forcée');
         setCurrentRole('client');
         setIsInitialized(true);
         if (profile?.id) {
-          lastProfileId.current = profile.id;
+          lastProfileIdRef.current = profile.id;
         }
       }
     }, 3000);
@@ -479,14 +486,14 @@ export function useRoleManagerAdapter(externalProfile?: any) {
     };
   }, [isInitialized, profile?.id]);
 
-  // 🚀 OPTIMISATION : États calculés mémorisés
+  // 🚀 OPTIMISATION: États calculés mémorisés
   const upgradeEligibility = useMemo(() => determineUpgradeEligibility(), [determineUpgradeEligibility]);
   const availableRoles = currentRoles;
   const canSwitchRole = useMemo(() => 
     currentRoles.length > 1 && !isLoadingRoleSwitch && isInitialized
   , [currentRoles.length, isLoadingRoleSwitch, isInitialized]);
 
-  // 🚀 OPTIMISATION : État final mémorisé
+  // 🚀 OPTIMISATION: État final mémorisé
   const finalState = useMemo(() => {
     conditionalLog('🔍 État final simplifié:', {
       isInitialized,
@@ -507,7 +514,7 @@ export function useRoleManagerAdapter(externalProfile?: any) {
     };
   }, [isInitialized, currentRole, availableRoles, profile?.id, currentRoles, canSwitchRole, conditionalLog]);
 
-  // 🔧 CORRECTION : Nettoyage complet au démontage
+  // 🔧 NETTOYAGE: Démontage complet
   useEffect(() => {
     isMountedRef.current = true;
     
@@ -520,11 +527,11 @@ export function useRoleManagerAdapter(externalProfile?: any) {
       if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current);
       
       // Nettoyer les refs
-      isInitializing.current = false;
+      isInitializingRef.current = false;
     };
   }, []);
 
-  // 🚀 OPTIMISATION : Retour conditionnel mémorisé
+  // 🚀 RETOURS: Mémorisés et stables
   const loadingState = useMemo(() => ({
     currentRole: null,
     loading: true,
@@ -588,7 +595,7 @@ export function useRoleManagerAdapter(externalProfile?: any) {
     isProfileCompleteForRole: checkProfileCompletion,
     getMissingFieldsForRole: (role: UserRole) => checkProfileCompletion(role).missingFields,
     
-    // Actions de nettoyage (🔧 CORRECTION: références stables)
+    // Actions de nettoyage (références stables)
     clearError,
     refreshProfile,
     reloadProfile
@@ -608,12 +615,11 @@ export function useRoleManagerAdapter(externalProfile?: any) {
     reloadProfile
   ]);
 
-  // Retour pendant initialisation
+  // Retour conditionnel
   if (!finalState.isInitialized) {
     return loadingState;
   }
 
-  // Retour complet
   return completeState;
 }
 

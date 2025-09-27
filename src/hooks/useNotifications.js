@@ -1,5 +1,5 @@
 // src/hooks/useNotifications.js
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import notificationManager from '../services/NotificationManager';
 
 export const useNotifications = () => {

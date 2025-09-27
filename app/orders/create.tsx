@@ -1,11 +1,13 @@
-// app/orders/create.tsx - VERSION AVEC CALENDRIER DE SÉLECTION DE DATE + CANDIDATURES MULTIPLES (workflow_type)
-// 💳 FLUX : Formulaire → Synthèse → Validation Paiement → Création Commande
+// app/orders/create.tsx - VERSION COMPLÈTE AVEC TOUTES LES FONCTIONNALITÉS
+// 💳 FLUX : Formulaire → Synthèse → Pré-autorisation Paiement → Création Commande
 // 📅 AJOUT : Calendrier identique à calendar.tsx pour sélection de date
-// 🔧 CORRECTION : Fix erreur "Service non sélectionné" après paiement
-// 🔧 CORRECTION : Fix erreur "Montant invalide" après paiement réussi
-// ✅ NOUVEAU : Bouton candidatures multiples basé sur workflow_type
-// 🔧 CORRECTION : Pas de durée par défaut
-// ✅ NOUVEAU : Date du jour par défaut quand "Dès que possible" est activé
+// 🔧 CORRECTION : Upload photos basé sur complete-profile.tsx qui fonctionne
+// 📸 NOUVEAU : Intégration photos avec upload Supabase fonctionnel
+// ✅ NOUVEAU : Candidatures multiples basées sur workflow_type
+// 💳 NOUVEAU : Système de pré-autorisation avec capture différée
+// 🚀 OPTIMISÉ : Performances, gestion d'erreurs, validation améliorée
+// 🛡️ TOUTES LES FONCTIONNALITÉS CONSERVÉES
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
@@ -21,17 +23,420 @@ import {
   Platform,
   KeyboardAvoidingView,
   Dimensions,
+  Image,
+  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { PaymentModal } from '@/components/PaymentModal';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+
+// Import supabase
+import { supabase } from '../../lib/supabase';
+// Import PaymentModal
+import { PaymentModal } from '../../components/PaymentModal';
+
+// Types pour les photos
+interface PhotoData {
+  id: string;
+  uri: string;
+  name?: string;
+  type?: string;
+  size?: number;
+}
 
 const { width } = Dimensions.get('window');
 
-// ✅ INTERFACES MISES À JOUR SELON STRUCTURE SUPABASE + CANDIDATURES MULTIPLES + workflow_type
+// 📸 FONCTIONS D'UPLOAD COMPLÈTES - Basées sur complete-profile.tsx qui fonctionne
+const convertToUint8Array = async (uri: string): Promise<Uint8Array> => {
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    return bytes;
+  } catch (error) {
+    throw new Error(`Conversion échouée: ${(error as Error).message}`);
+  }
+};
+
+const uploadPhotoToSupabase = async (photo: PhotoData, userId: string): Promise<string> => {
+  try {
+    const uint8ArrayData = await convertToUint8Array(photo.uri);
+    
+    const timestamp = Date.now();
+    const fileName = `photo-${timestamp}.jpg`;
+    const filePath = `${userId}/${fileName}`;
+    
+    const { data, error } = await supabase.storage
+      .from('order-photos')
+      .upload(filePath, uint8ArrayData, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: 'image/jpeg',
+        metadata: {
+          userId,
+          uploadedAt: new Date().toISOString(),
+          originalName: photo.name || fileName,
+          uploadMethod: 'uint8Array-rn'
+        }
+      });
+
+    if (error) {
+      console.error('❌ Erreur upload Supabase:', error);
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('order-photos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error) {
+    console.error('❌ Erreur upload photo:', error);
+    throw error;
+  }
+};
+
+const uploadAllPhotos = async (photos: PhotoData[], userId: string): Promise<string[]> => {
+  if (photos.length === 0) return [];
+  
+  const uploadPromises = photos.map(photo => uploadPhotoToSupabase(photo, userId));
+  
+  try {
+    const results = await Promise.allSettled(uploadPromises);
+    const successfulUploads: string[] = [];
+    const errors: string[] = [];
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successfulUploads.push(result.value);
+      } else {
+        errors.push(`Photo ${index + 1}: ${result.reason.message}`);
+      }
+    });
+    
+    if (errors.length > 0) {
+      console.warn('⚠️ Certaines photos ont échoué:', errors);
+    }
+    
+    return successfulUploads;
+  } catch (error) {
+    console.error('❌ Erreur upload multiple:', error);
+    throw error;
+  }
+};
+
+// 📸 COMPOSANT PhotoSection COMPLET ET INTÉGRÉ
+const PhotoSection: React.FC<{
+  photos: PhotoData[];
+  onPhotosChange: (photos: PhotoData[]) => void;
+  maxPhotos: number;
+}> = React.memo(({ photos, onPhotosChange, maxPhotos }) => {
+  const [loading, setLoading] = useState(false);
+
+  const requestPermissions = useCallback(async () => {
+    const [cameraPermission, mediaPermission] = await Promise.all([
+      ImagePicker.requestCameraPermissionsAsync(),
+      ImagePicker.requestMediaLibraryPermissionsAsync()
+    ]);
+    
+    return {
+      camera: cameraPermission.granted,
+      media: mediaPermission.granted
+    };
+  }, []);
+
+  const takePhoto = useCallback(async () => {
+    if (loading) return;
+    
+    try {
+      setLoading(true);
+      const permissions = await requestPermissions();
+      
+      if (!permissions.camera) {
+        Alert.alert(
+          'Permission requise',
+          'L\'accès à l\'appareil photo est nécessaire pour prendre des photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [4, 3],
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const newPhoto: PhotoData = {
+          id: Date.now().toString(),
+          uri: result.assets[0].uri,
+          name: `photo-${Date.now()}.jpg`,
+          type: 'image/jpeg',
+          size: result.assets[0].fileSize,
+        };
+        
+        onPhotosChange([...photos, newPhoto]);
+      }
+    } catch (error) {
+      console.error('❌ Erreur prise photo:', error);
+      Alert.alert('Erreur', 'Impossible de prendre la photo');
+    } finally {
+      setLoading(false);
+    }
+  }, [photos, onPhotosChange, requestPermissions, loading]);
+
+  const pickFromGallery = useCallback(async () => {
+    if (loading) return;
+    
+    try {
+      setLoading(true);
+      const permissions = await requestPermissions();
+      
+      if (!permissions.media) {
+        Alert.alert(
+          'Permission requise',
+          'L\'accès à la galerie est nécessaire pour sélectionner des photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [4, 3],
+        allowsMultipleSelection: true,
+        selectionLimit: maxPhotos - photos.length,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newPhotos: PhotoData[] = result.assets.map((asset, index) => ({
+          id: (Date.now() + index).toString(),
+          uri: asset.uri,
+          name: `photo-${Date.now() + index}.jpg`,
+          type: 'image/jpeg',
+          size: asset.fileSize,
+        }));
+        
+        const updatedPhotos = [...photos, ...newPhotos].slice(0, maxPhotos);
+        onPhotosChange(updatedPhotos);
+      }
+    } catch (error) {
+      console.error('❌ Erreur sélection galerie:', error);
+      Alert.alert('Erreur', 'Impossible de sélectionner les photos');
+    } finally {
+      setLoading(false);
+    }
+  }, [photos, onPhotosChange, maxPhotos, requestPermissions, loading]);
+
+  const showPhotoOptions = useCallback(() => {
+    if (loading) return;
+    
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Annuler', 'Prendre une photo', 'Choisir dans la galerie'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takePhoto();
+          } else if (buttonIndex === 2) {
+            pickFromGallery();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Ajouter une photo',
+        'Choisissez une option',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Prendre une photo', onPress: takePhoto },
+          { text: 'Galerie', onPress: pickFromGallery },
+        ]
+      );
+    }
+  }, [takePhoto, pickFromGallery, loading]);
+
+  const removePhoto = useCallback((photoId: string) => {
+    const updatedPhotos = photos.filter(photo => photo.id !== photoId);
+    onPhotosChange(updatedPhotos);
+  }, [photos, onPhotosChange]);
+
+  const canAddPhotos = photos.length < maxPhotos;
+
+  return (
+    <View style={photoStyles.container}>
+      <Text style={photoStyles.title}>
+        Photos ({photos.length}/{maxPhotos})
+      </Text>
+      <Text style={photoStyles.subtitle}>
+        Ajoutez des photos pour illustrer votre demande (facultatif)
+      </Text>
+      
+      {photos.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={photoStyles.photosList}
+        >
+          {photos.map((photo) => (
+            <View key={photo.id} style={photoStyles.photoContainer}>
+              <Image source={{ uri: photo.uri }} style={photoStyles.photoThumbnail} />
+              <TouchableOpacity
+                style={photoStyles.removeButton}
+                onPress={() => removePhoto(photo.id)}
+              >
+                <Ionicons name="close-circle" size={20} color="#ff4444" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {canAddPhotos && (
+        <TouchableOpacity
+          style={[
+            photoStyles.addButton,
+            loading && photoStyles.addButtonDisabled
+          ]}
+          onPress={showPhotoOptions}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#ffffff" size="small" />
+          ) : (
+            <Ionicons name="camera" size={20} color="#ffffff" />
+          )}
+          <Text style={photoStyles.addButtonText}>
+            {loading ? 'Chargement...' : 'Ajouter une photo'}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+});
+
+// 📸 COMPOSANT PhotoSummary COMPLET INLINE
+const PhotoSummary: React.FC<{photos: PhotoData[]}> = React.memo(({ photos }) => {
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+
+  if (photos.length === 0) return null;
+
+  const openViewer = useCallback((index: number) => {
+    setSelectedPhotoIndex(index);
+    setViewerVisible(true);
+  }, []);
+
+  const navigatePhoto = useCallback((direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : photos.length - 1);
+    } else {
+      setSelectedPhotoIndex(prev => prev < photos.length - 1 ? prev + 1 : 0);
+    }
+  }, [photos.length]);
+
+  const closeViewer = useCallback(() => {
+    setViewerVisible(false);
+  }, []);
+
+  return (
+    <View style={photoSummaryStyles.container}>
+      <Text style={photoSummaryStyles.title}>
+        Photos jointes ({photos.length})
+      </Text>
+      
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={photoSummaryStyles.scrollContent}
+      >
+        {photos.map((photo, index) => (
+          <TouchableOpacity
+            key={photo.id}
+            style={photoSummaryStyles.thumbnail}
+            onPress={() => openViewer(index)}
+          >
+            <Image
+              source={{ uri: photo.uri }}
+              style={photoSummaryStyles.thumbnailImage}
+              resizeMode="cover"
+            />
+            <View style={photoSummaryStyles.thumbnailOverlay}>
+              <Ionicons name="eye" size={16} color="#ffffff" />
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <Modal
+        visible={viewerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeViewer}
+      >
+        <View style={photoSummaryStyles.viewerContainer}>
+          <TouchableOpacity
+            style={photoSummaryStyles.closeButton}
+            onPress={closeViewer}
+          >
+            <Ionicons name="close" size={24} color="#ffffff" />
+          </TouchableOpacity>
+
+          {photos.length > 1 && (
+            <>
+              <TouchableOpacity
+                style={[photoSummaryStyles.navButton, photoSummaryStyles.prevButton]}
+                onPress={() => navigatePhoto('prev')}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[photoSummaryStyles.navButton, photoSummaryStyles.nextButton]}
+                onPress={() => navigatePhoto('next')}
+              >
+                <Ionicons name="chevron-forward" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </>
+          )}
+
+          <Image
+            source={{ uri: photos[selectedPhotoIndex]?.uri }}
+            style={photoSummaryStyles.fullImage}
+            resizeMode="contain"
+          />
+
+          {photos.length > 1 && (
+            <View style={photoSummaryStyles.indicator}>
+              <Text style={photoSummaryStyles.indicatorText}>
+                {selectedPhotoIndex + 1} / {photos.length}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
+});
+
+// ✅ INTERFACES COMPLÈTES - TOUS LES CHAMPS CONSERVÉS
 interface OrderForm {
   serviceTitle: string;
   description: string;
@@ -42,6 +447,7 @@ interface OrderForm {
   city: string;
   phone: string;
   alternativePhone: string;
+  // 🚚 CHAMPS LIVRAISON/TRANSPORT CONSERVÉS
   pickupAddress: string;
   deliveryAddress: string;
   arrivalAddress: string;
@@ -51,18 +457,21 @@ interface OrderForm {
   departureTime: string;
   startTime: string;
   duration: string;
+  // 📦 CHAMPS COLIS CONSERVÉS  
   pickupTime: string;
   packageNumber: string;
+  // 🔧 CHAMPS ÉQUIPEMENT CONSERVÉS
   equipment: string;
+  // 📄 CHAMPS FACTURATION CONSERVÉS
   needsInvoice: boolean;
   invoiceType: 'particulier' | 'entreprise';
   companyName: string;
   siret: string;
-  // ✅ NOUVEAU CHAMP
+  // ✅ NOUVEAUX CHAMPS
   allowMultipleCandidates: boolean;
+  photos: PhotoData[];
 }
 
-// Structure addresses comme dans Supabase
 interface AddressesData {
   city: string;
   category: string;
@@ -82,7 +491,7 @@ interface Service {
   description?: string;
   categorie: string;
   estimatedDuration?: number;
-  workflow_type?: string; // ✅ NOUVEAU CHAMP
+  workflow_type?: string;
 }
 
 interface SelectOption {
@@ -90,7 +499,6 @@ interface SelectOption {
   label: string;
 }
 
-// 📅 INTERFACES POUR LE CALENDRIER
 interface CalendarDay {
   day: number;
   dateKey: string;
@@ -100,21 +508,21 @@ interface CalendarDay {
   isDisabled: boolean;
 }
 
-// 📅 HELPERS CALENDRIER (identiques à calendar.tsx)
+// 📅 HELPERS CALENDRIER
 const getDaysInMonth = (year: number, month: number): number => {
   return new Date(year, month + 1, 0).getDate();
 };
 
 const getFirstDayOfMonth = (year: number, month: number): number => {
   const firstDay = new Date(year, month, 1).getDay();
-  return firstDay === 0 ? 6 : firstDay - 1; // Lundi = 0
+  return firstDay === 0 ? 6 : firstDay - 1;
 };
 
 const formatDateKey = (year: number, month: number, day: number): string => {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 };
 
-// ✅ HOOKS PERSONNALISÉS
+// ✅ HOOKS PERSONNALISÉS COMPLETS
 const useFormValidation = () => {
   const validateField = useCallback((field: keyof OrderForm, value: any): string => {
     switch (field) {
@@ -128,6 +536,7 @@ const useFormValidation = () => {
         const amount = Number(cleanValue);
         if (isNaN(amount)) return 'Montant invalide - utilisez uniquement des chiffres';
         if (amount <= 0) return 'Le montant doit être positif';
+        if (amount < 5) return 'Montant minimum : 5€ (requis par Stripe)';
         if (amount > 10000) return 'Montant trop élevé (max 10 000€)';
         break;
         
@@ -163,6 +572,17 @@ const useFormValidation = () => {
         today.setHours(0, 0, 0, 0);
         if (selectedDate < today) return 'La date ne peut pas être dans le passé';
         break;
+        
+      // 📄 VALIDATION FACTURATION
+      case 'companyName':
+        if (value && value.trim().length < 2) return 'Nom d\'entreprise trop court';
+        break;
+        
+      case 'siret':
+        if (value && !/^\d{14}$/.test(value.replace(/\s/g, ''))) {
+          return 'SIRET invalide (14 chiffres requis)';
+        }
+        break;
     }
     return '';
   }, []);
@@ -174,9 +594,18 @@ const useFormValidation = () => {
       'proposedAmount', 'address', 'city', 'phone'
     ];
     
-    // Pour les services non-urgents, la date est requise
     if (!form.isUrgent) {
       requiredFields.push('prestationDate');
+    }
+    
+    // 📄 VALIDATION FACTURATION CONDITIONNELLE
+    if (form.needsInvoice && form.invoiceType === 'entreprise') {
+      if (!form.companyName?.trim()) {
+        errors.companyName = 'Nom d\'entreprise requis pour la facturation';
+      }
+      if (!form.siret?.trim()) {
+        errors.siret = 'SIRET requis pour la facturation entreprise';
+      }
     }
     
     requiredFields.forEach(field => {
@@ -184,7 +613,7 @@ const useFormValidation = () => {
       if (error) errors[field] = error;
     });
     
-    // Validation de la description (facultative mais limitée à 500 caractères)
+    // Validations conditionnelles
     if (form.description) {
       const error = validateField('description', form.description);
       if (error) errors.description = error;
@@ -193,6 +622,16 @@ const useFormValidation = () => {
     if (form.postalCode) {
       const error = validateField('postalCode', form.postalCode);
       if (error) errors.postalCode = error;
+    }
+    
+    if (form.companyName) {
+      const error = validateField('companyName', form.companyName);
+      if (error) errors.companyName = error;
+    }
+    
+    if (form.siret) {
+      const error = validateField('siret', form.siret);
+      if (error) errors.siret = error;
     }
     
     return {
@@ -205,8 +644,6 @@ const useFormValidation = () => {
 };
 
 // ✅ COMPOSANTS RÉUTILISABLES
-
-// Modal de sélection générique (pour les heures et durées)
 const SelectModal: React.FC<{
   visible: boolean;
   title: string;
@@ -214,22 +651,18 @@ const SelectModal: React.FC<{
   selectedValue?: string;
   onSelect: (value: string) => void;
   onCancel: () => void;
-}> = ({ visible, title, options, selectedValue, onSelect, onCancel }) => {
+}> = React.memo(({ visible, title, options, selectedValue, onSelect, onCancel }) => {
   const scrollViewRef = useRef<ScrollView>(null);
   
-  // Auto-scroll vers 12:00 pour la sélection d'heure
   useEffect(() => {
     if (visible && title === "Heure de début" && scrollViewRef.current) {
-      // Trouver l'index de 12:00 dans les options
       const twelveOClockIndex = options.findIndex(option => option.value === "12:00");
       
       if (twelveOClockIndex !== -1) {
-        // Délai pour s'assurer que la modal est complètement rendue
         setTimeout(() => {
           if (scrollViewRef.current) {
-            // Hauteur approximative d'un item (padding + bordure) = ~45px
             const itemHeight = 45;
-            const scrollOffset = Math.max(0, twelveOClockIndex * itemHeight - 100); // -100 pour centrer
+            const scrollOffset = Math.max(0, twelveOClockIndex * itemHeight - 100);
             
             scrollViewRef.current.scrollTo({ 
               y: scrollOffset, 
@@ -279,57 +712,52 @@ const SelectModal: React.FC<{
       </View>
     </Modal>
   );
-};
+});
 
-// 📅 NOUVEAU COMPOSANT CALENDRIER DE SÉLECTION
+// 📅 COMPOSANT CALENDRIER COMPLET
 const CalendarPicker: React.FC<{
   visible: boolean;
   selectedDate?: string;
   onSelectDate: (date: string) => void;
   onCancel: () => void;
-}> = ({ visible, selectedDate, onSelectDate, onCancel }) => {
+}> = React.memo(({ visible, selectedDate, onSelectDate, onCancel }) => {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
 
-  // Constantes calendrier
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
   const monthNames = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
 
-  // Navigation mois
-  const goToPreviousMonth = () => {
+  const goToPreviousMonth = useCallback(() => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
       setCurrentYear(currentYear - 1);
     } else {
       setCurrentMonth(currentMonth - 1);
     }
-  };
+  }, [currentMonth, currentYear]);
 
-  const goToNextMonth = () => {
+  const goToNextMonth = useCallback(() => {
     if (currentMonth === 11) {
       setCurrentMonth(0);
       setCurrentYear(currentYear + 1);
     } else {
       setCurrentMonth(currentMonth + 1);
     }
-  };
+  }, [currentMonth, currentYear]);
 
-  // Construction du calendrier
   const calendarDays = useMemo(() => {
     const daysInMonth = getDaysInMonth(currentYear, currentMonth);
     const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
     const days = [];
 
-    // Jours vides du début
     for (let i = 0; i < firstDay; i++) {
       days.push(null);
     }
 
-    // Jours du mois
     for (let day = 1; day <= daysInMonth; day++) {
       const dateKey = formatDateKey(currentYear, currentMonth, day);
       const dayDate = new Date(currentYear, currentMonth, day);
@@ -356,6 +784,18 @@ const CalendarPicker: React.FC<{
     return days;
   }, [currentYear, currentMonth, selectedDate, today]);
 
+  const selectToday = useCallback(() => {
+    const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+    onSelectDate(todayKey);
+  }, [onSelectDate, today]);
+
+  const selectTomorrow = useCallback(() => {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowKey = formatDateKey(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+    onSelectDate(tomorrowKey);
+  }, [onSelectDate, today]);
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.calendarModal}>
@@ -367,7 +807,6 @@ const CalendarPicker: React.FC<{
         </View>
 
         <ScrollView style={styles.calendarModalContent}>
-          {/* Navigation mois */}
           <View style={styles.calendarPickerCard}>
             <View style={styles.calendarPickerHeader}>
               <Text style={styles.monthTitle}>
@@ -383,7 +822,6 @@ const CalendarPicker: React.FC<{
               </View>
             </View>
 
-            {/* En-têtes jours de la semaine */}
             <View style={styles.weekHeaderContainer}>
               {weekDays.map((day, index) => (
                 <View key={index} style={styles.weekHeaderDay}>
@@ -392,7 +830,6 @@ const CalendarPicker: React.FC<{
               ))}
             </View>
 
-            {/* Grille calendrier */}
             <View style={styles.calendarGrid}>
               {calendarDays.map((dayData, index) => (
                 <TouchableOpacity
@@ -424,33 +861,17 @@ const CalendarPicker: React.FC<{
               ))}
             </View>
 
-            {/* Boutons d'action rapide */}
             <View style={styles.quickDateActions}>
-              <TouchableOpacity 
-                style={styles.quickDateButton}
-                onPress={() => {
-                  const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
-                  onSelectDate(todayKey);
-                }}
-              >
+              <TouchableOpacity style={styles.quickDateButton} onPress={selectToday}>
                 <Text style={styles.quickDateButtonText}>Aujourd'hui</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={styles.quickDateButton}
-                onPress={() => {
-                  const tomorrow = new Date(today);
-                  tomorrow.setDate(today.getDate() + 1);
-                  const tomorrowKey = formatDateKey(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
-                  onSelectDate(tomorrowKey);
-                }}
-              >
+              <TouchableOpacity style={styles.quickDateButton} onPress={selectTomorrow}>
                 <Text style={styles.quickDateButtonText}>Demain</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Affichage de la date sélectionnée */}
           {selectedDate && (
             <View style={styles.selectedDatePreview}>
               <Text style={styles.selectedDateText}>
@@ -465,12 +886,8 @@ const CalendarPicker: React.FC<{
           )}
         </ScrollView>
 
-        {/* Actions */}
         <View style={styles.calendarModalActions}>
-          <TouchableOpacity 
-            style={styles.calendarCancelButton}
-            onPress={onCancel}
-          >
+          <TouchableOpacity style={styles.calendarCancelButton} onPress={onCancel}>
             <Text style={styles.calendarCancelButtonText}>Annuler</Text>
           </TouchableOpacity>
           
@@ -488,16 +905,15 @@ const CalendarPicker: React.FC<{
       </SafeAreaView>
     </Modal>
   );
-};
+});
 
-// Bouton dropdown réutilisable
 const DropdownButton: React.FC<{
   value?: string;
   placeholder: string;
   onPress: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   error?: boolean;
-}> = ({ value, placeholder, onPress, icon = "chevron-down", error = false }) => (
+}> = React.memo(({ value, placeholder, onPress, icon = "chevron-down", error = false }) => (
   <TouchableOpacity
     style={[styles.dropdownButton, error && styles.inputError]}
     onPress={onPress}
@@ -507,34 +923,33 @@ const DropdownButton: React.FC<{
     </Text>
     <Ionicons name={icon} size={16} color="#333333" />
   </TouchableOpacity>
-);
+));
 
 // ✅ COMPOSANT PRINCIPAL
 export default function CreateOrderScreen() {
   const params = useLocalSearchParams();
   const scrollViewRef = useRef<ScrollView>(null);
   
-  // States de base
+  // States consolidés
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   
-  // 💳 ÉTATS POUR LE PAIEMENT
+  // États paiement
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentValidated, setPaymentValidated] = useState(false);
   
-  // 📅 MODAL CALENDRIER (remplace showDatePicker)
+  // États modales
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showDurationPicker, setShowDurationPicker] = useState(false);
   
-  // Form state avec candidatures multiples
+  // FORMULAIRE COMPLET - TOUS LES CHAMPS CONSERVÉS
   const [form, setForm] = useState<OrderForm>({
     serviceTitle: '',
     description: '',
@@ -545,6 +960,7 @@ export default function CreateOrderScreen() {
     city: '',
     phone: '',
     alternativePhone: '',
+    // 🚚 CHAMPS LIVRAISON/TRANSPORT
     pickupAddress: '',
     deliveryAddress: '',
     arrivalAddress: '',
@@ -552,39 +968,35 @@ export default function CreateOrderScreen() {
     arrivalCity: '',
     prestationDate: '',
     departureTime: '',
-    startTime: '', // Reste vide - champ facultatif
+    startTime: '',
     duration: '',
+    // 📦 CHAMPS COLIS
     pickupTime: '',
     packageNumber: '',
+    // 🔧 CHAMPS ÉQUIPEMENT
     equipment: '',
+    // 📄 CHAMPS FACTURATION
     needsInvoice: false,
     invoiceType: 'particulier',
     companyName: '',
     siret: '',
-    // ✅ NOUVEAU CHAMP - Activé par défaut
+    // ✅ NOUVEAUX CHAMPS
     allowMultipleCandidates: true,
+    photos: [],
   });
 
-  // Hooks personnalisés
   const { validateForm, validateField } = useFormValidation();
 
-  // ✅ NOUVELLE FONCTION : Vérifier si la catégorie permet les candidatures multiples basé sur workflow_type
-  const shouldShowMultipleCandidatesOption = useCallback(() => {
-    if (!selectedService) return false;
-    
-    // Utiliser le champ workflow_type de la base de données
-    return selectedService.workflow_type === 'candidatures';
-  }, [selectedService]);
+  // 🚀 OPTIMISATIONS
+  const shouldShowMultipleCandidatesOption = useMemo(() => {
+    return selectedService?.workflow_type === 'candidatures';
+  }, [selectedService?.workflow_type]);
 
-  // ✅ FONCTIONS UTILITAIRES
-
-  // Générer les créneaux horaires (démarrage à 12H00)
   const timeSlots = useMemo(() => {
     const slots = [];
     const now = new Date();
     const isToday = form.prestationDate === now.toISOString().split('T')[0];
     
-    // Générer toutes les heures de 12h00 à 23h45, puis de 00h00 à 11h45
     const generateSlotsForRange = (startHour: number, endHour: number) => {
       for (let hour = startHour; hour <= endHour; hour++) {
         for (let minute = 0; minute < 60; minute += 15) {
@@ -603,15 +1015,12 @@ export default function CreateOrderScreen() {
       }
     };
     
-    // D'abord 12h00-23h45
     generateSlotsForRange(12, 23);
-    // Puis 00h00-11h45
     generateSlotsForRange(0, 11);
     
     return slots;
   }, [form.prestationDate]);
 
-  // Générer les durées
   const durations = useMemo(() => {
     const durations = [];
     for (let minutes = 15; minutes <= 480; minutes += 15) {
@@ -632,7 +1041,24 @@ export default function CreateOrderScreen() {
     return durations;
   }, []);
 
-  // 📅 NOUVELLE FONCTION : Formater la date sélectionnée pour affichage
+  const calculatedEndTime = useMemo(() => {
+    if (!form.startTime || !form.duration) return '';
+    
+    try {
+      const [hours, minutes] = form.startTime.split(':').map(Number);
+      const duration = parseInt(form.duration);
+      
+      const totalMinutes = hours * 60 + minutes + duration;
+      const endHours = Math.floor(totalMinutes / 60) % 24;
+      const endMinutes = totalMinutes % 60;
+      
+      return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+    } catch (error) {
+      console.error('❌ Erreur calcul heure fin:', error);
+      return '';
+    }
+  }, [form.startTime, form.duration]);
+
   const getSelectedDateLabel = useCallback(() => {
     if (!form.prestationDate) return '';
     
@@ -641,7 +1067,6 @@ export default function CreateOrderScreen() {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
     
-    // Comparaison des dates
     const isToday = date.toDateString() === today.toDateString();
     const isTomorrow = date.toDateString() === tomorrow.toDateString();
     
@@ -656,12 +1081,6 @@ export default function CreateOrderScreen() {
     });
   }, [form.prestationDate]);
 
-  // Calculer le surcharge d'urgence (toujours gratuit)
-  const calculateUrgencySurcharge = useCallback((): string => {
-    return '0.00';
-  }, []);
-
-  // Construire l'objet addresses pour Supabase
   const buildAddressesObject = useCallback((form: OrderForm, service: Service | null): AddressesData => {
     return {
       city: form.city || '',
@@ -677,34 +1096,10 @@ export default function CreateOrderScreen() {
     };
   }, []);
 
-  // Calculer l'heure de fin
-  const calculateEndTime = useCallback((startTime: string, durationMinutes: string) => {
-    if (!startTime || !durationMinutes) return '';
-    
-    try {
-      const [hours, minutes] = startTime.split(':').map(Number);
-      const duration = parseInt(durationMinutes);
-      
-      const totalMinutes = hours * 60 + minutes + duration;
-      const endHours = Math.floor(totalMinutes / 60) % 24;
-      const endMinutes = totalMinutes % 60;
-      
-      return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
-    } catch (error) {
-      console.error('❌ Erreur calcul heure fin:', error);
-      return '';
-    }
-  }, []);
-
-  const calculatedEndTime = useMemo(() => {
-    return calculateEndTime(form.startTime, form.duration);
-  }, [form.startTime, form.duration, calculateEndTime]);
-
-  // ✅ MISE À JOUR DU FORMULAIRE OPTIMISÉE
-  const updateForm = useCallback((key: keyof OrderForm, value: string | boolean) => {
+  // 🚀 GESTIONNAIRES
+  const updateForm = useCallback((key: keyof OrderForm, value: string | boolean | PhotoData[]) => {
     setForm(prev => ({ ...prev, [key]: value }));
     
-    // Supprimer l'erreur seulement si elle existe
     if (errors[key]) {
       setErrors(prev => {
         const { [key]: _, ...rest } = prev;
@@ -712,28 +1107,20 @@ export default function CreateOrderScreen() {
       });
     }
     
-    // Réinitialiser l'erreur de soumission seulement si nécessaire
     if (submitError) {
       setSubmitError(null);
     }
   }, [errors, submitError]);
 
-  // ✅ GESTIONNAIRES DE FOCUS SIMPLIFIÉS
-  const handleInputFocus = useCallback(() => {
-    // Pas d'action spéciale nécessaire
+  const handlePhotosChange = useCallback((photos: PhotoData[]) => {
+    setForm(prev => ({ ...prev, photos }));
   }, []);
 
-  const handleInputBlur = useCallback(() => {
-    // Pas d'action spéciale nécessaire
-  }, []);
-
-  // 📅 NOUVELLE FONCTION : Gestionnaire de sélection de date
   const handleDateSelect = useCallback((dateKey: string) => {
     updateForm('prestationDate', dateKey);
     setShowCalendarPicker(false);
   }, [updateForm]);
 
-  // Gestion d'erreurs
   const handleError = useCallback((error: any, context: string) => {
     console.error(`❌ Erreur ${context}:`, error);
     
@@ -754,33 +1141,49 @@ export default function CreateOrderScreen() {
     setSubmitError(userMessage);
   }, []);
 
-  // ✅ CHARGEMENT DES DONNÉES
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([
-        loadService(),
-        loadUserData()
-      ]);
-      setLoading(false);
-    };
-    loadData();
+  // 💳 GESTION PAIEMENT
+  const handleProceedToPayment = useCallback(() => {
+    setShowSummary(false);
+    setShowPaymentModal(true);
   }, []);
 
-  // ✅ MISE À JOUR : Initialiser allowMultipleCandidates selon workflow_type
-  useEffect(() => {
-    if (!loading && selectedService) {
-      const shouldShow = shouldShowMultipleCandidatesOption();
-      
-      setForm(prev => ({
-        ...prev,
-        startTime: '', // FORCE le champ heure à rester vide
-        // ✅ NOUVEAU : Initialiser selon workflow_type
-        allowMultipleCandidates: shouldShow ? true : false,
-      }));
-    }
-  }, [loading, selectedService, shouldShowMultipleCandidatesOption]);
+  const handlePaymentSuccess = useCallback(async (paymentIntentId: string) => {
+    setPaymentValidated(true);
+    setShowPaymentModal(false);
+    
+    const validatedAmount = parseFloat(form.proposedAmount.replace(/[^\d.,]/g, '').replace(',', '.'));
+    console.log('💳 Pré-autorisation réussie, montant validé:', validatedAmount);
+    
+    await handleSubmit(true, paymentIntentId, validatedAmount);
+  }, [form.proposedAmount]);
 
+  const handlePaymentError = useCallback((error: string) => {
+    console.error('❌ Erreur pré-autorisation:', error);
+    setProcessingPayment(false);
+    
+    let userMessage = error;
+    let actions = [{ text: 'Annuler', onPress: () => setShowPaymentModal(false) }];
+    
+    if (error.includes('card_declined')) {
+      userMessage = 'Carte refusée. Vérifiez vos informations ou utilisez une autre carte.';
+      actions = [
+        { text: 'Réessayer', onPress: () => setShowPaymentModal(true) },
+        { text: 'Annuler', onPress: () => setShowPaymentModal(false) }
+      ];
+    } else if (error.includes('insufficient_funds')) {
+      userMessage = 'Fonds insuffisants sur votre carte.';
+    } else if (error.includes('authentication_required')) {
+      userMessage = 'Authentification 3D Secure requise. Veuillez réessayer.';
+      actions = [
+        { text: 'Réessayer', onPress: () => setShowPaymentModal(true) },
+        { text: 'Annuler', onPress: () => setShowPaymentModal(false) }
+      ];
+    }
+    
+    Alert.alert('Erreur de pré-autorisation', userMessage, actions);
+  }, []);
+
+  // 🚀 CHARGEMENT
   const loadService = useCallback(async () => {
     try {
       const serviceId = params.serviceId as string;
@@ -794,7 +1197,6 @@ export default function CreateOrderScreen() {
         throw new Error('ID de service invalide');
       }
 
-      // ✅ MISE À JOUR : Ajouter workflow_type à la requête
       const { data, error } = await supabase
         .from('services')
         .select('id, title, description, categorie, estimatedDuration, workflow_type')
@@ -810,7 +1212,7 @@ export default function CreateOrderScreen() {
         ...prev,
         serviceTitle: data.title,
         description: '',
-        duration: '' // ✅ CORRECTION : Pas de valeur par défaut pour la durée
+        duration: ''
       }));
 
     } catch (error: any) {
@@ -851,7 +1253,6 @@ export default function CreateOrderScreen() {
     }
   }, []);
 
-  // Validation pour la synthèse
   const validateFormForSummary = useCallback(() => {
     const validation = validateForm(form);
     
@@ -873,53 +1274,16 @@ export default function CreateOrderScreen() {
     return true;
   }, [form, validateForm]);
 
-  // 💳 NOUVELLES FONCTIONS DE PAIEMENT
-  
-  const handleProceedToPayment = useCallback(() => {
-    // Fermer la synthèse et ouvrir la modal de paiement
-    setShowSummary(false);
-    setShowPaymentModal(true);
-  }, []);
-
-  // 🔧 FONCTION handlePaymentSuccess CORRIGÉE
-  const handlePaymentSuccess = useCallback(async (paymentIntentId: string) => {
-    setPaymentValidated(true);
-    setShowPaymentModal(false);
-    
-    // ✅ NOUVEAU : Sauvegarder le montant validé avant d'appeler handleSubmit
-    const validatedAmount = parseFloat(form.proposedAmount.replace(/[^\d.,]/g, '').replace(',', '.'));
-    
-    console.log('💳 Paiement réussi, montant validé:', validatedAmount);
-    
-    // ✅ NOUVEAU : Appeler handleSubmit avec le montant pré-validé
-    await handleSubmit(true, paymentIntentId, validatedAmount);
-  }, [form.proposedAmount]);
-
-  const handlePaymentError = useCallback((error: string) => {
-    console.error('❌ Erreur paiement:', error);
-    setProcessingPayment(false);
-    Alert.alert(
-      'Erreur de paiement', 
-      error,
-      [
-        { text: 'OK', onPress: () => setShowPaymentModal(false) }
-      ]
-    );
-  }, []);
-
-  // 🔧 CORRECTION CRITIQUE : SOUMISSION ADAPTÉE AVEC GESTION ROBUSTE DU SERVICE ET MONTANT + CANDIDATURES MULTIPLES
+  // 🚀 SOUMISSION COMPLÈTE
   const handleSubmit = useCallback(async (
     paymentAlreadyValidated: boolean = false, 
     paymentIntentId?: string,
-    preValidatedAmount?: number  // ✅ NOUVEAU paramètre
+    preValidatedAmount?: number
   ) => {
-    // Vérifier que le paiement a été validé (soit via l'état, soit via le paramètre)
     if (!paymentAlreadyValidated && !paymentValidated) {
       return;
     }
     
-    // ✅ CORRECTION CRITIQUE : Ne pas revalider si le paiement est déjà validé
-    // La validation a déjà été faite dans validateFormForSummary avant le paiement
     if (!paymentAlreadyValidated) {
       const validation = validateForm(form);
       
@@ -939,7 +1303,6 @@ export default function CreateOrderScreen() {
       }
     }
     
-    // ✅ CORRECTION : Récupérer l'utilisateur si currentUser est null
     let activeUser = currentUser;
     if (!activeUser) {
       try {
@@ -950,7 +1313,7 @@ export default function CreateOrderScreen() {
           return;
         }
         activeUser = user;
-        setCurrentUser(user); // Mettre à jour l'état aussi
+        setCurrentUser(user);
       } catch (error) {
         console.error('❌ Erreur récupération utilisateur:', error);
         Alert.alert('Erreur', 'Impossible de vérifier votre session');
@@ -958,8 +1321,6 @@ export default function CreateOrderScreen() {
       }
     }
     
-    // 🔧 CORRECTION CRITIQUE : GESTION ROBUSTE DU SERVICE SÉLECTIONNÉ
-    // Récupérer le service depuis les paramètres si selectedService est null
     let activeService = selectedService;
     if (!activeService && params.serviceId) {
       try {
@@ -977,7 +1338,7 @@ export default function CreateOrderScreen() {
         }
         
         activeService = serviceData;
-        setSelectedService(serviceData); // Mettre à jour l'état aussi
+        setSelectedService(serviceData);
       } catch (error) {
         console.error('❌ Erreur récupération service:', error);
         Alert.alert('Erreur', 'Impossible de récupérer le service sélectionné');
@@ -993,27 +1354,52 @@ export default function CreateOrderScreen() {
     setSubmitting(true);
     
     try {
-      // Construire l'objet addresses
+      let photoUrls: string[] = [];
+      
+      if (form.photos.length > 0) {
+        try {
+          console.log(`📸 Upload de ${form.photos.length} photos...`);
+          photoUrls = await uploadAllPhotos(form.photos, activeUser.id);
+          console.log(`✅ Photos uploadées: ${photoUrls.length}/${form.photos.length}`);
+        } catch (photoError) {
+          console.error('❌ Erreur upload photos:', photoError);
+          
+          const continueWithoutPhotos = await new Promise<boolean>((resolve) => {
+            Alert.alert(
+              'Erreur upload photos',
+              'Impossible d\'uploader les photos. Voulez-vous continuer la création de commande sans les photos ?',
+              [
+                { text: 'Annuler', style: 'cancel', onPress: () => resolve(false) },
+                { text: 'Continuer sans photos', onPress: () => resolve(true) }
+              ]
+            );
+          });
+          
+          if (!continueWithoutPhotos) {
+            setSubmitting(false);
+            return;
+          }
+          
+          photoUrls = [];
+        }
+      }
+
       const addressesData = buildAddressesObject(form, activeService);
       
-      // Données de date/heure
       let serviceDate, serviceStartTime, serviceEndTime;
       
       serviceDate = form.prestationDate || null;
       serviceStartTime = form.startTime || null;
       serviceEndTime = form.startTime && form.duration 
-        ? calculateEndTime(form.startTime, form.duration) 
+        ? calculatedEndTime 
         : null;
 
-      // ✅ CORRECTION : Utiliser le montant pré-validé si disponible
       let parsedAmount;
       
       if (preValidatedAmount && preValidatedAmount > 0) {
-        // Utiliser le montant pré-validé du paiement
         parsedAmount = preValidatedAmount;
         console.log('💰 Utilisation montant pré-validé:', parsedAmount);
       } else {
-        // Validation normale du montant
         const cleanAmount = form.proposedAmount.replace(/[^\d.,]/g, '').replace(',', '.');
         parsedAmount = parseFloat(cleanAmount);
         
@@ -1024,61 +1410,42 @@ export default function CreateOrderScreen() {
         console.log('💰 Utilisation montant du formulaire:', parsedAmount);
       }
 
-      // Données pour l'insertion directe correspondant à la structure Supabase
+      // DONNÉES COMPLÈTES - TOUS LES CHAMPS CONSERVÉS
       const orderData = {
-        // IDs et relations
         client_id: activeUser.id,
         service_id: activeService.id,
         user_id: null,
         fourmiz_id: null,
-        
-        // Description et montant (avec protection contre NaN)
         description: form.description || '',
         proposed_amount: parsedAmount,
-        
-        // Dates et horaires
         date: serviceDate,
         start_time: serviceStartTime,
         end_time: serviceEndTime,
         duration: form.duration ? parseInt(form.duration, 10) : null,
-        
-        // Adresses
         address: form.address,
         phone: form.phone,
         urgent: form.isUrgent,
         urgency_level: 'normal',
         invoice_required: form.needsInvoice,
-        
-        // Statut 
         status: 'en_attente',
-        
-        // 💳 PAIEMENT : Marquer comme autorisé avec horodatage
         payment_status: 'authorized',
         payment_authorized_at: new Date().toISOString(),
-        
-        // ✅ NOUVEAU : Candidatures multiples
+        authorization_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        payment_captured_at: null,
+        payment_intent_id: paymentIntentId || null,
         allow_multiple_candidates: form.allowMultipleCandidates,
-        
-        // timestamps
+        photo_urls: photoUrls.length > 0 ? photoUrls : null,
         created_at: new Date().toISOString(),
         updated_at: null,
-        
-        // Champs de confirmation/annulation
         confirmed_by_fourmiz: false,
         accepted_at: null,
         cancelled_at: null,
         cancelled_by: null,
-        
-        // Évaluation
         rating: null,
         feedback: null,
-        
-        // Facturation
         invoice_url: null,
         urgency_surcharge: '0.00',
         cancellation_fee: '0.00',
-        
-        // Objet addresses complet 
         addresses: addressesData,
         postal_code: form.postalCode,
         city: form.city,
@@ -1088,28 +1455,33 @@ export default function CreateOrderScreen() {
         arrival_city: form.arrivalCity || null,
         delivery_address: form.deliveryAddress || null,
         pickup_address: form.pickupAddress || null,
-        
-        // Commission
+        // 🔧 CHAMPS CONSERVÉS
+        departure_time: form.departureTime || null,
+        pickup_time: form.pickupTime || null,
+        package_number: form.packageNumber || null,
+        equipment: form.equipment || null,
+        alternative_phone: form.alternativePhone || null,
+        company_name: form.companyName || null,
+        siret: form.siret || null,
+        invoice_type: form.invoiceType,
         commission: null
       };
 
-      console.log('📝 Données commande à insérer:', {
+      console.log('📝 Données commande complètes à insérer:', {
         service_id: orderData.service_id,
         service_title: activeService.title,
         proposed_amount: orderData.proposed_amount,
         payment_status: orderData.payment_status,
+        authorization_expires_at: orderData.authorization_expires_at,
         allow_multiple_candidates: orderData.allow_multiple_candidates,
-        workflow_type: activeService.workflow_type
+        workflow_type: activeService.workflow_type,
+        photos_count: photoUrls.length,
+        pickup_address: orderData.pickup_address,
+        delivery_address: orderData.delivery_address,
+        equipment: orderData.equipment,
+        package_number: orderData.package_number,
+        invoice_required: orderData.invoice_required
       });
-
-      // 🔍 DÉBOGAGE COMPLET DE L'OBJET
-      console.log('🔍 OBJET COMPLET AVANT SUPABASE:', JSON.stringify(orderData, null, 2));
-      console.log('🔍 CLÉS DE L\'OBJET:', Object.keys(orderData));
-      console.log('🔍 RECHERCHE "nom":', Object.keys(orderData).filter(key => key.includes('nom')));
-      console.log('🔍 RECHERCHE "nom" dans les valeurs:', Object.entries(orderData).filter(([key, value]) => 
-        (typeof value === 'string' && value.includes('nom')) || 
-        (typeof value === 'object' && value && JSON.stringify(value).includes('nom'))
-      ));
 
       const { data: insertResult, error: insertError } = await supabase
         .from('orders')
@@ -1124,19 +1496,17 @@ export default function CreateOrderScreen() {
 
       console.log('✅ Commande créée avec succès:', insertResult.id);
 
-      // Traitement du parrainage client
       try {
         await supabase.rpc('process_referral_for_order', { 
           order_id_input: insertResult.id 
         });
       } catch (referralError) {
         console.error('Erreur traitement parrainage:', referralError);
-        // Ne pas bloquer la création de commande pour une erreur de parrainage
       }
 
       Alert.alert(
-        'Commande créée et paiement confirmé !',
-        `Votre commande #${insertResult.id} pour "${activeService.title}" a été créée avec succès.\n\n💳 Votre paiement de ${parsedAmount.toFixed(2)}€ est confirmé.`,
+        'Commande créée et paiement pré-autorisé !',
+        `Votre commande #${insertResult.id} pour "${activeService.title}" a été créée avec succès.\n\n💳 Votre paiement de ${parsedAmount.toFixed(2)}€ est pré-autorisé et sera débité dès qu'une Fourmiz acceptera votre mission.${photoUrls.length > 0 ? `\n📸 ${photoUrls.length} photo(s) jointe(s).` : ''}`,
         [
           { 
             text: 'Voir mes commandes', 
@@ -1150,11 +1520,52 @@ export default function CreateOrderScreen() {
       handleError(error, 'order_creation');
     } finally {
       setSubmitting(false);
-      setPaymentValidated(false); // Reset pour prochaine utilisation
+      setPaymentValidated(false);
     }
-  }, [validateForm, currentUser, selectedService, form, handleError, calculateEndTime, buildAddressesObject, paymentValidated, router, params.serviceId]);
+  }, [validateForm, currentUser, selectedService, form, handleError, calculatedEndTime, buildAddressesObject, paymentValidated, router, params.serviceId]);
 
-  // ✅ GESTION DE L'ERREUR DE CHARGEMENT AVEC NAVIGATION CORRIGÉE
+  // 🚀 EFFECTS
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([
+        loadService(),
+        loadUserData()
+      ]);
+      setLoading(false);
+    };
+    loadData();
+  }, [loadService, loadUserData]);
+
+  useEffect(() => {
+    if (!loading && selectedService) {
+      const shouldShow = shouldShowMultipleCandidatesOption;
+      
+      setForm(prev => ({
+        ...prev,
+        startTime: '',
+        allowMultipleCandidates: shouldShow ? true : false,
+      }));
+    }
+  }, [loading, selectedService, shouldShowMultipleCandidatesOption]);
+
+  // ✅ FONCTION POUR DÉTERMINER LES CHAMPS À AFFICHER SELON LA CATÉGORIE
+  const shouldShowTransportFields = useMemo(() => {
+    return selectedService?.categorie?.toLowerCase().includes('transport') || 
+           selectedService?.categorie?.toLowerCase().includes('déménagement');
+  }, [selectedService?.categorie]);
+
+  const shouldShowDeliveryFields = useMemo(() => {
+    return selectedService?.categorie?.toLowerCase().includes('livraison') || 
+           selectedService?.categorie?.toLowerCase().includes('courses');
+  }, [selectedService?.categorie]);
+
+  const shouldShowPackageFields = useMemo(() => {
+    return selectedService?.categorie?.toLowerCase().includes('colis') || 
+           selectedService?.categorie?.toLowerCase().includes('envoi');
+  }, [selectedService?.categorie]);
+
+  // Gestion d'erreur de chargement
   if (submitError && !selectedService) {
     return (
       <SafeAreaView style={styles.container}>
@@ -1186,7 +1597,7 @@ export default function CreateOrderScreen() {
             
             <TouchableOpacity 
               style={[styles.retryButton, loading && styles.retryButtonDisabled]}
-              onPress={() => loadService()}
+              onPress={loadService}
               disabled={loading}
             >
               {loading ? (
@@ -1228,7 +1639,6 @@ export default function CreateOrderScreen() {
     );
   }
 
-  // ✅ RENDU PRINCIPAL
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen 
@@ -1260,7 +1670,6 @@ export default function CreateOrderScreen() {
             autoscrollToTopThreshold: null
           }}
         >
-          {/* Bouton de retour visible */}
           <View style={styles.section}>
             <TouchableOpacity
               style={styles.backToServicesButton}
@@ -1271,7 +1680,6 @@ export default function CreateOrderScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Service sélectionné */}
           {selectedService && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Service sélectionné</Text>
@@ -1286,7 +1694,6 @@ export default function CreateOrderScreen() {
             </View>
           )}
 
-          {/* Montant proposé */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Montant proposé *</Text>
             <View style={[styles.inputContainer, errors.proposedAmount && styles.inputError]}>
@@ -1298,15 +1705,12 @@ export default function CreateOrderScreen() {
                 onChangeText={(text) => updateForm('proposedAmount', text)}
                 keyboardType="numeric"
                 returnKeyType="done"
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
               <Text style={styles.currencySymbol}>€</Text>
             </View>
             {errors.proposedAmount && <Text style={styles.errorText}>{errors.proposedAmount}</Text>}
           </View>
 
-          {/* Description */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Informations complémentaires</Text>
             <TextInput 
@@ -1319,15 +1723,20 @@ export default function CreateOrderScreen() {
               numberOfLines={3}
               returnKeyType="done"
               textAlignVertical="top"
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
             />
             {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
           </View>
 
-          {/* Adresse */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Adresse *</Text>
+            <PhotoSection 
+              photos={form.photos} 
+              onPhotosChange={handlePhotosChange}
+              maxPhotos={5}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Adresse communiquée au seul prestataire Fourmiz validé *</Text>
             <TextInput 
               style={[styles.input, errors.address && styles.inputError]}
               placeholder="Adresse complète (rue, numéro)"
@@ -1335,13 +1744,142 @@ export default function CreateOrderScreen() {
               value={form.address}
               onChangeText={(text) => updateForm('address', text)}
               returnKeyType="done"
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
             />
             {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
           </View>
 
-          {/* Code postal et ville */}
+          {/* 🚚 CHAMPS TRANSPORT/DÉMÉNAGEMENT CONDITIONNELS */}
+          {shouldShowTransportFields && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Adresse d'arrivée (transport)</Text>
+              <TextInput 
+                style={styles.input}
+                placeholder="Adresse de destination"
+                placeholderTextColor="#999999"
+                value={form.arrivalAddress}
+                onChangeText={(text) => updateForm('arrivalAddress', text)}
+                returnKeyType="done"
+              />
+              
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <Text style={styles.subSectionTitle}>Code postal arrivée</Text>
+                  <TextInput 
+                    style={styles.input}
+                    placeholder="Ex: 67000"
+                    placeholderTextColor="#999999"
+                    value={form.arrivalPostalCode}
+                    onChangeText={(text) => updateForm('arrivalPostalCode', text)}
+                    keyboardType="numeric"
+                    maxLength={5}
+                    returnKeyType="done"
+                  />
+                </View>
+                
+                <View style={styles.halfWidth}>
+                  <Text style={styles.subSectionTitle}>Ville d'arrivée</Text>
+                  <TextInput 
+                    style={styles.input}
+                    placeholder="Ex: Strasbourg"
+                    placeholderTextColor="#999999"
+                    value={form.arrivalCity}
+                    onChangeText={(text) => updateForm('arrivalCity', text)}
+                    returnKeyType="done"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.phoneField}>
+                <Text style={styles.subSectionTitle}>Heure de départ (facultative)</Text>
+                <TextInput 
+                  style={styles.input}
+                  placeholder="Ex: 14:30"
+                  placeholderTextColor="#999999"
+                  value={form.departureTime}
+                  onChangeText={(text) => updateForm('departureTime', text)}
+                  returnKeyType="done"
+                />
+              </View>
+            </View>
+          )}
+
+          {/* 🚚 CHAMPS LIVRAISON CONDITIONNELS */}
+          {shouldShowDeliveryFields && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Adresses de livraison</Text>
+              
+              <View style={styles.phoneField}>
+                <Text style={styles.subSectionTitle}>Adresse de récupération (facultative)</Text>
+                <TextInput 
+                  style={styles.input}
+                  placeholder="Où récupérer l'objet/produit"
+                  placeholderTextColor="#999999"
+                  value={form.pickupAddress}
+                  onChangeText={(text) => updateForm('pickupAddress', text)}
+                  returnKeyType="done"
+                />
+              </View>
+
+              <View style={styles.phoneField}>
+                <Text style={styles.subSectionTitle}>Adresse de livraison (facultative)</Text>
+                <TextInput 
+                  style={styles.input}
+                  placeholder="Où livrer l'objet/produit"
+                  placeholderTextColor="#999999"
+                  value={form.deliveryAddress}
+                  onChangeText={(text) => updateForm('deliveryAddress', text)}
+                  returnKeyType="done"
+                />
+              </View>
+            </View>
+          )}
+
+          {/* 📦 CHAMPS COLIS CONDITIONNELS */}
+          {shouldShowPackageFields && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Informations colis</Text>
+              
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <Text style={styles.subSectionTitle}>Heure de récupération</Text>
+                  <TextInput 
+                    style={styles.input}
+                    placeholder="Ex: 14:30"
+                    placeholderTextColor="#999999"
+                    value={form.pickupTime}
+                    onChangeText={(text) => updateForm('pickupTime', text)}
+                    returnKeyType="done"
+                  />
+                </View>
+                
+                <View style={styles.halfWidth}>
+                  <Text style={styles.subSectionTitle}>Numéro de colis</Text>
+                  <TextInput 
+                    style={styles.input}
+                    placeholder="Ex: COL123456"
+                    placeholderTextColor="#999999"
+                    value={form.packageNumber}
+                    onChangeText={(text) => updateForm('packageNumber', text)}
+                    returnKeyType="done"
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 🔧 CHAMP ÉQUIPEMENT (pour tous les services) */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Équipement nécessaire (facultatif)</Text>
+            <TextInput 
+              style={styles.input}
+              placeholder="Ex: Échelle, outils spéciaux, matériel de protection..."
+              placeholderTextColor="#999999"
+              value={form.equipment}
+              onChangeText={(text) => updateForm('equipment', text)}
+              returnKeyType="done"
+            />
+          </View>
+
           <View style={styles.section}>
             <View style={styles.row}>
               <View style={styles.halfWidth}>
@@ -1355,8 +1893,6 @@ export default function CreateOrderScreen() {
                   keyboardType="numeric"
                   maxLength={5}
                   returnKeyType="done"
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
                 />
                 {errors.postalCode && <Text style={styles.errorText}>{errors.postalCode}</Text>}
               </View>
@@ -1370,15 +1906,12 @@ export default function CreateOrderScreen() {
                   value={form.city}
                   onChangeText={(text) => updateForm('city', text)}
                   returnKeyType="done"
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
                 />
                 {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
               </View>
             </View>
           </View>
 
-          {/* Contact */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Contact</Text>
             
@@ -1393,8 +1926,6 @@ export default function CreateOrderScreen() {
                 keyboardType="phone-pad"
                 maxLength={14}
                 returnKeyType="done"
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
               {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
             </View>
@@ -1410,14 +1941,102 @@ export default function CreateOrderScreen() {
                 keyboardType="phone-pad"
                 maxLength={14}
                 returnKeyType="done"
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
               />
             </View>
           </View>
 
-          {/* ✅ NOUVEAU : Candidatures multiples basé sur workflow_type */}
-          {shouldShowMultipleCandidatesOption() && (
+          {/* 📄 SECTION FACTURATION COMPLÈTE */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Facturation</Text>
+            
+            <View style={styles.multipleCandidatesField}>
+              <View style={styles.multipleCandidatesContent}>
+                <Text style={styles.multipleCandidatesText}>Je souhaite une facture</Text>
+                <Text style={styles.multipleCandidatesSubtext}>
+                  Recevez une facture officielle pour cette prestation
+                </Text>
+              </View>
+              <Switch
+                value={form.needsInvoice}
+                onValueChange={(value) => updateForm('needsInvoice', value)}
+                trackColor={{ false: '#e0e0e0', true: '#000000' }}
+                style={styles.multipleCandidatesSwitch}
+              />
+            </View>
+
+            {form.needsInvoice && (
+              <>
+                <View style={styles.invoiceTypeSection}>
+                  <Text style={styles.subSectionTitle}>Type de facturation</Text>
+                  <View style={styles.invoiceTypeButtons}>
+                    <TouchableOpacity
+                      style={[
+                        styles.invoiceTypeButton,
+                        form.invoiceType === 'particulier' && styles.invoiceTypeButtonSelected
+                      ]}
+                      onPress={() => updateForm('invoiceType', 'particulier')}
+                    >
+                      <Text style={[
+                        styles.invoiceTypeButtonText,
+                        form.invoiceType === 'particulier' && styles.invoiceTypeButtonTextSelected
+                      ]}>
+                        Particulier
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[
+                        styles.invoiceTypeButton,
+                        form.invoiceType === 'entreprise' && styles.invoiceTypeButtonSelected
+                      ]}
+                      onPress={() => updateForm('invoiceType', 'entreprise')}
+                    >
+                      <Text style={[
+                        styles.invoiceTypeButtonText,
+                        form.invoiceType === 'entreprise' && styles.invoiceTypeButtonTextSelected
+                      ]}>
+                        Entreprise
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {form.invoiceType === 'entreprise' && (
+                  <View style={styles.companyFields}>
+                    <View style={styles.phoneField}>
+                      <Text style={styles.subSectionTitle}>Nom de l'entreprise *</Text>
+                      <TextInput 
+                        style={[styles.input, errors.companyName && styles.inputError]}
+                        placeholder="Nom de votre entreprise"
+                        placeholderTextColor="#999999"
+                        value={form.companyName}
+                        onChangeText={(text) => updateForm('companyName', text)}
+                        returnKeyType="done"
+                      />
+                      {errors.companyName && <Text style={styles.errorText}>{errors.companyName}</Text>}
+                    </View>
+
+                    <View style={styles.phoneField}>
+                      <Text style={styles.subSectionTitle}>SIRET *</Text>
+                      <TextInput 
+                        style={[styles.input, errors.siret && styles.inputError]}
+                        placeholder="14 chiffres (ex: 12345678901234)"
+                        placeholderTextColor="#999999"
+                        value={form.siret}
+                        onChangeText={(text) => updateForm('siret', text)}
+                        keyboardType="numeric"
+                        maxLength={14}
+                        returnKeyType="done"
+                      />
+                      {errors.siret && <Text style={styles.errorText}>{errors.siret}</Text>}
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+
+          {shouldShowMultipleCandidatesOption && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Candidatures</Text>
               
@@ -1447,20 +2066,17 @@ export default function CreateOrderScreen() {
             </View>
           )}
 
-          {/* Date de prestation AVEC CALENDRIER */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               Date de prestation{!form.isUrgent ? ' *' : ' (facultative)'}
             </Text>
             
-            {/* Champ "Dès que possible" */}
             <View style={styles.urgentDropdownField}>
               <Text style={styles.urgentDropdownText}>Dès que possible</Text>
               <Switch
                 value={form.isUrgent}
                 onValueChange={(value) => {
                   updateForm('isUrgent', value);
-                  // ✅ NOUVEAU : Mettre la date du jour par défaut quand "Dès que possible" est activé
                   if (value && !form.prestationDate) {
                     const today = new Date();
                     const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1481,7 +2097,6 @@ export default function CreateOrderScreen() {
               </View>
             )}
             
-            {/* 📅 NOUVEAU : Bouton calendrier au lieu du dropdown */}
             <DropdownButton
               value={form.prestationDate ? getSelectedDateLabel() : undefined}
               placeholder={form.isUrgent ? "Choisir une date (facultatif)" : "Choisir une date"}
@@ -1492,7 +2107,6 @@ export default function CreateOrderScreen() {
             {!form.isUrgent && errors.prestationDate && <Text style={styles.errorText}>{errors.prestationDate}</Text>}
           </View>
 
-          {/* Planning */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Planning</Text>
             <View style={styles.row}>
@@ -1526,7 +2140,6 @@ export default function CreateOrderScreen() {
             )}
           </View>
 
-          {/* Erreur de soumission */}
           {submitError && (
             <View style={styles.section}>
               <View style={styles.submitErrorContainer}>
@@ -1536,7 +2149,6 @@ export default function CreateOrderScreen() {
             </View>
           )}
 
-          {/* Bouton synthèse */}
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity
               style={[styles.summaryButton, submitting && styles.summaryButtonDisabled]}
@@ -1558,7 +2170,6 @@ export default function CreateOrderScreen() {
         </ScrollView>
       </View>
 
-      {/* MODAL SYNTHÈSE AVEC BOUTON PAIEMENT */}
       <Modal visible={showSummary} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.summaryModal}>
           <View style={styles.summaryHeader}>
@@ -1577,8 +2188,7 @@ export default function CreateOrderScreen() {
                 {form.isUrgent && (
                   <Text style={styles.summaryUrgent}>• Dès que possible (gratuit)</Text>
                 )}
-                {/* ✅ NOUVEAU */}
-                {shouldShowMultipleCandidatesOption() && (
+                {shouldShowMultipleCandidatesOption && (
                   <Text style={styles.summaryItem}>
                     • Candidatures multiples : {form.allowMultipleCandidates ? 'Oui' : 'Non'}
                   </Text>
@@ -1594,6 +2204,17 @@ export default function CreateOrderScreen() {
               )}
               {!form.postalCode && form.city && (
                 <Text style={styles.summaryItem}>• {form.city}</Text>
+              )}
+              
+              {/* Adresses supplémentaires conditionnelles */}
+              {form.arrivalAddress && (
+                <Text style={styles.summaryItem}>• Destination : {form.arrivalAddress}</Text>
+              )}
+              {form.pickupAddress && (
+                <Text style={styles.summaryItem}>• Récupération : {form.pickupAddress}</Text>
+              )}
+              {form.deliveryAddress && (
+                <Text style={styles.summaryItem}>• Livraison : {form.deliveryAddress}</Text>
               )}
             </View>
 
@@ -1637,6 +2258,27 @@ export default function CreateOrderScreen() {
                     )}
                   </>
                 )}
+                
+                {/* Horaires supplémentaires */}
+                {form.departureTime && (
+                  <Text style={styles.summaryItem}>• Heure de départ : {form.departureTime}</Text>
+                )}
+                {form.pickupTime && (
+                  <Text style={styles.summaryItem}>• Heure de récupération : {form.pickupTime}</Text>
+                )}
+              </View>
+            )}
+
+            {/* Section pour les informations spécifiques */}
+            {(form.packageNumber || form.equipment) && (
+              <View style={styles.summarySection}>
+                <Text style={styles.summarySectionTitle}>Informations spécifiques</Text>
+                {form.packageNumber && (
+                  <Text style={styles.summaryItem}>• Numéro de colis : {form.packageNumber}</Text>
+                )}
+                {form.equipment && (
+                  <Text style={styles.summaryItem}>• Équipement : {form.equipment}</Text>
+                )}
               </View>
             )}
 
@@ -1647,17 +2289,31 @@ export default function CreateOrderScreen() {
               </View>
             )}
 
-            {/* SECTION PAIEMENT */}
+            {/* Section facturation */}
+            {form.needsInvoice && (
+              <View style={styles.summarySection}>
+                <Text style={styles.summarySectionTitle}>Facturation</Text>
+                <Text style={styles.summaryItem}>• Type : {form.invoiceType === 'particulier' ? 'Particulier' : 'Entreprise'}</Text>
+                {form.invoiceType === 'entreprise' && form.companyName && (
+                  <Text style={styles.summaryItem}>• Entreprise : {form.companyName}</Text>
+                )}
+                {form.invoiceType === 'entreprise' && form.siret && (
+                  <Text style={styles.summaryItem}>• SIRET : {form.siret}</Text>
+                )}
+              </View>
+            )}
+
+            <PhotoSummary photos={form.photos} />
+
             <View style={styles.summarySection}>
-              <Text style={styles.summarySectionTitle}>Paiement</Text>
-              <Text style={styles.summaryItem}>• Montant à autoriser : {form.proposedAmount}€</Text>
+              <Text style={styles.summarySectionTitle}>Pré-autorisation de paiement</Text>
+              <Text style={styles.summaryItem}>• Montant à pré-autoriser : {form.proposedAmount}€</Text>
               <Text style={styles.summaryPaymentNote}>
-                Le paiement sera autorisé maintenant et débité automatiquement dès qu'une Fourmiz acceptera votre mission.
+                Le paiement sera pré-autorisé maintenant et débité automatiquement dès qu'une Fourmiz acceptera votre mission. L'autorisation expire dans 7 jours si aucune Fourmiz n'accepte.
               </Text>
             </View>
           </ScrollView>
 
-          {/* ACTIONS AVEC BOUTON PAIEMENT */}
           <View style={styles.summaryActions}>
             <TouchableOpacity 
               style={styles.backButton}
@@ -1674,16 +2330,19 @@ export default function CreateOrderScreen() {
               onPress={handleProceedToPayment}
               disabled={submitting || processingPayment}
             >
-              <Ionicons name="card" size={16} color="#fff" />
+              {processingPayment ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="shield-checkmark" size={16} color="#fff" />
+              )}
               <Text style={styles.paymentButtonText}>
-                Autoriser le paiement
+                {processingPayment ? 'Pré-autorisation...' : 'Pré-autoriser le paiement'}
               </Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>
 
-      {/* MODAL DE PAIEMENT STRIPE */}
       {selectedService && (
         <PaymentModal
           visible={showPaymentModal}
@@ -1703,7 +2362,6 @@ export default function CreateOrderScreen() {
         />
       )}
 
-      {/* 📅 NOUVEAU : Modal Calendrier (remplace la modal de sélection de date) */}
       <CalendarPicker
         visible={showCalendarPicker}
         selectedDate={form.prestationDate}
@@ -1711,7 +2369,6 @@ export default function CreateOrderScreen() {
         onCancel={() => setShowCalendarPicker(false)}
       />
 
-      {/* Modals de sélection pour heures et durées */}
       <SelectModal
         visible={showStartTimePicker}
         title="Heure de début"
@@ -1739,706 +2396,166 @@ export default function CreateOrderScreen() {
   );
 }
 
-// 🎨 STYLES AVEC AJOUTS POUR LE CALENDRIER ET CANDIDATURES MULTIPLES
+// Styles Photos
+const photoStyles = StyleSheet.create({
+  container: { marginVertical: 8 },
+  title: { fontSize: 13, fontWeight: '600', marginBottom: 4, color: '#000000' },
+  subtitle: { fontSize: 12, color: '#666666', marginBottom: 12 },
+  photosList: { marginBottom: 12 },
+  photoContainer: { position: 'relative', marginRight: 8 },
+  photoThumbnail: { width: 80, height: 80, borderRadius: 8, backgroundColor: '#f0f0f0' },
+  removeButton: { position: 'absolute', top: -6, right: -6, backgroundColor: '#ffffff', borderRadius: 10 },
+  addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#40E0D0', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 6, justifyContent: 'center', gap: 8 },
+  addButtonDisabled: { opacity: 0.6 },
+  addButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '500' },
+});
+
+const photoSummaryStyles = StyleSheet.create({
+  container: { marginVertical: 8 },
+  title: { fontSize: 13, fontWeight: '600', marginBottom: 8, color: '#000000' },
+  scrollContent: { paddingRight: 16 },
+  thumbnail: { width: 80, height: 80, borderRadius: 8, marginRight: 8, position: 'relative', overflow: 'hidden' },
+  thumbnailImage: { width: '100%', height: '100%', backgroundColor: '#f0f0f0' },
+  thumbnailOverlay: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: 4 },
+  viewerContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  closeButton: { position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20 },
+  navButton: { position: 'absolute', top: '50%', zIndex: 10, padding: 12, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20 },
+  prevButton: { left: 20 },
+  nextButton: { right: 20 },
+  fullImage: { width: '90%', height: '70%' },
+  indicator: { position: 'absolute', bottom: 50, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 },
+  indicatorText: { color: '#ffffff', fontSize: 14, fontWeight: '500' },
+});
+
+// Styles principaux complets
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
   scrollView: { flex: 1 },
-  scrollContent: { 
-    paddingBottom: Platform.OS === 'ios' ? 200 : 150,
-    flexGrow: 1 
-  },
-  
+  scrollContent: { paddingBottom: Platform.OS === 'ios' ? 200 : 150, flexGrow: 1 },
   headerButton: { padding: 6, marginLeft: 8 },
-  
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: { 
-    fontSize: 13, 
-    color: '#333333',
-    fontWeight: '400'
-  },
-  
-  loadingButtonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    gap: 16,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  errorMessage: {
-    fontSize: 13,
-    color: '#666666',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  errorActions: {
-    flexDirection: 'column',
-    gap: 12,
-    alignItems: 'center',
-  },
-  backToServicesButtonError: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    gap: 8,
-  },
-  backToServicesTextError: {
-    color: '#333333',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 6,
-    gap: 8,
-  },
-  retryButtonDisabled: {
-    opacity: 0.6,
-  },
-  retryButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  
-  submitErrorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    padding: 12,
-    borderRadius: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: '#333333',
-    gap: 8,
-  },
-  submitErrorText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#333333',
-    lineHeight: 18,
-  },
-  
-  section: { 
-    marginBottom: 16, 
-    paddingHorizontal: 20 
-  },
-  row: { 
-    flexDirection: 'row', 
-    gap: 12 
-  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  loadingText: { fontSize: 13, color: '#333333', fontWeight: '400' },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, gap: 16 },
+  errorTitle: { fontSize: 18, fontWeight: '600', color: '#000000' },
+  errorMessage: { fontSize: 13, color: '#666666', textAlign: 'center', lineHeight: 18 },
+  errorActions: { flexDirection: 'column', gap: 12, alignItems: 'center' },
+  backToServicesButtonError: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6, borderWidth: 1, borderColor: '#e0e0e0', gap: 8 },
+  backToServicesTextError: { color: '#333333', fontSize: 13, fontWeight: '500' },
+  retryButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#000000', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6, gap: 8 },
+  retryButtonDisabled: { opacity: 0.6 },
+  retryButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '500' },
+  submitErrorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8f8f8', padding: 12, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#333333', gap: 8 },
+  submitErrorText: { flex: 1, fontSize: 13, color: '#333333', lineHeight: 18 },
+  section: { marginBottom: 16, paddingHorizontal: 20 },
+  row: { flexDirection: 'row', gap: 12 },
   halfWidth: { flex: 1 },
-  
   keyboardSpacer: { height: 120 },
+  sectionTitle: { fontSize: 13, fontWeight: '600', color: '#000000', marginBottom: 10, letterSpacing: -0.2 },
+  subSectionTitle: { fontSize: 12, fontWeight: '500', color: '#333333', marginBottom: 6 },
+  backToServicesButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, borderWidth: 1, borderColor: '#e0e0e0', gap: 6, marginBottom: 8 },
+  backToServicesText: { fontSize: 12, color: '#666666', fontWeight: '400' },
+  selectedServiceCard: { backgroundColor: '#f8f8f8', padding: 16, borderRadius: 6, borderWidth: 0 },
+  selectedServiceTitle: { fontSize: 13, fontWeight: '600', color: '#000000', marginBottom: 4 },
+  selectedServiceDescription: { fontSize: 12, color: '#333333', lineHeight: 16 },
+  urgentDropdownField: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 6, backgroundColor: '#ffffff', padding: 12, marginBottom: 10 },
+  urgentDropdownText: { fontSize: 13, color: '#000000', fontWeight: '400' },
+  urgentSwitch: { transform: [{ scale: 0.8 }] },
+  urgencyNote: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0f0f0', padding: 10, borderRadius: 6, marginBottom: 10, gap: 6 },
+  urgencyNoteText: { fontSize: 12, color: '#333333', fontWeight: '500' },
+  multipleCandidatesField: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 6, backgroundColor: '#ffffff', padding: 12, marginBottom: 10 },
+  multipleCandidatesContent: { flex: 1, marginRight: 12 },
+  multipleCandidatesText: { fontSize: 13, color: '#000000', fontWeight: '500', marginBottom: 2 },
+  multipleCandidatesSubtext: { fontSize: 11, color: '#666666', lineHeight: 14 },
+  multipleCandidatesSwitch: { transform: [{ scale: 0.8 }] },
+  multipleCandidatesNote: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0f0f0', padding: 10, borderRadius: 6, marginBottom: 10, gap: 6 },
+  multipleCandidatesNoteText: { fontSize: 12, color: '#333333', fontWeight: '500', flex: 1, lineHeight: 16 },
   
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 10,
-    letterSpacing: -0.2,
-  },
-  subSectionTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#333333',
-    marginBottom: 6,
-  },
+  // Styles facturation
+  invoiceTypeSection: { marginBottom: 12 },
+  invoiceTypeButtons: { flexDirection: 'row', gap: 8 },
+  invoiceTypeButton: { flex: 1, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, borderWidth: 1, borderColor: '#e0e0e0', backgroundColor: '#ffffff', alignItems: 'center' },
+  invoiceTypeButtonSelected: { backgroundColor: '#000000', borderColor: '#000000' },
+  invoiceTypeButtonText: { fontSize: 13, color: '#333333', fontWeight: '500' },
+  invoiceTypeButtonTextSelected: { color: '#ffffff' },
+  companyFields: { marginTop: 12 },
   
-  backToServicesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    gap: 6,
-    marginBottom: 8,
-  },
-  backToServicesText: { 
-    fontSize: 12, 
-    color: '#666666', 
-    fontWeight: '400' 
-  },
-  
-  selectedServiceCard: {
-    backgroundColor: '#f8f8f8',
-    padding: 16,
-    borderRadius: 6,
-    borderWidth: 0,
-  },
-  selectedServiceTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  selectedServiceDescription: {
-    fontSize: 12,
-    color: '#333333',
-    lineHeight: 16,
-  },
-  
-  urgentDropdownField: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
-    padding: 12,
-    marginBottom: 10,
-  },
-  urgentDropdownText: {
-    fontSize: 13,
-    color: '#000000',
-    fontWeight: '400',
-  },
-  urgentSwitch: {
-    transform: [{ scale: 0.8 }],
-  },
-  urgencyNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 10,
-    gap: 6,
-  },
-  urgencyNoteText: {
-    fontSize: 12,
-    color: '#333333',
-    fontWeight: '500',
-  },
-  
-  // ✅ NOUVEAUX STYLES POUR CANDIDATURES MULTIPLES
-  multipleCandidatesField: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
-    padding: 12,
-    marginBottom: 10,
-  },
-  multipleCandidatesContent: {
-    flex: 1,
-    marginRight: 12,
-  },
-  multipleCandidatesText: {
-    fontSize: 13,
-    color: '#000000',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  multipleCandidatesSubtext: {
-    fontSize: 11,
-    color: '#666666',
-    lineHeight: 14,
-  },
-  multipleCandidatesSwitch: {
-    transform: [{ scale: 0.8 }],
-  },
-  multipleCandidatesNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 10,
-    gap: 6,
-  },
-  multipleCandidatesNoteText: {
-    fontSize: 12,
-    color: '#333333',
-    fontWeight: '500',
-    flex: 1,
-    lineHeight: 16,
-  },
-  
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
-  },
-  inputWithCurrency: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: '#000000',
-    textAlignVertical: 'center',
-  },
-  input: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: '#000000',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
-    textAlignVertical: 'center',
-  },
-  currencySymbol: {
-    paddingRight: 12,
-    fontSize: 13,
-    color: '#333333',
-    fontWeight: '500',
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
-    padding: 12,
-    fontSize: 13,
-    color: '#000000',
-    minHeight: 80,
-    maxHeight: 120,
-    textAlignVertical: 'top',
-  },
-  inputError: { 
-    borderColor: '#333333',
-    borderWidth: 2,
-  },
-  errorText: { 
-    color: '#333333', 
-    fontSize: 12, 
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  
-  phoneField: {
-    marginBottom: 12,
-  },
-  
-  calculatedEndTime: {
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderRadius: 6,
-    marginTop: 8,
-  },
-  endTimeText: {
-    fontSize: 12,
-    color: '#333333',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  
-  dropdownButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
-    padding: 12,
-    minHeight: 40,
-  },
-  dropdownText: { 
-    fontSize: 13, 
-    color: '#000000',
-    fontWeight: '400',
-  },
-  placeholderText: { 
-    color: '#999999' 
-  },
-  
-  actionButtonsContainer: {
-    marginTop: 24,
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-  summaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#40E0D0',
-    padding: 14,
-    borderRadius: 6,
-    justifyContent: 'center',
-    gap: 8,
-  },
-  summaryButtonDisabled: {
-    opacity: 0.6,
-    backgroundColor: '#999999',
-  },
-  summaryButtonText: { 
-    color: '#ffffff', 
-    fontSize: 13, 
-    fontWeight: '600' 
-  },
-  
-  summaryModal: { 
-    flex: 1, 
-    backgroundColor: '#ffffff' 
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  summaryTitle: { 
-    fontSize: 13, 
-    fontWeight: '600', 
-    color: '#000000' 
-  },
-  summaryContent: { 
-    flex: 1, 
-    padding: 16 
-  },
-  summarySection: { 
-    marginBottom: 16 
-  },
-  summarySectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  summaryItem: {
-    fontSize: 12,
-    color: '#333333',
-    marginBottom: 4,
-    lineHeight: 16,
-  },
-  summaryUrgent: {
-    fontSize: 12,
-    color: '#000000',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  summaryDescription: {
-    fontSize: 12,
-    color: '#333333',
-    lineHeight: 16,
-  },
-  summaryPaymentNote: {
-    fontSize: 11,
-    color: '#666666',
-    fontStyle: 'italic',
-    lineHeight: 15,
-    marginTop: 4,
-    backgroundColor: '#f8f8f8',
-    padding: 8,
-    borderRadius: 4,
-  },
-  summaryActions: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  backButton: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  backButtonText: { 
-    color: '#333333', 
-    fontSize: 13,
-    fontWeight: '500' 
-  },
-  paymentButton: {
-    flex: 2,
-    backgroundColor: '#10b981',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  paymentButtonText: { 
-    color: '#ffffff', 
-    fontSize: 13,
-    fontWeight: '600' 
-  },
-  paymentButtonDisabled: {
-    backgroundColor: '#999999',
-    opacity: 0.6,
-  },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 6, backgroundColor: '#ffffff' },
+  inputWithCurrency: { flex: 1, paddingVertical: 12, paddingHorizontal: 12, fontSize: 13, color: '#000000', textAlignVertical: 'center' },
+  input: { paddingVertical: 12, paddingHorizontal: 12, fontSize: 13, color: '#000000', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 6, backgroundColor: '#ffffff', textAlignVertical: 'center' },
+  currencySymbol: { paddingRight: 12, fontSize: 13, color: '#333333', fontWeight: '500' },
+  textArea: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 6, backgroundColor: '#ffffff', padding: 12, fontSize: 13, color: '#000000', minHeight: 80, maxHeight: 120, textAlignVertical: 'top' },
+  inputError: { borderColor: '#333333', borderWidth: 2 },
+  errorText: { color: '#333333', fontSize: 12, marginTop: 4, fontWeight: '500' },
+  phoneField: { marginBottom: 12 },
+  calculatedEndTime: { backgroundColor: '#f0f0f0', padding: 10, borderRadius: 6, marginTop: 8 },
+  endTimeText: { fontSize: 12, color: '#333333', fontWeight: '500', textAlign: 'center' },
+  dropdownButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 6, backgroundColor: '#ffffff', padding: 12, minHeight: 40 },
+  dropdownText: { fontSize: 13, color: '#000000', fontWeight: '400' },
+  placeholderText: { color: '#999999' },
+  actionButtonsContainer: { marginTop: 24, marginBottom: 20, paddingHorizontal: 20 },
+  summaryButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#40E0D0', padding: 14, borderRadius: 6, justifyContent: 'center', gap: 8 },
+  summaryButtonDisabled: { opacity: 0.6, backgroundColor: '#999999' },
+  summaryButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
+  summaryModal: { flex: 1, backgroundColor: '#ffffff' },
+  summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  summaryTitle: { fontSize: 13, fontWeight: '600', color: '#000000' },
+  summaryContent: { flex: 1, padding: 16 },
+  summarySection: { marginBottom: 16 },
+  summarySectionTitle: { fontSize: 13, fontWeight: '600', color: '#000000', marginBottom: 8 },
+  summaryItem: { fontSize: 12, color: '#333333', marginBottom: 4, lineHeight: 16 },
+  summaryUrgent: { fontSize: 12, color: '#000000', fontWeight: '600', marginBottom: 4 },
+  summaryDescription: { fontSize: 12, color: '#333333', lineHeight: 16 },
+  summaryPaymentNote: { fontSize: 11, color: '#666666', fontStyle: 'italic', lineHeight: 15, marginTop: 4, backgroundColor: '#f8f8f8', padding: 8, borderRadius: 4 },
+  summaryActions: { flexDirection: 'row', padding: 16, gap: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  backButton: { flex: 1, backgroundColor: '#ffffff', padding: 12, borderRadius: 6, alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0' },
+  backButtonText: { color: '#333333', fontSize: 13, fontWeight: '500' },
+  paymentButton: { flex: 2, backgroundColor: '#10b981', padding: 12, borderRadius: 6, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  paymentButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
+  paymentButtonDisabled: { backgroundColor: '#999999', opacity: 0.6 },
 
-  // 📅 STYLES CALENDRIER (identiques à calendar.tsx mais adaptés pour modal)
-  calendarModal: { 
-    flex: 1, 
-    backgroundColor: '#ffffff' 
-  },
-  calendarModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  calendarModalTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  calendarModalContent: {
-    flex: 1,
-    padding: 16,
-  },
-  calendarModalActions: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  calendarCancelButton: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  calendarCancelButtonText: {
-    color: '#333333',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  calendarConfirmButton: {
-    flex: 1,
-    backgroundColor: '#000000',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  calendarConfirmButtonDisabled: {
-    backgroundColor: '#999999',
-    opacity: 0.6,
-  },
-  calendarConfirmButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  // Calendrier
+  calendarModal: { flex: 1, backgroundColor: '#ffffff' },
+  calendarModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  calendarModalTitle: { fontSize: 13, fontWeight: '600', color: '#000000' },
+  calendarModalContent: { flex: 1, padding: 16 },
+  calendarModalActions: { flexDirection: 'row', padding: 16, gap: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  calendarCancelButton: { flex: 1, backgroundColor: '#ffffff', padding: 12, borderRadius: 6, alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0' },
+  calendarCancelButtonText: { color: '#333333', fontSize: 13, fontWeight: '500' },
+  calendarConfirmButton: { flex: 1, backgroundColor: '#000000', padding: 12, borderRadius: 6, alignItems: 'center' },
+  calendarConfirmButtonDisabled: { backgroundColor: '#999999', opacity: 0.6 },
+  calendarConfirmButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
+  calendarPickerCard: { backgroundColor: '#ffffff', borderRadius: 8, padding: 20, borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 16 },
+  calendarPickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  monthTitle: { fontSize: 13, fontWeight: '600', color: '#000000' },
+  calendarActions: { flexDirection: 'row', gap: 8 },
+  monthNav: { padding: 8, borderRadius: 6, backgroundColor: '#f8f8f8' },
+  weekHeaderContainer: { flexDirection: 'row', marginBottom: 8 },
+  weekHeaderDay: { flex: 1, alignItems: 'center', paddingVertical: 8 },
+  weekHeaderText: { fontSize: 11, color: '#666666', fontWeight: '600' },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 16 },
+  calendarDay: { width: `${100/7}%`, aspectRatio: 1, padding: 4, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  todayDay: { backgroundColor: '#e8f4fd', borderRadius: 6 },
+  selectedDay: { backgroundColor: '#000000', borderRadius: 6 },
+  disabledDay: { opacity: 0.3 },
+  calendarDayText: { fontSize: 13, fontWeight: '600', color: '#333333' },
+  todayDayText: { color: '#2196F3' },
+  selectedDayText: { color: '#ffffff' },
+  disabledDayText: { color: '#cccccc' },
+  quickDateActions: { flexDirection: 'row', justifyContent: 'space-around', gap: 12 },
+  quickDateButton: { flex: 1, backgroundColor: '#f8f8f8', padding: 12, borderRadius: 6, alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0' },
+  quickDateButtonText: { fontSize: 12, color: '#333333', fontWeight: '500' },
+  selectedDatePreview: { backgroundColor: '#f8f8f8', padding: 16, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: '#000000' },
+  selectedDateText: { fontSize: 13, color: '#000000', fontWeight: '600', textAlign: 'center' },
 
-  // Carte calendrier
-  calendarPickerCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginBottom: 16,
-  },
-  calendarPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  monthTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  calendarActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  monthNav: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#f8f8f8',
-  },
-
-  // En-têtes jours de la semaine
-  weekHeaderContainer: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  weekHeaderDay: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  weekHeaderText: {
-    fontSize: 11,
-    color: '#666666',
-    fontWeight: '600',
-  },
-
-  // Grille calendrier
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 16,
-  },
-  calendarDay: {
-    width: `${100/7}%`,
-    aspectRatio: 1,
-    padding: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  todayDay: {
-    backgroundColor: '#e8f4fd',
-    borderRadius: 6,
-  },
-  selectedDay: {
-    backgroundColor: '#000000',
-    borderRadius: 6,
-  },
-  disabledDay: {
-    opacity: 0.3,
-  },
-  calendarDayText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333333',
-  },
-  todayDayText: {
-    color: '#2196F3',
-  },
-  selectedDayText: {
-    color: '#ffffff',
-  },
-  disabledDayText: {
-    color: '#cccccc',
-  },
-
-  // Actions rapides
-  quickDateActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 12,
-  },
-  quickDateButton: {
-    flex: 1,
-    backgroundColor: '#f8f8f8',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  quickDateButtonText: {
-    fontSize: 12,
-    color: '#333333',
-    fontWeight: '500',
-  },
-
-  // Aperçu date sélectionnée
-  selectedDatePreview: {
-    backgroundColor: '#f8f8f8',
-    padding: 16,
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#000000',
-  },
-  selectedDateText: {
-    fontSize: 13,
-    color: '#000000',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  
-  // Modal de sélection générique (pour heures/durées)
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    borderRadius: 6,
-    padding: 16,
-    width: '90%',
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  modalOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  selectedModalOption: {
-    backgroundColor: '#f5f5f5',
-  },
-  modalOptionText: { 
-    fontSize: 13, 
-    color: '#000000', 
-    flex: 1,
-    fontWeight: '400',
-  },
-  selectedModalText: { 
-    color: '#000000', 
-    fontWeight: '600' 
-  },
-  modalCancel: {
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 6,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  modalCancelText: {
-    fontSize: 13,
-    color: '#333333',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  timeScroll: { 
-    maxHeight: 250 
-  },
+  // Modales
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#ffffff', borderRadius: 6, padding: 16, width: '90%', maxHeight: '80%' },
+  modalTitle: { fontSize: 13, fontWeight: '600', color: '#000000', textAlign: 'center', marginBottom: 12 },
+  modalOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  selectedModalOption: { backgroundColor: '#f5f5f5' },
+  modalOptionText: { fontSize: 13, color: '#000000', flex: 1, fontWeight: '400' },
+  selectedModalText: { color: '#000000', fontWeight: '600' },
+  modalCancel: { backgroundColor: '#ffffff', padding: 12, borderRadius: 6, marginTop: 12, borderWidth: 1, borderColor: '#e0e0e0' },
+  modalCancelText: { fontSize: 13, color: '#333333', textAlign: 'center', fontWeight: '500' },
+  timeScroll: { maxHeight: 250 },
 });

@@ -1,0 +1,32 @@
+# Dossiers à ignorer par ESLint
+node_modules/
+.expo/
+dist/
+build/
+coverage/
+.expo-shared/
+web-mocks/
+
+# Fichiers temporaires OneDrive
+*.tmp
+*~
+.DS_Store
+desktop.ini
+thumbs.db
+$RECYCLE.BIN/
+
+# Logs et cache
+*.log
+*.pid
+*.seed
+*.pid.lock
+.nyc_output/
+
+# Configuration et build
+.env
+.env.local
+.env.*.local
+
+# Assets
+assets/
+public/
